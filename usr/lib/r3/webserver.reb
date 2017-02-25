@@ -101,11 +101,25 @@ webserver: make object! [
     if error? try [list: read dir] [
       return build-error-response 400 request ""
     ]
-    insert list ".."
-    sort list
-    data: copy {<head><meta name="viewport" content="initial-scale=1.0" /></head>}
+    sort/compare list func [x y] [
+      case [
+        all [dir? x not dir? y] [true]
+        all [not dir? x dir? y] [false]
+        y > x [true]
+        true [false]
+      ]
+    ]
+    insert list %../
+    data: copy {<head>
+      <meta name="viewport" content="initial-scale=1.0" />
+      <style> a {text-decoration: none} </style>
+    </head>}
     for-each i list [
-      append data ajoin [ {<a href="} i {">} i </a> <br/>]
+      append data ajoin [
+        {<a href="} i {">}
+        if dir? i ["&gt; "]
+        i </a> <br/>
+      ]
     ]
     return reduce [
       'status 200
