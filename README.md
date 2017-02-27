@@ -1,2 +1,1 @@
-Various rebol3 libraries...
-
+Various Ren/C libraries.
