@@ -30,7 +30,7 @@ usr/share/scripts/demo-html.reb \
 usr/share/scripts/demo-rec.reb \
 usr/share/scripts/demo-rem.reb \
 usr/share/scripts/factors.reb \
-usr/share/scripts/server.reb
+usr/share/scripts/start-webserver.reb
 
 ${DEB}: data.tar.gz control.tar.gz debian-binary makefile
 	ar r $@ debian-binary control.tar.gz data.tar.gz
@@ -53,6 +53,7 @@ control:
 	echo "Version: ${VERSION}" >> $@
 	echo "Architecture: ${ARCH}" >> $@
 	echo "Description:" >> $@
+	echo " ren-c libraries" >> $@
 	echo "" >> $@
 
 .PHONY: sync
@@ -104,7 +105,7 @@ clean:
 
 .PHONY: clean-usr
 clean-usr: makefile
-	@ rm _
+	@ rm -f _
 	@ for i in ${FILES}; do echo $$i >> _; done
 	@ find usr -type f >> _
 	@ for i in `sort _  | uniq -u`; do\
@@ -112,7 +113,7 @@ clean-usr: makefile
 		*~) rm -f $$i ;;\
 		*)  rm -i $$i ;;\
 		esac; done
-	@ rm _
+	@ rm -f _
 
 
 # vim: set ts=2 sts=2 sw=2 :
