@@ -5,6 +5,7 @@ ARCH = all
 DESCRIPTION = "some Rebol libraries"
 DEB = ${PACKAGE}_${VERSION}_${PLATFORM}.deb
 FILES = \
+etc/plugins/webserver.desktop \
 usr/bin/rebol.r \
 usr/lib/r3/altjson.reb \
 usr/lib/r3/complex.reb \

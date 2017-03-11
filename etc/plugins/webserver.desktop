@@ -1,0 +1,3 @@
+Name=Rebol WebServer
+Exec=/usr/bin/r3.bin
+Interactive=/usr/share/scripts/start-webserver.reb
