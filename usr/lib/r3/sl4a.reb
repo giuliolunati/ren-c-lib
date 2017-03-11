@@ -60,7 +60,7 @@ awake-handler: func [event /local tcp-port] [
 	] [true]
 ]
 
-sync-write: func [sl4a-port [port!] JSON-string
+sync-write: proc [sl4a-port [port!] JSON-string
 	/local tcp-port
 ] [
 	unless open? sl4a-port [
@@ -133,22 +133,25 @@ sl4a: function [
 	id: id + 1
 	k: t: _
 	m: :method
+  if m = 'browse [
+    m: 'view
+    params: reduce [params _ _]
+  ]
 	i: id
 	p: either/only block? params
 		reduce params
 		either/only params
 			reduce [params]
 			[]
-	res: write client join to-json object [
+	res: join to-json object [
 		id: i
 		method: m
 		params: p
 	] "^/"
+	res: write client probe res
 	load-json res
 ]
 
-lib/browse: func [url] [sl4a view [url _ _]]
-
 sl4a _authenticate get-env 'AP_HANDSHAKE
 
-comment[ vim: set sw=2 ts=2 sts=2: ]
+; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
