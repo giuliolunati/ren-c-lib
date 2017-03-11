@@ -291,7 +291,7 @@ to-json: use [
           lookup ; resolve a GET-WORD! reference
         | number! (emit here/1)
         | [logic! | 'true | 'false] (emit to string! here/1)
-        | [blank! | 'none | 'blank] (emit 'null)
+        | [blank! | 'none | 'blank] (emit quote 'null)
         | date! emit-date
         | issue! emit-issue
         | [
