@@ -1,15 +1,14 @@
 REBOL [
 	title: "SL4A interface"
-	name: 'sl4a
+	name: 'android
 	type: 'module
-	exports: [sl4a]
+	exports: [android]
 	needs: [altjson]
 	Purpose: "R3 interface for Scripting Layer 4 Android"
 	System: "Rebol 3 Language Interpreter and Run-time Environment"
-	file: %sl4a.reb
 	author: ["Graham Chiu" "Giulio Lunati"]
 	version: 0.0.1
-	Date: [22-Apr-2014]
+	Date: [12-Mar-2017]
 ]
 make-sl4a-error: func [
 	message
@@ -122,7 +121,7 @@ sys/make-scheme [
 		]
 	]
 ]
-sl4a: function [
+android: function [
   'method params
   <static>
   id (0)
@@ -148,10 +147,10 @@ sl4a: function [
 		method: m
 		params: p
 	] "^/"
-	res: write client probe res
+	res: write client res
 	load-json res
 ]
 
-sl4a _authenticate get-env 'AP_HANDSHAKE
+android _authenticate get-env 'AP_HANDSHAKE
 
 ; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

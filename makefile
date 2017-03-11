@@ -8,6 +8,7 @@ FILES = \
 etc/plugins/webserver.desktop \
 usr/bin/rebol.r \
 usr/lib/r3/altjson.reb \
+usr/lib/r3/android.reb \
 usr/lib/r3/complex.reb \
 usr/lib/r3/csv.reb \
 usr/lib/r3/custom.reb \
@@ -19,7 +20,6 @@ usr/lib/r3/profile.reb \
 usr/lib/r3/rec.reb \
 usr/lib/r3/rem.reb \
 usr/lib/r3/rewrite.r \
-usr/lib/r3/sl4a.reb \
 usr/lib/r3/sort.reb \
 usr/lib/r3/text.reb \
 usr/lib/r3/webserver.reb \
