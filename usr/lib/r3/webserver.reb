@@ -144,8 +144,16 @@ webserver: make object! [
       2 [print [newline request]]
     ]
     mimetype: ext-map/(request/file-type)
-    file: join-of root request/path
-    filetype: exists? file
+    either parse request/url ["/http" opt #"s" "://"to end] [
+      file: to-url request/url: next request/url
+      filetype: 'file
+      request/Host: request/path-elements/3
+      request/path-elements: skip request/path-elements 3
+      unless mimetype [mimetype: 'html]
+    ][
+      file: join-of root request/path
+      filetype: exists? file
+    ]
     if filetype = 'dir [
       while [#"/" = last file] [take/last file]
       append file #"/"
