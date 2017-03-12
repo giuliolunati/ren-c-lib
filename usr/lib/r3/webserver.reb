@@ -89,7 +89,12 @@ webserver: make object! [
         'code status-code
         'text code-map/:status-code
         'info info
-        'request form reduce [request/string newline newline mold request]
+        'request form reduce [
+          request/method
+          request/url
+          newline newline
+          mold request
+        ]
         'r3 system/version
       ]
     ]
@@ -135,7 +140,7 @@ webserver: make object! [
     data: file-index:
     ][
     switch verbose [
-      1 [print request/string]
+      1 [print [request/method request/url]] 
       2 [print [newline request]]
     ]
     mimetype: ext-map/(request/file-type)

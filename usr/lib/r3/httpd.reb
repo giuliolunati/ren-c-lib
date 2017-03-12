@@ -39,13 +39,13 @@ parse-request: function [
     req: make map! []
     parse request [
         copy method: to #" " skip
-        copy path: to #" " skip
+        copy url: to #" " skip
         copy version: to newline newline
         (
             req/method: method
             req/version: version
-            req/string: ajoin [method space path]
-            set [path: query-string:] split path #"?"
+            req/url: url
+            set [path: query-string:] split url #"?"
             path: deurl path
             req/path: path
             req/path-elements: next split path #"/"
