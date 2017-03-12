@@ -9,6 +9,7 @@ REBOL [
 ]
 
 import 'httpd
+import 'android
 rem: import 'rem
 html: import 'html
 
@@ -130,7 +131,8 @@ webserver: make object! [
 
   handle-request: func [
     request [map!]
-    mimetype: file: filetype: data: file-index:
+    mimetype: file: filetype:
+    data: file-index:
     ][
     switch verbose [
       1 [print request/string]
@@ -149,10 +151,14 @@ webserver: make object! [
         400 request "No folder access."
     ]
     if filetype = 'file [
-      either error? data: trap [read file] [
-        return build-error-response 400 request join-of "Cannot read file " file
-      ][
-        if any [mimetype = 'rem all [
+      case [
+        error? data: trap [read file] [
+          return build-error-response
+            400
+            request
+            join-of "Cannot read file " file
+        ]
+        any [ mimetype = 'rem all [
           mimetype = 'html 
           "REBOL" = uppercase to-string copy/part data 5
         ] ] [
@@ -161,11 +167,25 @@ webserver: make object! [
           ] [data: form data mimetype: 'text]
           [mimetype: 'html]
         ]
-        return reduce [
-          'status 200
-          'type mime/mimetype
-          'content data
+        mimetype = 'rebol [
+          mimetype: 'html
+          if error? data: trap [
+            data: do data
+          ] [mimetype: 'text]
+          if any-function? :data [
+            data: data request
+          ]
+          if block? data [
+            mimetype: first data
+            data: next data
+          ]
+          data: form data
         ]
+      ]
+      return reduce [
+        'status 200
+        'type mime/:mimetype
+        'content data
       ]
     ]
     return build-error-response 404 request ""
