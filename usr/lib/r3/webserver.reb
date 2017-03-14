@@ -143,7 +143,7 @@ webserver: make object! [
 
   handle-request: func [
     request [map!]
-    mimetype: file: filetype:
+    mimetype: path: filetype:
     data: file-index:
     ][
     switch verbose [
@@ -152,31 +152,40 @@ webserver: make object! [
     ]
     mimetype: ext-map/(request/file-type)
     either parse request/url ["/http" opt #"s" "://"to end] [
-      file: to-url request/url: next request/url
+      path: to-url request/url: next request/url
       filetype: 'file
       request/Host: request/path-elements/3
       request/path-elements: skip request/path-elements 3
       unless mimetype [mimetype: 'html]
     ][
-      file: join-of root request/path
-      filetype: exists? file
+      path: join-of root request/path
+      filetype: exists? path
     ]
     if filetype = 'dir [
-      while [#"/" = last file] [take/last file]
-      append file #"/"
-      if access-dir [ 
-        return html-list-dir file
+      while [#"/" = last path] [take/last path]
+      append path #"/"
+      for-each ext ["reb" "rem" "html"] [
+        file-index: join-of path join-of %index. ext
+        mimetype: ext-map/:ext
+        if 'file = filetype: exists? file-index [break]
       ]
-      return build-error-response
-        400 request "No folder access."
+      either filetype = 'file [
+        path: file-index
+      ][
+        if access-dir [ 
+          return html-list-dir path
+        ]
+        return build-error-response
+          400 request "No folder access."
+      ]
     ]
     if filetype = 'file [
       case [
-        error? data: trap [read file] [
+        error? data: trap [read path] [
           return build-error-response
             400
             request
-            join-of "Cannot read file " file
+            join-of "Cannot read file " path
         ]
         any [ mimetype = 'rem all [
           mimetype = 'html 
