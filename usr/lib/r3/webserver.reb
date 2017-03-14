@@ -129,16 +129,12 @@ webserver: make object! [
     </head>}
     for-each i list [
       append data ajoin [
-        {<a href="} i {">}
+        {<a href="} join-of dir i {">}
         if dir? i ["&gt; "]
         i </a> <br/>
       ]
     ]
-    return reduce [
-      'status 200
-      'type mime/html
-      'content data
-    ]
+    data
   ]
 
   handle-request: func [
@@ -173,7 +169,11 @@ webserver: make object! [
         path: file-index
       ][
         if access-dir [ 
-          return html-list-dir path
+          return reduce [
+            'status 200
+            'type mime/html
+            'content html-list-dir path
+          ]
         ]
         return build-error-response
           400 request "No folder access."
