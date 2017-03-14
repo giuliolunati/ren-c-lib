@@ -20,13 +20,6 @@ Rebol [
 
 attempt [_: none] ; for Rebolsource Rebol 3 Compatibility
 
-deurl: function [
-    "decode an url encoded string"
-    s [string!]
-][
-    dehex replace/all s #"+" #" "
-]
-
 parse-request: function [
     ;; from Ingo Hohmann's Websy
     ;; https://github.com/IngoHohmann/websy
@@ -36,18 +29,26 @@ parse-request: function [
 ][
     name-char: complement charset ":"
     query-split-char: charset "&="
+    path-term: charset "?# "
+    query-term: charset "# "
+    url: path: query-string: fragment: _
     req: make map! []
     parse request [
-        copy method: to #" " skip
-        copy url: to #" " skip
+        copy method: to space skip
+        copy url [
+          copy path to path-term
+          opt [#"?" copy query-string to query-term]
+          opt [#"?" copy fragment to space]
+        ]
+        space
         copy version: to newline newline
         (
             req/method: method
             req/version: version
             req/url: url
-            set [path: query-string:] split url #"?"
-            path: deurl path
             req/path: path
+            req/query-string: query-string
+            req/fragment: fragment 
             req/path-elements: next split path #"/"
             req/file-name: last req/path-elements
             either pos: find/last req/file-name #"." [
@@ -56,11 +57,6 @@ parse-request: function [
             ][
                 req/file-base: req/file-name
                 req/file-type: ""
-            ]
-            either all[set? 'query-string query-string ] [
-                req/query-string: query-string
-            ][
-                req/query-string: ""
             ]
         )
         any [

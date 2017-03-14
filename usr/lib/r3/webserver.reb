@@ -16,6 +16,13 @@ html: import 'html
 mold-html: :html/mold-html
 load-rem: :rem/load-rem
 
+deurl: function [
+    "decode an url encoded string"
+    s [string!]
+][
+    dehex replace/all s #"+" #" "
+]
+
 webserver: make object! [
   ;; config
   access-dir: true ;; 
