@@ -71,7 +71,7 @@ webserver: make object! [
     <pre>$request</pre>
     <hr>
     <i>server.reb</i>
-    on <a href="http://github.com/metaeducation/ren-c/">Ren/C</a> $r3
+    on <a href="http://github.com/metaeducation/ren-c/">Ren/C</a> $version
     </body></html>
   }
 
@@ -95,7 +95,7 @@ webserver: make object! [
           newline newline
           mold request
         ]
-        'r3 system/version
+        'version system/version
       ]
     ]
   ]
