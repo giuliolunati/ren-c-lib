@@ -166,7 +166,7 @@ load-html: func [
       ]
       x: next x
     ]
-    if is-empty/:t [return node]
+    if find is-empty t [return node]
     c: make block! 8
     forever [
       case [
@@ -278,7 +278,7 @@ mold-html: func [
           append ret v
           append ret #">"
         ]
-        is-empty/:tag [append ret "/>"]
+        find is-empty tag [append ret "/>"]
         true [
           append ret #">"
           append ret
