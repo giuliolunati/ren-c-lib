@@ -1,160 +1,326 @@
 Rebol [
-    Title: "HTTPD Scheme"
-    Name: 'httpd
-    Type: module
-    Date: 10-Jun-2013
-    Author: [
-        "Giulio Lunati" 21-Feb-2017 "Various enhancements"
-        "Christopher Ross-Gill" 4-Jan-2017 "Adaptation to Scheme"
-        "Andreas Bolka" 4-Nov-2009 "A Tiny HTTP Server"
-    ]
-    File: %httpd.reb
-    Version: 0.1.0
-    Rights: http://opensource.org/licenses/Apache-2.0
-    Purpose: {
-        A Tiny Static Webserver Scheme for Rebol 3
-        Based on 'A Tiny HTTP Server' by Andreas Bolka
-        https://github.com/earl/rebol3/blob/master/scripts/shttpd.r
-    }
+	Title: "Web Server Scheme for Ren-C"
+	Author: "Christopher Ross-Gill"
+	Date: 23-Feb-2017
+	File: %httpd.reb
+	Version: 0.3.0
+	Purpose: "An elementary Web Server scheme for creating fast prototypes"
+	Rights: http://opensource.org/licenses/Apache-2.0
+	; Type: 'module
+	; Name: 'rgchris.httpd
+	History: [
+		23-Feb-2017 0.3.0 "Adapted from Rebol 2"
+		06-Feb-2017 0.2.0 "Include HTTP Parser/Dispatcher"
+		12-Jan-2017 0.1.0 "Original Version"
+	]
 ]
 
-attempt [_: none] ; for Rebolsource Rebol 3 Compatibility
+net-utils: reduce ['net-log _]
 
-parse-request: function [
-    ;; from Ingo Hohmann's Websy
-    ;; https://github.com/IngoHohmann/websy
-    {parse request and return a map! with header-names as keys
-    (standard headers are words, others are strings) }
-    request [string!]
-][
-    name-char: complement charset ":"
-    query-split-char: charset "&="
-    path-term: charset "?# "
-    query-term: charset "# "
-    url: path: query-string: fragment: _
-    req: make map! []
-    parse request [
-        copy method: to space skip
-        copy url [
-          copy path to path-term
-          opt [#"?" copy query-string to query-term]
-          opt [#"?" copy fragment to space]
-        ]
-        space
-        copy version: to newline newline
-        (
-            req/method: method
-            req/version: version
-            req/url: url
-            req/path: path
-            req/query-string: query-string
-            req/fragment: fragment 
-            req/path-elements: next split path #"/"
-            req/file-name: last req/path-elements
-            either pos: find/last req/file-name #"." [
-                req/file-base: copy/part req/file-name pos
-                req/file-type: copy next pos
-            ][
-                req/file-base: req/file-name
-                req/file-type: ""
-            ]
-        )
-        any [
-            copy name: [some name-char] 2 skip copy data: to newline
-            ( name: to-word name    req/:name: data )
-            newline
-        ]
-        newline
-        copy content-string: to end
-        (
-            req/content-string: content-string
-            req/content: map split content-string query-split-char
-        )
-    ]
-    req
+as-string: func [binary [binary!] /local mark][
+	mark: binary
+	while [mark: invalid-utf8? mark][
+		mark: change/part mark #{EFBFBD} 1
+	]
+	to string! binary
 ]
 
 sys/make-scheme [
-    Title: "HTTP Server"
-    Name: 'httpd
+	title: "HTTP Server"
+	name: 'httpd
 
-    Actor: [
-        Open: func [port [port!]][
-            ; probe port/spec
-            port/locals: make object! [
-                subport: open [
-                    scheme: 'tcp
-                    port-id: port/spec/port-id
-                ]
-                subport/awake: :port/scheme/awake-server
-                subport/locals: make object! [
-                    parent: :port
-                    body: _
-                ]
-            ]
+	spec: make system/standard/port-spec-head [port-id: does: _]
 
-            port
-        ]
+	default-response: [probe request/action]
 
-        Close: func [port [port!]][
-            close port/locals/subport
-        ]
-    ]
+	init: func [server [port!] /local spec port-id does][
+		spec: server/spec
 
-    Status-Codes: make map! [
-        200 "OK" 400 "Forbidden" 404 "Not Found"
-    ]
+		case [
+			url? spec/ref []
+			block? spec/does []
+			parse spec/ref [
+				set-word! lit-word!
+				integer! block!
+			][
+				spec/port-id: spec/ref/3
+				spec/does: spec/ref/4
+			]
+			/else [
+				do make error! "Server lacking core features."
+			]
+		]
 
-    Respond: func [port response][
-        write port ajoin ["HTTP/1.0 " response/status " " status-codes/(response/status) crlf]
-        write port ajoin ["Content-Type: " response/type crlf]
-        write port ajoin ["Content-Length: " length? response/content crlf]
-        write port crlf
-           ;; Manual chunking is only necessary because of several bugs in R3's
-           ;; networking stack (mainly cc#2098 & cc#2160; in some constellations also
-           ;; cc#2103). Once those are fixed, we should directly use R3's internal
-           ;; chunking instead: `write port body`.
-        port/locals/body: to binary! response/content
-    ]
+		server/locals: make object! [
+			handler: subport: _
+		]
 
-    Send-Chunk: func [port [port!]][
-           ;; Trying to send data >32'000 bytes at once will trigger R3's internal
-           ;; chunking (which is buggy, see above). So we cannot use chunks >32'000
-           ;; for our manual chunking.
-        either empty? port/locals/body [true][write port take/part port/locals/body 32'000]
-    ]
+		server/locals/handler: func [
+			request [object!]
+			response [object!]
+		] case [
+			function? get in server 'awake [body-of get in server 'awake]
+			block? server/awake [server/awake]
+			block? server/spec/does [server/spec/does]
+			true [default-response]
+		]
 
-    Awake-Client: use [q] [
-        
-        func [event [event!] /local port request response][
-            port: event/port
+		server/locals/subport: make port! [scheme: 'tcp]
+		server/locals/subport/spec/port-id: spec/port-id
+		server/locals/subport/locals: make object! [
+			request: response: _
+			wire: make binary! 4096
+			parent: :server
+		]
 
-            switch event/type [
-                read [
-                    either find port/data to-binary rejoin [crlf crlf] [
-                        request: parse-request to-string port/data
-                        q: query port
-                        request/remote-ip: q/remote-ip
-                        request/remote-port: q/remote-port
-                        response: port/locals/parent/awake request
-                        respond port response
-                    ][
-                        read port
-                    ]
-                ]
-                wrote [unless send-chunk port [close port] port]
-                close [close port]
-            ]
-        ]
-    ]
+		server/locals/subport/awake: func [event [event!] /local client server] compose [
+			; server: (:server)
+			if event/type = 'accept [
+				client: first event/port
+				client/awake: :wake-client
+				read client
+			]
 
-    Awake-Server: func [event [event!] /local client] [
-        if event/type = 'accept [
-            client: first event/port
-            client/awake: :awake-client
-            read client
-        ]
-        event
-    ]
+			; event
+			false
+		]
+
+		server
+	]
+
+	start: func [port [port!]][
+		append system/ports/wait-list port
+	]
+
+	stop: func [port [port!]][
+		remove find system/ports/wait-list port
+		close port
+	]
+
+	actor: [
+		open: func [server [port!]][
+			print ["Server running on port:" server/spec/port-id]
+			start server/locals/subport
+			open server/locals/subport
+		]
+
+		close: func [server [port!]][
+			stop server/locals/subport
+		]
+	]
+
+	request-prototype: make object! [
+		version: 1.1
+		method: "GET"
+		action: headers: http-headers: _
+		oauth: target: binary: content: length: timeout: _
+		type: 'application/x-www-form-urlencoded
+		server-software: rejoin [
+			system/script/header/title " v" system/script/header/version " "
+			"Rebol/" system/product " v" system/version
+		]
+		server-name: gateway-interface: _
+		server-protocol: "http"
+		server-port: request-method: request-uri:
+		path-info: path-translated: script-name: query-string:
+		remote-host: remote-addr: auth-type:
+		remote-user: remote-ident: content-type: content-length: _
+		error: _
+	]
+
+	response-prototype: make object! [
+		status: 404
+		content: "Not Found"
+		location: _
+		type: "text/html"
+		length: 0
+		kill?: false
+		close?: true
+	]
+
+	wake-client: use [instance][
+		instance: 0
+
+		func [event [event!] /local client request response this][
+			client: event/port
+
+			switch/default event/type [
+				read [
+					++ instance
+					; print rejoin ["[" instance "]"]
+
+					either find client/data #{0D0A0D0A} [
+						transcribe client
+						dispatch client
+					][
+						read client
+					]
+				]
+
+				wrote [
+					unless send-chunk client [
+						if client/locals/response/kill? [
+							close client
+							stop client/locals/parent
+						]
+					]
+					client
+				]
+				close [close client]
+			][
+				; probe event/type
+			]
+		]
+	]
+
+	transcribe: use [
+		space request-action request-path request-query
+		header-prototype header-feed header-name header-part
+	][
+		request-action: ["HEAD" | "GET" | "POST" | "PUT" | "DELETE"]
+
+		request-path: use [chars][
+			chars: complement charset [#"^@" - #" " #"?"]
+			[some chars]
+		]
+
+		request-query: use [chars][
+			chars: complement charset [#"^@" - #" "]
+			[some chars]
+		]
+
+		header-feed: [newline | crlf]
+
+		header-part: use [chars][
+			chars: complement charset [#"^(00)" - #"^(1F)"]
+			[some chars any [header-feed some " " some chars]]
+		]
+
+		header-name: use [chars][
+			chars: charset ["_-0123456789" #"a" - #"z" #"A" - #"Z"]
+			[some chars]
+		]
+
+		space: use [space][
+			space: charset " ^-"
+			[some space]
+		]
+
+		header-prototype: context [
+			Accept: "*/*"
+			Connection: "close"
+			User-Agent: rejoin ["Rebol/" system/product " " system/version]
+			Content-Length: Content-Type: Authorization: Range: _
+		]
+
+		transcribe: func [
+			client [port!]
+			/local request name value pos
+		][
+			client/locals/request: make request-prototype [
+				either parse client/data [
+					copy method request-action space
+					copy request-uri [
+						copy target request-path opt [
+							"?" copy query-string request-query
+						]
+					] space
+					"HTTP/" copy version ["1.0" | "1.1"]
+					header-feed
+					(headers: make block! 10)
+					some [
+						copy name header-name ":" any " "
+						copy value header-part header-feed
+						(
+							name: as-string name
+							value: as-string value
+							append headers reduce [to set-word! name value]
+							switch name [
+								"Content-Type" [content-type: value]
+								"Content-Length" [length: content-length: value]
+							]
+						)
+					]
+					header-feed content: to end (
+						binary: copy :content
+						content: does [content: as-string binary]
+					)
+				][
+					version: to string! :version
+					request-method: method: to string! :method
+					path-info: target: as-string :target
+					action: reform [method target]
+					request-uri: as-string request-uri
+					server-port: query/mode client 'local-port
+					remote-addr: query/mode client 'remote-ip
+
+					headers: make header-prototype http-headers: new-line/all/skip headers true 2
+
+					type: if string? headers/Content-Type [
+						copy/part type: headers/Content-Type any [
+							find type ";"
+							tail type
+						]
+					]
+
+					length: content-length: any [
+						attempt [length: to integer! length]
+						0
+					]
+
+					net-utils/net-log action
+				][
+					; action: target: request-method: query-string: binary: content: request-uri: _
+					net-utils/net-log error: "Could Not Parse Request"
+				]
+			]
+		]
+	]
+
+	dispatch: use [status-codes][
+		status-codes: [
+			200 "OK" 201 "Created" 204 "No Content"
+			301 "Moved Permanently" 302 "Moved temporarily" 303 "See Other" 307 "Temporary Redirect"
+			400 "Bad Request" 401 "No Authorization" 403 "Forbidden" 404 "Not Found" 411 "Length Required"
+			500 "Internal Server Error" 503 "Service Unavailable"
+		]
+
+		func [client [port!] /local response continue?][
+			probe client/locals/wire
+			client/locals/response: response: make response-prototype []
+			client/locals/parent/locals/handler client/locals/request response
+			write client append make binary! 0 collect [
+				case/all [
+					not find status-codes response/status [
+						response/status: 500
+					]
+					any [
+						not find [binary! string!] to word! type-of response/content
+						empty? response/content
+					][
+						response/content: " "
+					]
+				]
+
+				keep reform ["HTTP/1.0" response/status select status-codes response/status]
+				keep reform ["^/Content-Type:" response/type]
+				keep reform ["^/Content-Length:" length? response/content]
+				if response/location [
+					keep reform ["^/Location:" response/location]
+				]
+				keep "^/^/"
+			]
+
+			insert client/locals/wire response/content
+		]
+	]
+
+	send-chunk: func [port [port!]][
+		   ;; Trying to send data >32'000 bytes at once will trigger R3's internal
+		   ;; chunking (which is buggy, see above). So we cannot use chunks >32'000
+		   ;; for our manual chunking.
+		either empty? port/locals/wire [_][
+			write port take/part port/locals/wire 32'000
+		]
+	]
 ]
-;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

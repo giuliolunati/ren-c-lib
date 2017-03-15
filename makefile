@@ -20,6 +20,7 @@ usr/lib/r3/profile.reb \
 usr/lib/r3/rec.reb \
 usr/lib/r3/rem.reb \
 usr/lib/r3/rewrite.r \
+usr/lib/r3/shttpd.reb \
 usr/lib/r3/sort.reb \
 usr/lib/r3/text.reb \
 usr/lib/r3/webserver.reb \

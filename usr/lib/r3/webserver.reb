@@ -8,7 +8,7 @@ REBOL [
   Date: 2017-02-24
 ]
 
-import 'httpd
+import 'shttpd
 import 'android
 rem: import 'rem
 html: import 'html
