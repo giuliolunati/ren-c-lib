@@ -263,6 +263,7 @@ mold-html: func [
     tag: get-tag-name x [
       ret: make string! 512
       if tag = 'doc [tag: 'html]
+      if tag = 'head [tag: 'header]
       append ret #"<"
       append ret tag
       for-each-attribute k v x [

@@ -13,7 +13,7 @@ rem: make object! [
   space: :lib/space
   func: :lib/func
 
-  doc: head: title: style: script: body:
+  doc: header: title: style: script: body:
   div: h1: h2: h3: h4: h5: h6: p:
   span: a: b: i:
   table: tr: td:
