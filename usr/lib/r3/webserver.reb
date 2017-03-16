@@ -2,7 +2,7 @@ REBOL [
   Title: "Static web server"
   Type: module
   Name: 'webserver
-  Exports: [webserver]
+  Exports: [webserver rem-to-html html-list-dir]
   Author: "Giulio Lunati"
   Email: giuliolunati@gmail.com
   Date: 2017-02-24
@@ -13,8 +13,37 @@ import 'android
 rem: import 'rem
 html: import 'html
 
-mold-html: :html/mold-html
-load-rem: :rem/load-rem
+rem-to-html: chain [:rem/load-rem :html/mold-html]
+
+html-list-dir: function [
+  "Output dir contents in HTML."
+  dir [file!]
+  ][
+  if error? try [list: read dir] [
+    return build-error-response 400 request ""
+  ]
+  sort/compare list func [x y] [
+    case [
+      all [dir? x not dir? y] [true]
+      all [not dir? x dir? y] [false]
+      y > x [true]
+      true [false]
+    ]
+  ]
+  insert list %../
+  data: copy {<head>
+    <meta name="viewport" content="initial-scale=1.0" />
+    <style> a {text-decoration: none} </style>
+  </head>}
+  for-each i list [
+    append data ajoin [
+      {<a href="} join-of dir i {">}
+      if dir? i ["&gt; "]
+      i </a> <br/>
+    ]
+  ]
+  data
+]
 
 deurl: function [
     "decode an url encoded string"
@@ -107,36 +136,6 @@ webserver: make object! [
     ]
   ]
 
-  html-list-dir: function [
-    "Output dir contents in HTML."
-    dir [file!]
-    ][
-    if error? try [list: read dir] [
-      return build-error-response 400 request ""
-    ]
-    sort/compare list func [x y] [
-      case [
-        all [dir? x not dir? y] [true]
-        all [not dir? x dir? y] [false]
-        y > x [true]
-        true [false]
-      ]
-    ]
-    insert list %../
-    data: copy {<head>
-      <meta name="viewport" content="initial-scale=1.0" />
-      <style> a {text-decoration: none} </style>
-    </head>}
-    for-each i list [
-      append data ajoin [
-        {<a href="} join-of dir i {">}
-        if dir? i ["&gt; "]
-        i </a> <br/>
-      ]
-    ]
-    data
-  ]
-
   handle-request: func [
     request [map!]
     mimetype: path: filetype:
@@ -192,7 +191,7 @@ webserver: make object! [
           "REBOL" = uppercase to-string copy/part data 5
         ] ] [
           either error? data: trap [
-            mold-html load-rem load data
+            rem-to-html load data
           ] [data: form data mimetype: 'text]
           [mimetype: 'html]
         ]
