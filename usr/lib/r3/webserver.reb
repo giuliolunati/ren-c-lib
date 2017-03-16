@@ -159,12 +159,9 @@ webserver: make object! [
     if filetype = 'dir [
       while [#"/" = last path] [take/last path]
       append path #"/"
-      for-each ext ["reb" "rem" "html"] [
-        file-index: join-of path join-of %index. ext
-        mimetype: ext-map/:ext
-        if 'file = filetype: exists? file-index [break]
-      ]
-      either filetype = 'file [
+      file-index: join-of path %index.reb
+      either 'file = filetype: exists? file-index [
+        mimetype: 'rebol
         path: file-index
       ][
         if access-dir [ 
