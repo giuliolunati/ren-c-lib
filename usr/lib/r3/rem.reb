@@ -5,7 +5,7 @@ REBOL [
   Email: giuliolunati@gmail.com
   Description: "REbol Markup format"
   Needs: [dot]
-  Exports: [load-rem]
+  Exports: [load-rem mold-rem]
 ]
 
 rem: make object! [
@@ -71,9 +71,9 @@ rem: make object! [
       ]
       break
     ]
+    if id [set-attribute node 'id id]
     if style [set-attribute node 'style style]
     if class [set-attribute node 'class form class]
-    if id [set-attribute node 'id id]
     if 'TAG = get :w [
       case [
         block? t [
@@ -153,6 +153,79 @@ load-rem: func [
   [ x: bind x rem ]
   x: make varargs! x
   apply :rem/rem [args: x look: x]
+]
+
+mold-rem: func [
+    x
+    ret: tag: k: v:
+  ][
+  case [
+    tag: get-tag-name x [
+      ret: make string! 512
+      append ret tag
+      if v: x/id [
+        append ret " #"
+        append ret v
+      ]
+      if v: x/class [
+        for-each v split v [some space] [
+          append ret " ."
+          append ret v
+        ]
+      ]
+      for-each-attribute k v x [
+        case [
+          find [id class] k [continue]
+          find [href src] k [
+            if string? v [
+              k: attempt [load v]
+              either k [v: :k]
+              [v: to-file v]
+            ]
+            append ret space
+            append ret mold v
+          ]
+          k = 'style [
+            for-each [k v] v [
+              append ret space
+              append ret to-set-word k
+              append ret space
+              append ret mold v
+            ]
+          ]
+          true [
+            append ret space 
+            append ret to-refinement k
+            append ret space
+            append ret mold v
+          ]
+        ]
+      ]
+      v: get-content x
+      unless v [return ret]
+      append ret space
+      case [
+        any [tag = '! tag = '?] [
+          append ret v
+        ]
+        true [
+          append ret mold-rem v
+        ]
+      ]
+    ]
+    block? x [
+      ret: make string! 512
+      append ret #"["
+      forall x [
+        unless head? x [append ret space]
+        append ret mold-rem x/1
+      ]
+      append ret #"]"
+    ]
+    tag? x [ret: form x]
+    true [ret: mold x]
+  ]
+  ret
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

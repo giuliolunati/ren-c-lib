@@ -54,6 +54,7 @@ set-attribute: func [
     name [word!]
     value
   ][
+  if any-word? value [value: form value]
   append node name append/only node value
 ]
 
