@@ -157,11 +157,15 @@ load-rem: func [
 
 mold-rem: func [
     x
-    ret: tag: k: v:
+    ret: tag: k: n: v:
   ][
   case [
     tag: get-tag-name x [
       ret: make string! 512
+      if find layout tag [
+        break-line indent ret
+        if layout/:tag > 0 [++ indent]
+      ]
       append ret tag
       if v: x/id [
         append ret " #"
@@ -202,23 +206,32 @@ mold-rem: func [
         ]
       ]
       v: get-content x
-      unless v [return ret]
-      append ret space
-      case [
-        any [tag = '! tag = '?] [
-          append ret v
-        ]
-        true [
-          append ret mold-rem v
+      if v [
+        append ret space
+        case [
+          any [tag = '! tag = '?] [
+            append ret v
+          ]
+          true [
+            append ret mold-rem v
+          ]
         ]
       ]
+      if all [
+        find layout tag
+        layout/:tag > 0
+      ] [-- indent]
+      ret
     ]
     block? x [
       ret: make string! 512
-      append ret #"["
+      append ret #"[" n: line-number
       forall x [
         unless head? x [append ret space]
         append ret mold-rem x/1
+      ]
+      if line-number > n [
+        break-line indent - 1 ret
       ]
       append ret #"]"
     ]
@@ -227,5 +240,33 @@ mold-rem: func [
   ]
   ret
 ]
+line-number: 1
+indent: 0
+indent-width: 2
+break-line: func [
+  indent [integer!]
+  buffer [string!]
+  ][
+  append buffer newline
+  append/dup buffer space indent * indent-width
+  line-number: line-number + 1
+]
 
+layout: make map! [
+  ; break line before with current indent
+  ; 0: do not indent content
+  ; 1: also indent content
+  body 0
+  br 0
+  div 1
+  h1 1 h2 1 h3 1 h4 1 h5 1 h6 1
+  header 1
+  hr 0
+  meta 0
+  p 1
+  table 1
+  title 1
+  tr 1
+
+]
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
