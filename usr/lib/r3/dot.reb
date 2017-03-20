@@ -5,6 +5,7 @@ REBOL [
   Email: giuliolunati@gmail.com
   Description: "DOcument Tree"
   Exports: [
+    dot-clean
     for-each-attribute
     get-content
     get-tag-name
@@ -60,4 +61,39 @@ set-attribute: func [
 
 set-content: specialize :set-attribute [name: '.]
 
+spacer: charset " ^-^/"
+
+dot-clean: func [
+  x [string! tag! block!]
+  /trim
+  t: tag:
+  ][
+  case [
+    string? x [
+      if trim [lib/trim/lines x]
+      else [
+        parse x [any [
+          to spacer change [some spacer] space
+        ] ]
+      ]
+    ]
+    tag: get-tag-name x [
+      if t: get-content x [
+        if find [doc header body div p h1 h2 h3 h4 h5 h6] tag [dot-clean/trim t]
+        else [dot-clean t]
+      ]
+    ]
+    block? x [
+      forall x [dot-clean x/1]
+      if trim [
+        while [" " = x/1] [take x]
+        if string? x/1 [lib/trim/head x/1]
+        while [" " = last x] [take/last x]
+        if string? last x [lib/trim/tail last x]
+      ]
+    ]
+  ]
+  x
+]
+  
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

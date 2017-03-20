@@ -159,6 +159,7 @@ mold-rem: func [
     x
     ret: tag: k: n: v:
   ][
+  x: dot-clean x
   case [
     tag: get-tag-name x [
       ret: make string! 512

@@ -1,3 +1,4 @@
+import 'dot
 import 'rem
 import 'html
 
@@ -19,6 +20,6 @@ test: either a [
     ]
   ]
 ]
-test: mold-rem test
+test: mold-rem dot-clean test
 print test
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
