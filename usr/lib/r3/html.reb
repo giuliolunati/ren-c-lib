@@ -147,7 +147,7 @@ split-html: function [data [string!]] [
 ]
 
 load-html: func [
-    x [block! string!]
+    x [block! string! file!]
     get-tag: dot: t:
   ][
   get-tag: func [c: t: node:] [
@@ -190,6 +190,7 @@ load-html: func [
     node
   ]
 
+  if file? x [x: read/string x]
   if string? x [x: split-html x]
   dot: make block! 8
   forever [

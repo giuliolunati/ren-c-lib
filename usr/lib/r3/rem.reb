@@ -144,9 +144,10 @@ rem: make object! [
 ]
 
 load-rem: func [
-    x [block! string!]
+    x [block! string! file!]
     /secure t:
   ][
+  if file? x [x: load x]
   if string? x [return x]
   either secure
   [ x: bind/new x rem ]
