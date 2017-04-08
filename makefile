@@ -117,5 +117,10 @@ clean-usr: makefile
 		esac; done
 	@ rm -f _
 
+.PHONY: backup
+backup:
+	git push -f origin master
 
+.PHONY: backup-all
+backup-all: backup
 # vim: set ts=2 sts=2 sw=2 :
