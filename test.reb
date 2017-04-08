@@ -1,25 +1,24 @@
-import 'dot
 import 'rem
 import 'html
 
-args: system/options/args
-a: args/1
-test: either a [
-  load-html read/string to-file a
+for-each x [
+  [br]
+  [p]
+  [p "<testo&html>"]
+  [p ["---" br "==="]]
+  [p /align 'center "text"]
+  [p #id .claz "text"]
+  [a http://a.b "text"]
+  [img %../]
+  [p bg: 'red font: "bo?"]
+  [(x: rem "a" br "b") p x]
+  [(f: func [x y] [rem [b x br i y]]) f 3 4] 
+  [style {p {bg: red}}]
 ][
-  load-rem [
-    doc [
-    header [ title "hello" ]
-    body [
-    div [
-      p ["line1" br "line2"]
-      hr
-      p ["text" b "bold" i "italic"]
-    ]
-    ]
-    ]
-  ]
+  unless block? x [quit]
+  print '=====
+  probe mold-html
+  probe load-rem
+  probe x
 ]
-test: mold-rem dot-clean test
-print test
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

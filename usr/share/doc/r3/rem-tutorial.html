@@ -25,16 +25,16 @@ doc [
 header [
   viewport 1
   title tit
-  style [
-    body  font-size: "12pt"
-    h1  text-align: center
-    div padding: "1ex"
-    .sample  border: "2px solid gray"
-    .code  background: #dddddd
-      font-family: monospace
-      font-size: "11pt"
-      white-space: pre-wrap
-  ]
+  style {
+    body  {font-size: "12pt"}
+    h1  {text-align: center}
+    div {padding: "1ex"}
+    .sample  {border: "2px solid gray"}
+    .code  {background: #dddddd;
+      font-family: monospace;
+      font-size: "11pt";
+      white-space: pre-wrap}
+  }
 ]
 body [
 
@@ -87,10 +87,10 @@ h3 "Ids, classes and STYLE tag"
 p [{Ids are in the form } i "#id" {, classes are } i ".class"]
 
 demo [
-  style [
-    #bluey .bluey color: "blue" background: "yellow"
-    .big font-size: 200%
-  ]
+  style {
+    #bluey, .bluey {color: blue; background: yellow}
+    .big {font-size: 200%}
+  }
   span #bluey "Blue on yellow"
   br
   span .bluey .big "Big blue on yellow"
