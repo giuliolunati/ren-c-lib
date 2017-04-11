@@ -11,8 +11,8 @@ for-each x [
   [a http://a.b "text"]
   [img %../]
   [p bg: 'red font: "bo?"]
-  [(x: rem "a" br "b") p x]
-  [(f: func [x y] [rem [b x br i y]]) f 3 4] 
+  [(x: node ["a" br "b"]) p x]
+  [(f: func [x y] [node [b x br i y]]) f 3 4] 
   [style {p {bg: red}}]
 ][
   unless block? x [quit]

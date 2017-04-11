@@ -9,9 +9,11 @@ REBOL [
 
 dot-append: proc [
   b [block!]
-  v
+  v [any-value!]
   ][
-  unless v [leave]
+  unless any [
+    char? :v any-string? :v any-number? :v block? :v
+  ][leave]
   unless block? v [v: reduce [%.txt v]]
   v: reduce v
   forskip v 2 [
@@ -24,32 +26,19 @@ dot-append: proc [
 ]
 
 rem: make object! [
+  this: self
   ;; available with /SECURE:
   space: :lib/space
   func: :lib/func
 
-  doc: header: title: style: script: body:
-  div: h1: h2: h3: h4: h5: h6: p:
-  span: a: b: i:
-  table: tr: td:
-  'TAG
-
-  meta: hr: br: img:
-  'EMPTY-TAG
-
-  rem-1: func [
-      args [any-value! <...>]
-      :look [any-value! <...>]
-      id: class: style: node: t: w:
+  rem-tag: func [
+    tag [word!]
+    empty [logic!]
+    args [any-value! <...>]
+    :look [any-value! <...>]
+    id: class: style: buf: t:
     ][
-    w: first look
-    if group? :w [take args return _]
-    if any [path? :w all [word? :w
-      'TAG != get :w 'EMPTY-TAG != get :w
-    ] ] [return take args]
-    unless word? :w [return take look]
-    take look
-    node: make block! 4
+    buf: make block! 4
     class: id: style: _
     forever [
       t: first look
@@ -63,7 +52,7 @@ rem: make object! [
       ]
       if refinement? t [ take look
         t: to-word t
-        dot-append node [t apply 'rem-1 [args: args look: look]]
+        dot-append buf [t take args]
         ; ^--- for non-HTML applications:
         ; value of an attribute may be a node!
         continue
@@ -79,67 +68,84 @@ rem: make object! [
         continue
       ]
       if any [url? t file? t] [ take look
-        dot-append node [
-          either/only w = 'a 'href 'src
-          t
+        dot-append buf [
+          either/only tag = 'a 'href 'src
+          :t
         ]
         continue
       ]
       break
     ]
-    if id [dot-append node ['id id]]
-    if style [dot-append node ['style style]]
-    if class [dot-append node ['class form class]]
-    either 'EMPTY-TAG = get :w [
-      w: append to-tag w #"/"
+    if id [dot-append buf ['id id]]
+    if style [dot-append buf ['style style]]
+    if class [dot-append buf ['class form class]]
+    either empty [
+      tag: append to-tag tag #"/"
     ][
-      w: to-tag w
+      tag: to-tag tag
       case [
         block? t [
-          t: make varargs! take look
-          t: apply 'rem [args: t look: t]
+          t: node take look
         ]
         string? t [take look]
         any [word? t path? t] [
-          t: apply 'rem-1 [args: args look: look]
+          t: take args
         ]
       ]
-      dot-append node t
+      dot-append buf :t
     ]
     case [
-      empty? node [node: _]
-      all [2 = length node | %.txt = node/1] [
-        node: node/2
+      empty? buf [buf: _]
+      all [2 = length buf | %.txt = buf/1] [
+        buf: buf/2
       ]
     ]
-    reduce [w node]
+    reduce [tag buf]
   ]
-
-  rem: func [
-      args [any-value! <...>]
-      :look [any-value! <...>]
-      x: b: dot:
+  node: func [x [block!] buf:] [
+    buf: make block! 8
+    while [not tail? x] [
+      dot-append buf do/next x 'x
+    ]
+    buf
+  ]
+  def-empty-tags: func [
+    tags [block!]
+    return: [function!]
     ][
-    x: first look
-    if block? x [
-      x: make varargs! take look
-      return apply 'rem [args: x look: x] 
+    for-each tag tags [
+      tag: bind/new to-word :tag this
+      set :tag specialize 'rem-tag
+      [ tag: :tag empty: true ]
     ]
-    b: make block! 8
-    forever [
-      x: first look
-      unless x [break]
-      x: apply 'rem-1 [args: args look: look]
-      dot-append b x
-    ]
-    b
   ]
+  def-tags: func [
+    tags [block!]
+    return: [function!]
+    ][
+    for-each tag tags [
+      tag: bind/new to-word :tag this
+      set :tag specialize 'rem-tag
+      [ tag: :tag empty: false ]
+    ]
+  ]
+  ; declare 'meta, thus can use it in viewport
+  meta: _ 
 
   viewport: func [content] [
     if number? content [
       content: ajoin ["initial-scale=" content]
     ]
-    rem meta /name "viewport" /content content
+    node [meta /name "viewport" /content content]
+  ]
+  def-empty-tags [
+    meta hr br img
+  ]
+  def-tags [
+    doc header title style script body
+    div h1 h2 h3 h4 h5 h6 p
+    span a b i
+    table tr td
   ]
 ]
 
@@ -152,8 +158,7 @@ load-rem: func [
   either secure
   [ x: bind/new x rem ]
   [ x: bind x rem ]
-  x: make varargs! x
-  apply :rem/rem [args: x look: x]
+  rem/node x
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

@@ -1,35 +1,37 @@
 REBOL []
-( ; setup
-  demo: func [x /only t: b:] [
-    t: load-rem x
-    rem
+; setup
+
+(tit: "ReM format tutorial" _)
+
+demo: func [x /only t: b:] [
+  t: load-rem x
+  node [
     p i "ReM code:"
     div .code mold/only x
-    p i "LOAD-REM ReM => DoT:"
+    p i "LOAD-REM: ReM => DoT"
     div .code mold t
-    p i "MOLD-HTML Dot => HTML:"
+    p i "MOLD-HTML: Dot => HTML"
     div .code mold-html t
     p i "Display:"
     div .sample t
     br
   ]
+]
 
-  note: func [x] [
-    rem p [span background: "yellow" b "NOTE" space x]
-  ]
-
-  tit: "ReM format tutorial"
-) ; end setup
+note: func [x] [
+  p [span background: "yellow" b "NOTE" space x]
+]
+; end setup
 
 doc [
 header [
   viewport 1
   title tit
   style {
-    body  {font-size: "12pt"}
+    body  {font-size: 12pt}
     h1  {text-align: center}
-    div {padding: "1ex"}
-    .sample  {border: "2px solid gray"}
+    div {padding: 1ex}
+    .sample  {border: 2px solid gray}
     .code  {background: #dddddd;
       font-family: monospace;
       font-size: "11pt";
@@ -42,7 +44,7 @@ h1 tit
 
 h2 ["ReM code"]
 
-p {ReM code is processed by LOAD-REM, that convert it into a document tree (DoT). MOLD-HTML reads that tree and outputs HTML text.}
+p {ReM code is processed by LOAD-REM, that converts it into a document tree (DoT). Then MOLD-HTML converts DoT to HTML.}
 
 h2 "Text"
 
@@ -53,7 +55,9 @@ demo [{Space must be explicitly inserted}
 
 h2 "Tags"
 
-p  "Tags are words; content is a string or a block."
+p  "Tags are variadic functions; content is a string or a block."
+
+note " Tag names are like those in HTML, but: <HTML> is replaced by DOC, and <HEAD> by HEADER."
 
 demo [
   h1 "Title"
@@ -62,7 +66,9 @@ demo [
   ]
 ]
 
-note " tag names are those in HTML, but <HTML> itself is substituded by DOC."
+note " Stuff outside tags requires NODE function:"
+
+demo [node ["stuff" br i "outside" " tag"]]
 
 p {After tag name you can add attributes:}
 
@@ -79,8 +85,6 @@ h3 "Styles"
 p [{Style properties are in the form } i {set-word: value} { (value is evaluated.)}]
 
 demo [span font-size: to-percent 7 / 4 color: 'red "Great red text"]
-
-p {Style tag has its own syntax -- see next example.}
 
 h3 "Ids, classes and STYLE tag"
 
@@ -106,25 +110,25 @@ demo [
   a %/ font-size: "200%" "ROOT"
 ]
 
-h2 "Define things -- Groups and REM function"
+h2 "Defining & Hiding"
 
-p "Code contained in a GROUP is evaluated but produces no output. Handy to define things:"
+p "Functions, maps and objects produce no output -- Handy for definitions:"
 
-demo [(T: "tora ") p [T T T]]
-
-p ["But remember: code in GROUP isn't processed by LOAD-REM, only evaluated -- so, if you want more than a simple string, you need REM function:"]
-
-demo [(T: "tora " TI: rem [i T] TB: rem b T) p [T TI TB]]
-
-note "REM function acts as LOAD-REM, but inside ReM code. It accepts a BLOCK or a VARARGS."
-
-p "You can also define functions:"
-
-demo [(
-  bi: func [x] [rem b i x]
-  b+i: func [x y] [rem b x "+" i y]
-  ) bi "bold italic" space  b+i "bold" "italic"
+demo [
+  bi: func [x] [b i x]
+  b+i: func [x y] [node [b x "+" i y]]
+  bi "bold italic" space  b+i "bold" "italic"
 ]
+
+p "But other types " i "produce" " output:"
+
+demo [three: #"3" two: "2" one: 1
+one two three]
+
+p "However you can easily hide them with a GROUP ending in BLANK:"
+
+demo [(three: #"3" two: "2" one: 1 _)
+one two three]
 
 ] ;body
 ] ;doc
