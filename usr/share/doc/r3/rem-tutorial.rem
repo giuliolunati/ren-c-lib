@@ -46,6 +46,8 @@ h2 ["ReM code"]
 
 p {ReM code is processed by LOAD-REM, that converts it into a document tree (DoT). Then MOLD-HTML converts DoT to HTML.}
 
+p [a %rem-tutorial.html "This HTML document" " has been generated in that way from " a %rem-tutorial.rem "REM source."]
+
 h2 "Text"
 
 demo ["Text must be quoted; <, &, >, are ok."]

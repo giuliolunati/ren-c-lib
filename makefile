@@ -24,7 +24,7 @@ usr/lib/r3/shttpd.reb \
 usr/lib/r3/sort.reb \
 usr/lib/r3/text.reb \
 usr/lib/r3/webserver.reb \
-usr/share/doc/r3/rem-tutorial.html \
+usr/share/doc/r3/rem-tutorial.rem \
 usr/share/scripts/demo-complex.reb \
 usr/share/scripts/demo-csv.reb \
 usr/share/scripts/demo-fraction.reb \
