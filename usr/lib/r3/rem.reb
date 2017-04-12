@@ -10,13 +10,13 @@ REBOL [
 dot-append: proc [
   b [block!]
   v [any-value!]
-  ][
-  unless any [
-    char? :v any-string? :v any-number? :v block? :v
-  ][leave]
+ ][
+  unless (maybe [
+    char! any-string! any-number! block!
+  ] :v) [leave]
   unless block? v [v: reduce [%.txt v]]
   v: reduce v
-  forskip v 2 [
+  for-skip v 2 [
     if lit-word? v/2 [v/2: to-word v/2]
     if any-word? v/2 [v/2: form v/2]
   ]
@@ -31,66 +31,61 @@ rem: make object! [
   space: :lib/space
   func: :lib/func
 
-  rem-tag: func [
+  rem-tag: function [
     tag [word!]
     empty [logic!]
     args [any-value! <...>]
     :look [any-value! <...>]
-    id: class: style: buf: t:
-    ][
+   ][
     buf: make block! 4
     class: id: style: _
-    forever [
-      t: first look
-      if word? t [
-        if #"." = first to-string t [ take look
-          unless class [class: make block! 4]
+    while [t: first look] [
+      case [
+        all [word? t | #"." = first to-string t] [
+          take look
+          class: default [make block! 4]
           append class to-word next to-string t
-          continue
         ]
-        break
-      ]
-      if refinement? t [ take look
-        t: to-word t
-        dot-append buf [t take args]
-        ; ^--- for non-HTML applications:
-        ; value of an attribute may be a node!
-        continue
-      ]
-      if set-word? t [ take look
-        t: to-word t
-        unless style [style: make block! 16]
-        dot-append style [t take args]
-        continue
-      ]
-      if issue? t [ take look
-        id: next to-string t
-        continue
-      ]
-      if any [url? t file? t] [ take look
-        dot-append buf [
-          either/only tag = 'a 'href 'src
-          :t
+        refinement? t [
+          take look
+          t: to-word t
+          dot-append buf [t take args]
+          ; ^--- for non-HTML applications:
+          ; value of an attribute may be a node!
         ]
-        continue
+        set-word? t [
+          take look
+          t: to-word t
+          unless style [style: make block! 16]
+          dot-append style [t take args]
+        ]
+        issue? t [
+          take look
+          id: next to-string t
+        ]
+        maybe [url! file!] t [
+          take look
+          dot-append buf [
+            either/only tag = 'a 'href 'src
+            :t
+          ]
+        ]
+        true [break]
       ]
-      break
     ]
-    if id [dot-append buf ['id id]]
-    if style [dot-append buf ['style style]]
-    if class [dot-append buf ['class form class]]
+    case/all [
+      id [dot-append buf ['id id]]
+      style [dot-append buf ['style style]]
+      class [dot-append buf ['class form class]]
+    ]
     either empty [
-      tag: append to-tag tag #"/"
-    ][
+      tag: append to-tag tag "/"
+     ][
       tag: to-tag tag
       case [
-        block? t [
-          t: node take look
-        ]
+        block? t [t: node | take look]
         string? t [take look]
-        any [word? t path? t] [
-          t: take args
-        ]
+        maybe [word! path!] t [t: take args]
       ]
       dot-append buf :t
     ]
@@ -102,7 +97,7 @@ rem: make object! [
     ]
     reduce [tag buf]
   ]
-  node: func [x [block!] buf:] [
+  node: function [x [block!]] [
     buf: make block! 8
     while [not tail? x] [
       dot-append buf do/next x 'x
@@ -110,23 +105,25 @@ rem: make object! [
     buf
   ]
   def-empty-tags: func [
-    tags [block!]
     return: [function!]
-    ][
+    tags [block!]
+   ][
     for-each tag tags [
       tag: bind/new to-word :tag this
-      set :tag specialize 'rem-tag
-      [ tag: :tag empty: true ]
+      set :tag specialize 'rem-tag [
+        tag: :tag | empty: true
+      ]
     ]
   ]
   def-tags: func [
-    tags [block!]
     return: [function!]
-    ][
+    tags [block!]
+   ][
     for-each tag tags [
       tag: bind/new to-word :tag this
-      set :tag specialize 'rem-tag
-      [ tag: :tag empty: false ]
+      set :tag specialize 'rem-tag [
+        tag: :tag | empty: false
+      ]
     ]
   ]
   ; declare 'meta, thus can use it in viewport
@@ -134,7 +131,7 @@ rem: make object! [
 
   viewport: func [content] [
     if number? content [
-      content: ajoin ["initial-scale=" content]
+      content: unspaced ["initial-scale=" content]
     ]
     node [meta /name "viewport" /content content]
   ]
@@ -149,15 +146,13 @@ rem: make object! [
   ]
 ]
 
-load-rem: func [
+load-rem: function [
     x [block! string! file!]
-    /secure t:
-  ][
+    /secure
+ ][
   if file? x [x: load x]
   if string? x [return x]
-  either secure
-  [ x: bind/new x rem ]
-  [ x: bind x rem ]
+  x: bind/(either secure ['new] [_]) x rem
   rem/node x
 ]
 
