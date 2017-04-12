@@ -3,11 +3,8 @@ REBOL [
   Type: 'module
   Name: 'html
   Exports: [
-    load-html
     mold-html
-    split-html
   ]
-  Needs: [text]
   Author: "giuliolunati@gmail.com"
   Version: 0.1.1
 ]
@@ -82,6 +79,18 @@ mold-html: func [
     ]
   ]
   ret
+]
+
+quote-string: function [
+    {Quote string s with " + escape with \}
+    s [string!]
+    /single "use single quotes"
+  ] [
+  q: charset either single [{\'}] [{\"}]
+  parse to string! s [any[to q insert "\" skip]]
+  ajoin either/only single
+  [{'} s {'}] 
+  [{"} s {"}] 
 ]
 
 ; vim: syn=rebol sw=2 ts=2 sts=2 expandtab:

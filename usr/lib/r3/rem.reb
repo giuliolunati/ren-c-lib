@@ -11,9 +11,7 @@ dot-append: proc [
   b [block!]
   v [any-value!]
   ][
-  unless any [
-    char? :v any-string? :v any-number? :v block? :v
-  ][leave]
+  unless maybe [char! any-string! any-number! block!] :v [leave]
   unless block? v [v: reduce [%.txt v]]
   v: reduce v
   forskip v 2 [
