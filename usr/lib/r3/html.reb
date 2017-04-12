@@ -9,41 +9,34 @@ REBOL [
   Version: 0.1.1
 ]
 
-mold-style: func [
+mold-style: function [
   x [block! string!]
-  ret:
-  ][
-  if string? x [return x]
-  ret: make string! 32
-  foreach [k v] x [
-    if not empty? ret [append ret "; "]
-    append ret k
-    append ret ": "
-    append ret v
+ ][
+  if string? x [x] else [
+    delimit map-each [k v] x [
+      unspaced [k ":" space v]
+    ] "; "
   ]
-  ret
 ]
 
-quote-html: func [
-    x [string!] q:
-  ] [
+quote-html: function [
+    x [string!]
+ ][
   q: charset "<&>"
-  parse x [any [to q
-		[ #"&" insert "amp;"
-		| remove #"<" insert "&lt;"
-		| remove #">" insert "&gt;"
-		]
-  ] ]
+  parse x [any [to q [
+    "&" insert "amp;"
+    | remove "<" insert "&lt;"
+    | remove ">" insert "&gt;"
+  ]]]
   x
 ]
 
-mold-html: func [
+mold-html: function [
   x
   /into ret
-  empty:
-  ][
-  unless into [ret: make string! 256]
+ ][
   unless x [return x]
+  ret: default [make string! 256]
   unless block? x [
     return append ret quote-html form x
   ]
@@ -57,23 +50,23 @@ mold-html: func [
         ]
         k: to-string k
         if empty: (#"/" = last k) [take/last k]
-        append ret #"<"
-        append ret k
+        adjoin ret ["<" k]
         if block? v [while [word? v/1] [
-          append ret space
-          append ret v/1
-          append ret #"="
-          append ret quote-string either
-            'style = v/1
-            [ mold-style v/2 ]
-            [ to-string v/2 ]
+          adjoin ret [
+            space v/1 "="
+            quote-string either 'style = v/1 [
+              mold-style v/2
+             ][
+              to-string v/2
+            ]
+          ]
           v: skip v 2
         ]]
         if empty [append ret " /"]
-        append ret #">"
+        append ret ">"
         unless empty [
           mold-html/into v ret
-          append ret ajoin ["</" k #">"]
+          adjoin ret ["</" k ">"]
         ]
      ]
     ]
