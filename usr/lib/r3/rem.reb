@@ -8,9 +8,9 @@ REBOL [
 ]
 
 dot-append: proc [
-  b [block!]
-  v [any-value!]
- ][
+    b [block!]
+    v [any-value!]
+  ][
   unless (maybe [
     char! any-string! any-number! block!
   ] :v) [leave]
@@ -32,11 +32,11 @@ rem: make object! [
   func: :lib/func
 
   rem-tag: function [
-    tag [word!]
-    empty [logic!]
-    args [any-value! <...>]
-    :look [any-value! <...>]
-   ][
+      tag [word!]
+      empty [logic!]
+      args [any-value! <...>]
+      :look [any-value! <...>]
+    ][
     buf: make block! 4
     class: id: style: _
     while [t: first look] [
@@ -83,7 +83,7 @@ rem: make object! [
      ][
       tag: to-tag tag
       case [
-        block? t [t: node | take look]
+        block? t [t: node take look]
         string? t [take look]
         maybe [word! path!] t [t: take args]
       ]
@@ -105,9 +105,9 @@ rem: make object! [
     buf
   ]
   def-empty-tags: func [
-    return: [function!]
-    tags [block!]
-   ][
+      return: [function!]
+      tags [block!]
+    ][
     for-each tag tags [
       tag: bind/new to-word :tag this
       set :tag specialize 'rem-tag [
@@ -116,9 +116,9 @@ rem: make object! [
     ]
   ]
   def-tags: func [
-    return: [function!]
-    tags [block!]
-   ][
+      return: [function!]
+      tags [block!]
+    ][
     for-each tag tags [
       tag: bind/new to-word :tag this
       set :tag specialize 'rem-tag [

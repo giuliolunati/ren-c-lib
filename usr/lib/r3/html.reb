@@ -10,8 +10,8 @@ REBOL [
 ]
 
 mold-style: function [
-  x [block! string!]
- ][
+    x [block! string!]
+  ][
   if string? x [x] else [
     delimit map-each [k v] x [
       unspaced [k ":" space v]
@@ -21,7 +21,7 @@ mold-style: function [
 
 quote-html: function [
     x [string!]
- ][
+  ][
   q: charset "<&>"
   parse x [any [to q [
     "&" insert "amp;"
@@ -32,9 +32,9 @@ quote-html: function [
 ]
 
 mold-html: function [
-  x
-  /into ret
- ][
+    x
+    /into ret
+  ][
   unless x [return x]
   ret: default [make string! 256]
   unless block? x [
@@ -50,9 +50,9 @@ mold-html: function [
         ]
         k: to-string k
         if empty: (#"/" = last k) [take/last k]
-        adjoin ret ["<" k]
+        join ret ["<" k]
         if block? v [while [word? v/1] [
-          adjoin ret [
+          join ret [
             space v/1 "="
             quote-string either 'style = v/1 [
               mold-style v/2
@@ -66,7 +66,7 @@ mold-html: function [
         append ret ">"
         unless empty [
           mold-html/into v ret
-          adjoin ret ["</" k ">"]
+          join ret ["</" k ">"]
         ]
      ]
     ]
@@ -78,7 +78,7 @@ quote-string: function [
     {Quote string s with " + escape with \}
     s [string!]
     /single "use single quotes"
-  ] [
+  ][
   q: charset either single [{\'}] [{\"}]
   parse to string! s [any[to q insert "\" skip]]
   ajoin either/only single
