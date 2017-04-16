@@ -209,7 +209,7 @@ webserver: make object! [
       ]
       return reduce [
         'status 200
-        'type mime/:mimetype
+        'type any[select mime :mimetype 'text]
         'content data
       ]
     ]
