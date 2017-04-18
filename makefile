@@ -20,10 +20,8 @@ usr/lib/r3/profile.reb \
 usr/lib/r3/rec.reb \
 usr/lib/r3/rem.reb \
 usr/lib/r3/rewrite.r \
-usr/lib/r3/shttpd.reb \
 usr/lib/r3/sort.reb \
 usr/lib/r3/text.reb \
-usr/lib/r3/webserver.reb \
 usr/share/doc/r3/rem-tutorial.rem \
 usr/share/scripts/demo-complex.reb \
 usr/share/scripts/demo-csv.reb \
@@ -32,7 +30,7 @@ usr/share/scripts/demo-html.reb \
 usr/share/scripts/demo-rec.reb \
 usr/share/scripts/demo-rem.reb \
 usr/share/scripts/factors.reb \
-usr/share/scripts/start-webserver.reb
+usr/share/scripts/webserver.reb
 
 ${DEB}: data.tar.gz control.tar.gz debian-binary makefile
 	ar r $@ debian-binary control.tar.gz data.tar.gz
@@ -68,9 +66,9 @@ sync:
 	    echo '[(yes) r(everse), n(o)]'; \
 	    read x; \
 	    case $$x in \
-	    r*) cp -a $$o $$i ;; \
+	    r*) cp -af $$o $$i ;; \
 	    n*) ;; \
-	    *) cp -a $$i $$o ;; \
+	    *) cp -af $$i $$o ;; \
 	    esac; \
 	  else \
 	    if [ ! -e $$i -o $$o -nt $$i ]; then \
@@ -78,9 +76,9 @@ sync:
 	      echo '[(yes), r(everse), n(o)]';\
 	      read x; \
 	      case $$x in \
-	      r*) cp -a $$i $$o ;; \
+	      r*) cp -af $$i $$o ;; \
 	      n*) ;; \
-	      *) cp -a $$o $$i ;; \
+	      *) cp -af $$o $$i ;; \
 	      esac; \
 	    fi; \
 	  fi; \
