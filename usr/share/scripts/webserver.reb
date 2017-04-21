@@ -1,9 +1,37 @@
+-help: does [print {
+USAGE: r3 webserver.reb [OPTIONS]
+OPTIONS:
+  -h, -help, --help : this help
+  -q      : verbose: 0 (quiet)
+  -v      : verbose: 2 (debug)
+  INTEGER : port number [8000]
+  OTHER   : web root [system/options/path]
+  -a val  : access-dir [true]
+     val = true  : list directory content
+     val = false : access forbidden
+     val = INDEX : show directory/INDEX
+        (if no extension try .reb, .rem, .html)
+EXAMPLE: 8080 /my/web/root -q -a index
+}]
+
 ;; INIT
 port: 8888
 root: %""
 access-dir: true
 verbose: 1
-do spaced system/options/args
+
+a: system/options/args
+forall a [case [
+    "-a" = a/1 [
+        access-dir: a/2
+        a: next a
+    ]
+    find ["-h" "-help" "--help"] a/1 [-help quit]
+    "-q" = a/1 [verbose: 0]
+    "-v" = a/1 [verbose: 2]
+    integer? load a/1 [port: load a/1]
+    true [root: to-file a/1]
+]]
 
 ;; LIBS
 import 'httpd
@@ -155,7 +183,7 @@ handle-request: function [
 ]
 
 ;; MAIN
-wait server: open compose [
+server: open compose [
   scheme: 'httpd (port) [
     res: handle-request request
     either integer? res [
@@ -171,7 +199,8 @@ wait server: open compose [
       response/type: res/2
       response/content: res/3
     ]
-    if verbose > 0 [
+    if verbose >= 2 [print mold request]
+    if verbose >= 1 [
       print spaced [
         request/method
         request/request-uri
@@ -180,5 +209,11 @@ wait server: open compose [
     ]
   ]
 ]
+if verbose >= 1 [print spaced ["Serving on port" port]]
+if verbose >= 2 [
+  print spaced ["root:" root]
+  print spaced ["access-dir:" access-dir]
+]
+wait server
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
