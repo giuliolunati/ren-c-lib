@@ -5,7 +5,7 @@ access-dir: true
 verbose: 1
 do spaced system/options/args
 
-;; LIBS 
+;; LIBS
 import 'httpd
 
 rem-to-html: attempt [
@@ -82,35 +82,41 @@ handle-request: function [
     req [object!]
   ][
   path-elements: next split req/target #"/"
-  pos: find/last last path-elements "."
-  file-ext: either pos [copy next pos] [_]
-  mimetype: ext-map/:file-ext
   either parse req/request-uri ["/http" opt "s" "://" to end] [
     path: to-url req/request-uri: next req/request-uri
-    filetype: 'file
-    ; host: path-elements/3
-    path-elements: skip path-elements 3
-    unless mimetype [mimetype: 'html]
+    path-type: 'file
   ][
     path: join-of root req/target
-    filetype: exists? path
+    path-type: exists? path
   ]
-  if filetype = 'dir [
+  if path-type = 'dir [
+    unless access-dir [return 403]
     while [#"/" = last path] [take/last path]
     append path #"/"
-    file-index: join-of path %index.reb
-    either 'file = filetype: exists? file-index [
-      mimetype: 'rebol
-      path: file-index
+    dir-index: _
+    either any-string? access-dir [
+      dir-index: join-of path to-file access-dir
+      either find access-dir "." [
+        dir-index: reduce [join-of path to-file access-dir]
+      ][
+        dir-index: map-each x [%.reb %.rem %.html] [join-of dir-index x]
+      ]
+      for-each x dir-index [
+        if 'file = path-type: exists? x [path: x break]
+      ]
+      unless 'file = path-type [return 403]
+      ;; drop to path-type = 'file below
     ][
-      unless access-dir [return 403]
       if data: html-list-dir path [
         return reduce [200 mime/html data]
       ]
       return 403
     ]
   ]
-  if filetype = 'file [
+  if path-type = 'file [
+    pos: find/last last path-elements "."
+    file-ext: either pos [copy next pos] [_]
+    mimetype: ext-map/:file-ext
     if error? data: trap [read path] [return 403
 ]
     if all [
@@ -118,7 +124,7 @@ handle-request: function [
       any [
         mimetype = 'rem
         all [
-          mimetype = 'html 
+          mimetype = 'html
           "REBOL" = uppercase to-string copy/part data 5
         ]
       ]
