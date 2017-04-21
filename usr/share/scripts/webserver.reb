@@ -111,7 +111,20 @@ handle-request: function [
   ][
   path-elements: next split req/target #"/"
   either parse req/request-uri ["/http" opt "s" "://" to end] [
-    path: to-url req/request-uri: next req/request-uri
+    ; manage extern urls /http://ser.ver/...
+    if all [
+      3 = length path-elements
+      #"/" != last path-elements/3
+    ] [; /http://ser.ver w/out final slash
+      path: unspaced [
+        req/target "/"
+        if req/query-string unspaced [
+          "?" to-string req/query-string
+        ]
+      ]
+      return redirect-response path
+    ]
+    path: to-url next req/request-uri
     path-type: 'file
   ][
     path: join-of root req/target
@@ -119,6 +132,15 @@ handle-request: function [
   ]
   if path-type = 'dir [
     unless access-dir [return 403]
+    unless #"/" = last path [
+      path: unspaced [
+        req/target "/"
+        if req/query-string unspaced [
+          "?" to-string req/query-string
+        ]
+      ]
+      return redirect-response path
+    ]
     while [#"/" = last path] [take/last path]
     append path #"/"
     dir-index: _
@@ -182,6 +204,12 @@ handle-request: function [
   404
 ]
 
+redirect-response: function [target] [
+  reduce [200 mime/html unspaced [
+    {<html><head><meta http-equiv="Refresh" content="0; url=}
+    target {" /></head></html>}
+  ]]
+]
 ;; MAIN
 server: open compose [
   scheme: 'httpd (port) [
