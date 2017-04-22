@@ -4,7 +4,12 @@ REBOL [
   Author: "Giulio Lunati"
   Email: giuliolunati@gmail.com
   Description: "REbol Markup format"
-  Exports: [load-rem mold-rem]
+  Exports: [
+    def-empty-tags
+    def-tags
+    load-rem
+    mold-rem
+  ]
 ]
 
 dot-append: proc [
