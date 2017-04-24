@@ -1,24 +1,24 @@
 import 'rem
 import 'html
 
-for-each x [
-  [br]
-  [p]
-  [p "<testo&html>"]
-  [p ["---" br "==="]]
-  [p /align 'center "text"]
-  [p #id .claz "text"]
-  [a http://a.b "text"]
-  [img %../]
-  [p bg: 'red font: "bo?"]
-  [(x: node ["a" br "b"]) p x]
-  [(f: func [x y] [node [b x br i y]]) f 3 4] 
-  [style {p {bg: red}}]
-][
-  unless block? x [quit]
-  print '=====
-  probe mold-html
-  probe load-rem
-  probe x
+print mold-html load-rem [
+toggle: enfix function [x y] [node[
+a /onclick "toggleNext(this)" x
+span display: "none" node y
+]]
+script {function toggleNext(x) {
+  var s
+  s=x.nextSibling.style
+  if (s.display=="none") s.display="inline"
+  else s.display="none"
+}}
+h1 "header 1" toggle [
+p "first"
+
+h2 "header 2" toggle [
+p "second"
 ]
+
+] ;h1
+] 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

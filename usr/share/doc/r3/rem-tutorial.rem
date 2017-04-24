@@ -132,6 +132,13 @@ p "However you can easily hide them with a GROUP ending in BLANK:"
 demo [(three: #"3" two: "2" one: 1 _)
 one two three]
 
+note "Enfix is ok:"
+
+demo [
+  b+i: enfix func [x y] [node [b x "+" i y]]
+  "bold" b+i "italic"
+]
+
 ] ;body
 ] ;doc
 ;; vim: set syn=rem sw=2 ts=2 sts=2 expandtab:

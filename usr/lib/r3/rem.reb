@@ -14,7 +14,7 @@ REBOL [
 
 dot-append: proc [
     b [block!]
-    v [any-value!]
+    v [any-value! <opt>]
   ][
   unless (maybe [
     char! any-string! any-number! block!
