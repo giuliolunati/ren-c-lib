@@ -112,9 +112,10 @@ rem: make object! [
   def-empty-tags: func [
       return: [function!]
       tags [block!]
+      /bind
     ][
     for-each tag tags [
-      tag: bind/new to-word :tag this
+      if bind [tag: lib/bind/new to-word :tag this]
       set :tag specialize 'rem-tag [
         tag: :tag | empty: true
       ]
@@ -123,9 +124,10 @@ rem: make object! [
   def-tags: func [
       return: [function!]
       tags [block!]
+      /bind
     ][
     for-each tag tags [
-      tag: bind/new to-word :tag this
+      if bind [tag: lib/bind/new to-word :tag this]
       set :tag specialize 'rem-tag [
         tag: :tag | empty: false
       ]
@@ -140,10 +142,10 @@ rem: make object! [
     ]
     node [meta /name "viewport" /content content]
   ]
-  def-empty-tags [
+  def-empty-tags/bind [
     meta hr br img
   ]
-  def-tags [
+  def-tags/bind [
     doc header title style script body
     div h1 h2 h3 h4 h5 h6 p
     span a b i
