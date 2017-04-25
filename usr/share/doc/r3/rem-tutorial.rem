@@ -3,17 +3,17 @@ REBOL []
 
 (tit: "ReM format tutorial" _)
 
-demo: func [x /only t: b:] [
-  t: load-rem x
+demo: func [x t: b:] [
+  t: node x
   node [
     p i "ReM code:"
     div .code mold/only x
     p i "LOAD-REM: ReM => DoT"
     div .code mold t
     p i "MOLD-HTML: Dot => HTML"
-    div .code mold-html t
+    div .code mold-html copy t
     p i "Display:"
-    div .sample t
+    div .sample x
     br
   ]
 ]

@@ -30,6 +30,10 @@ dot-append: proc [
   new-line b true
 ]
 
+dot?: func [x] [
+  all [block? x | maybe [tag! file!] x/1]
+]
+
 rem: make object! [
   this: self
   ;; available with /SECURE:
@@ -85,12 +89,18 @@ rem: make object! [
     ]
     either empty [
       tag: append to-tag tag "/"
-     ][
+    ][
       tag: to-tag tag
       case [
         block? t [t: node take look]
         string? t [take look]
-        maybe [word! path!] t [t: take args]
+        maybe [word! path!] t [
+          t: take args
+          if all [block? t | not dot? t] [
+            ;; REM block -> DOT block!
+            t: node t
+          ]
+        ]
       ]
       dot-append buf :t
     ]
@@ -103,6 +113,7 @@ rem: make object! [
     reduce [tag buf]
   ]
   node: function [x [block!]] [
+    if not block? x [return x]
     buf: make block! 8
     while [not tail? x] [
       dot-append buf do/next x 'x
@@ -140,7 +151,7 @@ rem: make object! [
     if number? content [
       content: unspaced ["initial-scale=" content]
     ]
-    node [meta /name "viewport" /content content]
+    meta /name "viewport" /content content
   ]
   def-empty-tags/bind [
     meta hr br img
