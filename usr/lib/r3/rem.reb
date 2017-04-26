@@ -23,7 +23,7 @@ dot-append: proc [
   v: reduce v
   for-skip v 2 [
     if lit-word? v/2 [v/2: to-word v/2]
-    if any-word? v/2 [v/2: form v/2]
+    if maybe [any-word! any-string!] v/2 [v/2: form v/2]
   ]
   b: tail b
   append b v
@@ -57,7 +57,7 @@ rem: make object! [
         ]
         refinement? t [
           take look
-          t: to-word t
+          t: to-issue t
           dot-append buf [t take args]
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
@@ -75,7 +75,7 @@ rem: make object! [
         maybe [url! file!] t [
           take look
           dot-append buf [
-            either/only tag = 'a 'href 'src
+            either/only tag = 'a #href #src
             :t
           ]
         ]
@@ -83,9 +83,9 @@ rem: make object! [
       ]
     ]
     case/all [
-      id [dot-append buf ['id id]]
-      style [dot-append buf ['style style]]
-      class [dot-append buf ['class form class]]
+      id [dot-append buf [#id id]]
+      style [dot-append buf [#style style]]
+      class [dot-append buf [#class form class]]
     ]
     either empty [
       tag: append to-tag tag "/"

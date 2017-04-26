@@ -51,10 +51,10 @@ mold-html: function [
         k: to-string k
         if empty: (#"/" = last k) [take/last k]
         join ret ["<" k]
-        if block? v [while [word? v/1] [
+        if block? v [while [issue? v/1] [
           join ret [
-            space v/1 "="
-            quote-string either 'style = v/1 [
+            space next to-string v/1 "="
+            quote-string either #style = v/1 [
               mold-style v/2
              ][
               to-string v/2
