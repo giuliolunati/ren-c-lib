@@ -40,6 +40,36 @@ rem: make object! [
   space: :lib/space
   func: :lib/func
 
+  macro: make block! 8
+
+  look-first: function [
+      :look [any-value! <...>]
+    ][
+    if empty? macro [first look]
+    else [first macro]
+  ]
+
+  take-first: function [
+      :look [any-value! <...>]
+    ][
+    if empty? macro [take look]
+    else [take macro]
+  ]
+
+  take-eval: function [
+      args [any-value! <...>]
+    ][
+    either empty? macro [take args]
+    [do/next macro 'macro]
+  ]
+
+  macro-tail?: function [
+      :look [any-value! <...>]
+    ][
+    if empty? macro [tail? look]
+    else [false]
+  ]
+
   rem-tag: function [
       tag [word!]
       empty [logic!]
@@ -48,36 +78,41 @@ rem: make object! [
     ][
     buf: make block! 4
     class: id: style: _
-    while [t: first look] [
+    while [not tail? look] [
+      t: apply 'look-first [look: args]
       case [
         all [word? t | #"." = first to-string t] [
-          take look
+          apply 'take-first [look: args]
           class: default [make block! 4]
           append class to-word next to-string t
         ]
         refinement? t [
-          take look
+          apply 'take-first [look: args]
           t: to-issue t
-          dot-append buf [t take args]
+          dot-append buf [t apply 'take-eval [args: args]]
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
         ]
         set-word? t [
-          take look
+          apply 'take-first [look: args]
           t: to-word t
           if not style [style: make block! 16]
-          dot-append style [t take args]
+          dot-append style [t apply 'take-eval [args: args]]
         ]
         issue? t [
-          take look
+          apply 'take-first [look: args]
           id: next to-string t
         ]
         maybe [url! file!] t [
-          take look
+          apply 'take-first [look: args]
           dot-append buf [
             if tag = 'a [#href] else [#src]
             :t
           ]
+        ]
+        get-word? t [
+          apply 'take-first [look: args]
+          attempt [append macro get to-word t]
         ]
         true [break]
       ]
@@ -92,10 +127,13 @@ rem: make object! [
     ] else [
       tag: to-tag tag
       case [
-        block? t [t: node take look]
-        string? t [take look]
+        block? t [
+          t: node
+          apply 'take-first [look: args]
+        ]
+        string? t [apply 'take-first [look: args]]
         maybe [word! path!] t [
-          t: take args
+          t: apply 'take-eval [args: args]
           if all [block? t | not dot? t] [
             ;; REM block -> DOT block!
             t: node t

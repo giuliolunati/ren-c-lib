@@ -1,8 +1,6 @@
 REBOL []
 ; setup
-
 (tit: "ReM format tutorial" _)
-
 demo: func [x t: b:] [
   t: node x
   node [
@@ -17,7 +15,6 @@ demo: func [x t: b:] [
     br
   ]
 ]
-
 note: func [x] [
   p [span background: "yellow" b "NOTE" space x]
 ]
@@ -43,55 +40,39 @@ body [
 h1 tit
 
 h2 ["ReM code"]
-
 p {ReM code is processed by LOAD-REM, that converts it into a document tree (DoT). Then MOLD-HTML converts DoT to HTML.}
-
 p [a %rem-tutorial.html "This HTML document" " has been generated in that way from " a %rem-tutorial.rem "REM source."]
 
 h2 "Text"
-
 demo ["Text must be quoted; <, &, >, are ok."]
 demo [{Space must be explicitly inserted}
   { in strings } {or with 'space. } space {This} {is} {one} {long} {word.}
 ]
 
 h2 "Tags"
-
-p  "Tags are variadic functions; content is a string or a block."
-
-note " Tag names are like those in HTML, but: <HTML> is replaced by DOC, and <HEAD> by HEADER."
-
+p  ["Tags are variadic function whose syntax is: " i "tag-name [attributes] [content]" " content is a string, a tag or a block."]
+note "Tag names are like those in HTML, but: <HTML> is replaced by DOC, and <HEAD> by HEADER."
 demo [
   h1 "Title"
   p [{paragraph with breakline} br
     b {bold} { normal } i {italic}
   ]
 ]
-
-note " Stuff outside tags requires NODE function:"
-
+note "Stuff outside tags requires NODE pseudo-tag:"
 demo [node ["stuff" br i "outside" " tag"]]
 
-p {After tag name you can add attributes:}
-
-h2 {Generic attributes}
-
+h2 "Attributes"
 p [{Generic attributes are in the form } i {/refinement value} { (value is evaluated)}]
-
 demo [p /align first["right" "left"] [
   {first line} br {second line}
 ] ]
 
-h3 "Styles"
-
+h3   "Styles"
 p [{Style properties are in the form } i {set-word: value} { (value is evaluated.)}]
-
 demo [span font-size: to-percent 7 / 4 color: 'red "Great red text"]
 
-h3 "Ids, classes and STYLE tag"
-
+h3   "Ids, classes and STYLE tag"
 p [{Ids are in the form } i "#id" {, classes are } i ".class"]
-
 demo [
   style {
     #bluey, .bluey {color: blue; background: yellow}
@@ -102,43 +83,43 @@ demo [
   span .bluey .big "Big blue on yellow"
 ]
 
-h2 "HREF and SRC"
-
+h3   "HREF and SRC"
 p "URLs and FILES are HREF and SRC attributes:"
-
 demo [
   a https://github.com/metaeducation/ren-c
   img http://giuliolunati.altervista.org/r3/ren-c-logo.png height: "3.5ex" space
   a %/ font-size: "200%" "ROOT"
 ]
 
-h2 "Defining & Hiding"
+h2 "Defining things"
 
+h3   "Functions"
 p "Functions, maps and objects produce no output -- Handy for definitions:"
-
 demo [
   bi: func [x] [b i x]
   b+i: func [x y] [node [b x "+" i y]]
   bi "bold italic" space  b+i "bold" "italic"
 ]
-
-p "But other types " i "produce" " output:"
-
-demo [three: #"3" two: "2" one: 1
-one two three]
-
-p "However you can easily hide them with a GROUP ending in BLANK:"
-
-demo [(three: #"3" two: "2" one: 1 _)
-one two three]
-
 note "Enfix is ok:"
-
 demo [
   b+i: enfix func [x y] [node [b x "+" i y]]
   "bold" b+i "italic"
 ]
 
+h3   {"Variables" & hiding}
+p ["When setting a word to another type, remember that it " i "produce" " output:"]
+demo [three: #"3" two: "2" one: 1
+one two three]
+p "However you can easily hide it with a GROUP ending in BLANK:"
+demo [(three: #"3" two: "2" one: 1 _)
+one two three]
+
+h3   "Shortcuts"
+p ["Functions and variables can't work for attributes, because (1) attributes are not normally evaluated, but processed by tag functions (2) a word ends attribute processing. For this purpose you can define " i "shortcuts"" and expand they with get-words:"]
+demo [
+  (center-red: [/align "center" color: "red"] _)
+  p :center-red "Red centered text"
+]
 ] ;body
 ] ;doc
 ;; vim: set syn=rem sw=2 ts=2 sts=2 expandtab:
