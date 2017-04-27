@@ -16,10 +16,10 @@ dot-append: proc [
     b [block!]
     v [any-value! <opt>]
   ][
-  unless (maybe [
+  if not (maybe [
     char! any-string! any-number! block!
   ] :v) [leave]
-  unless block? v [v: reduce [%.txt v]]
+  if not block? v [v: reduce [%.txt v]]
   v: reduce v
   for-skip v 2 [
     if lit-word? v/2 [v/2: to-word v/2]
@@ -65,7 +65,7 @@ rem: make object! [
         set-word? t [
           take look
           t: to-word t
-          unless style [style: make block! 16]
+          if not style [style: make block! 16]
           dot-append style [t take args]
         ]
         issue? t [
@@ -75,7 +75,7 @@ rem: make object! [
         maybe [url! file!] t [
           take look
           dot-append buf [
-            either/only tag = 'a #href #src
+            if tag = 'a [#href] else [#src]
             :t
           ]
         ]
@@ -87,9 +87,9 @@ rem: make object! [
       style [dot-append buf [#style style]]
       class [dot-append buf [#class form class]]
     ]
-    either empty [
+    if empty [
       tag: append to-tag tag "/"
-    ][
+    ] else [
       tag: to-tag tag
       case [
         block? t [t: node take look]
@@ -169,8 +169,8 @@ load-rem: function [
     /secure
   ][
   if string? x [x: reduce [x]]
-  unless block? x [x: load x]
-  x: bind/(either secure ['new] [_]) x rem
+  if not block? x [x: load x]
+  x: bind/(if secure ['new] else [_]) x rem
   rem/node x
 ]
 

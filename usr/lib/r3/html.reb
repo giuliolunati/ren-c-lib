@@ -35,9 +35,9 @@ mold-html: function [
     x
     /into ret
   ][
-  unless x [return x]
+  if not x [return x]
   ret: default [make string! 256]
-  unless block? x [
+  if not block? x [
     return append ret quote-html form x
   ]
   for-each [k v] x [
@@ -54,17 +54,17 @@ mold-html: function [
         if block? v [while [issue? v/1] [
           join ret [
             space next to-string v/1 "="
-            quote-string either #style = v/1 [
+            quote-string (if #style = v/1 [
               mold-style v/2
-             ][
+             ] else [
               to-string v/2
-            ]
+            ])
           ]
           v: skip v 2
         ]]
         if empty [append ret " /"]
         append ret ">"
-        unless empty [
+        if not empty [
           mold-html/into v ret
           join ret ["</" k ">"]
         ]
@@ -79,11 +79,9 @@ quote-string: function [
     s [string!]
     /single "use single quotes"
   ][
-  q: charset either single [{\'}] [{\"}]
+  q: charset (if single [{\'}] else [{\"}])
   parse to string! s [any[to q insert "\" skip]]
-  ajoin either/only single
-  [{'} s {'}] 
-  [{"} s {"}] 
+  unspaced (if single [[{'} s {'}]] else [[{"} s {"}]])
 ]
 
 ; vim: syn=rebol sw=2 ts=2 sts=2 expandtab:
