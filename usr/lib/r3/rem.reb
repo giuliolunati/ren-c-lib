@@ -34,6 +34,19 @@ dot?: func [x] [
   all [block? x | maybe [tag! file!] x/1]
 ]
 
+dot-toc: function [body toc] [
+  for-each [k v] body [
+    if all [tag? k | block? v] [
+      if "toc" = v/#id [
+        append v toc
+        return true
+      ]
+      if t: dot-toc v toc [return t]
+    ]
+  ]
+  return false
+]
+
 rem: make object! [
   this: self
   ;; available with /SECURE:
@@ -41,6 +54,7 @@ rem: make object! [
   func: :lib/func
 
   macro: make block! 8
+  count: toc: _
 
   look-first: function [
       :look [any-value! <...>]
@@ -125,7 +139,10 @@ rem: make object! [
     if empty [
       tag: append to-tag tag "/"
     ] else [
-      tag: to-tag tag
+      if 'body = tag [
+        set 'toc make block! 8
+        set 'count 1
+      ]
       case [
         block? t [
           t: node
@@ -143,11 +160,28 @@ rem: make object! [
         ]
       ]
       if string? t [
-        switch tag [
-          <script> [t: reduce [%.js t]]
-          <style> [t: reduce [%.css t]]
+        switch/default tag [
+          'script [t: reduce [%.js t]]
+          'style [t: reduce [%.css t]]
+        ][t: reduce [%.txt t]]
+      ]
+      if find [h1 h2 h3 h4 h5 h6] tag [
+        if toc [
+          dot-append toc
+          reduce [
+            (to-tag tag)
+            reduce [
+              <a> join-of reduce [
+                #href join-of "#toc" count
+              ] :t
+            ]
+          ]
+        ]
+        dot-append buf reduce [
+          <a> [#id join-of "toc" ++ count]
         ]
       ]
+      if 'body = tag [dot-toc :t toc]
       dot-append buf :t
     ]
     case [
@@ -156,7 +190,7 @@ rem: make object! [
         buf: buf/2
       ]
     ]
-    reduce [tag buf]
+    reduce [to-tag tag buf]
   ]
   node: function [x [block!]] [
     if not block? x [return x]
