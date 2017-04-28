@@ -131,13 +131,21 @@ rem: make object! [
           t: node
           apply 'take-first [look: args]
         ]
-        string? t [apply 'take-first [look: args]]
+        string? t [
+          apply 'take-first [look: args]
+        ]
         maybe [word! path!] t [
           t: apply 'take-eval [args: args]
           if all [block? t | not dot? t] [
             ;; REM block -> DOT block!
             t: node t
           ]
+        ]
+      ]
+      if string? t [
+        switch tag [
+          <script> [t: reduce [%.js t]]
+          <style> [t: reduce [%.css t]]
         ]
       ]
       dot-append buf :t

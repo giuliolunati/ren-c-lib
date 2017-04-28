@@ -43,6 +43,7 @@ mold-html: function [
   for-each [k v] x [
     case [
       %.txt = k [append ret quote-html form v]
+      find [%.css %.js] k [append ret form v]
       tag? k [
         switch k [
           <doc> [k: <html>]
