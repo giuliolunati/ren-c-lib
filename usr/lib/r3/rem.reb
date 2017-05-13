@@ -37,7 +37,7 @@ dot?: func [x] [
 dot-toc: function [body toc] [
   for-each [k v] body [
     if all [tag? k | block? v] [
-      if "toc" = v/#id [
+      if "toc" = select v #id [
         append v toc
         return true
       ]

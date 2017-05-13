@@ -164,7 +164,7 @@ handle-request: function [
   if path-type = 'file [
     pos: find/last last path-elements "."
     file-ext: (if pos [copy next pos] else [_])
-    mimetype: ext-map/:file-ext
+    mimetype: attempt [ext-map/:file-ext]
     if error? data: trap [read path] [return 403]
     if all [
       function? :rem-to-html

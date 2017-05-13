@@ -52,7 +52,7 @@ mold-html: function [
         k: to-string k
         if empty: (#"/" = last k) [take/last k]
         join ret ["<" k]
-        if block? v [while [issue? v/1] [
+        if block? v [while [issue? pick v 1] [
           join ret [
             space next to-string v/1 "="
             quote-string (if #style = v/1 [
@@ -85,4 +85,4 @@ quote-string: function [
   unspaced (if single [[{'} s {'}]] else [[{"} s {"}]])
 ]
 
-; vim: syn=rebol sw=2 ts=2 sts=2 expandtab:
+; vim: sw=2 ts=2 sts=2 expandtab:
