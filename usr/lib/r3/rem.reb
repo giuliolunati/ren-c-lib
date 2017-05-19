@@ -120,7 +120,8 @@ rem: make object! [
         maybe [url! file!] t [
           apply 'take-first [look: args]
           dot-append buf [
-            if tag = 'a [#href] else [#src]
+            if find [a link] tag [#href]
+            else [#src]
             :t
           ]
         ]
@@ -234,12 +235,12 @@ rem: make object! [
     meta /name "viewport" /content content
   ]
   def-empty-tags/bind [
-    meta hr br img
+    meta hr br img link
   ]
   def-tags/bind [
     doc header title style script body
     div h1 h2 h3 h4 h5 h6 p
-    span a b i
+    span a b i sup sub
     table tr td
   ]
 ]
