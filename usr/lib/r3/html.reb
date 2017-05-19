@@ -46,7 +46,10 @@ mold-html: function [
       find [%.css %.js] k [append ret form v]
       tag? k [
         switch k [
-          <doc> [k: <html>]
+          <doc> [
+            join ret "<!DOCTYPE html>"
+            k: <html>
+          ]
           <header> [k: <head>]
         ]
         k: to-string k
