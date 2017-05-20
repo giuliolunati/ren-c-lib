@@ -177,7 +177,7 @@ handle-request: function [
       ]
     ][
       if error? data: trap [
-        rem-to-html load data
+        rem-to-html data
       ] [ data: form data mimetype: 'text ]
       else [ mimetype: 'html ]
     ]

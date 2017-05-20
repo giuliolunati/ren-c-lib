@@ -246,11 +246,55 @@ rem: make object! [
 ]
 
 load-rem: function [
-    x [block! string! file! url!]
+    x [block! string! file! url! binary!]
     /secure
   ][
-  if string? x [x: reduce [x]]
-  if not block? x [x: load x]
+  if maybe [file! url!] x [
+    x: read/string x
+  ]
+  if binary? x [x: to-string x]
+  if string? x [
+    ;; preprocess strings:
+    ;; ^ -> ^^
+    ;; \\ -> \
+    ;; \(..) -> ^(..)
+    ;; \" -> ^"
+    ;; \{ -> ^{ 
+    ;; \} -> ^} 
+    x: copy x
+    string-begin: charset {"^{} ;}
+    dquo-spec: charset {^^"\}
+    bra-spec: charset {^^{}\}
+    escapable: charset {{"}(} ;)
+    n: 0
+    parse x [any [
+      to string-begin
+      [ {"} any [
+          [to dquo-spec | to end]
+          [ {^^} insert {^^}
+          | and {"} break
+          | and ["\" escapable]
+            change skip "^^" skip
+          | "\" remove "\"
+          | skip
+          ]
+        ] skip 
+      | "{" (n: 1) any [ ; }
+          if (n > 0)
+          [to bra-spec | to end]
+          [ {^^} insert {^^}
+          | "{" (++ n)
+          | "}" (-- n)
+          | and ["\" escapable]
+            change skip "^^" skip
+          | "\" remove "\"
+          | skip
+          ]
+        ]
+      ]
+    ] to end ]
+    x: load x
+  ]
   x: bind/(if secure ['new] else [_]) x rem
   rem/node x
 ]

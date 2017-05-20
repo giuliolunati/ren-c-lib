@@ -1,11 +1,19 @@
 REBOL []
 ; setup
 (tit: "ReM format tutorial" _)
-demo: func [x t: b:] [
+demo: func [x /rem src t: b:] [
+  unless block? x [x: reduce [x]]
   t: node x
+  r: either rem [src] [mold/only x]
+  string-begin: charset "\"{" ;}
+  dquo-spec: charset {^\\"}
+  dquo-esc: charset {"(} ;)
+  bra-spec: charset {^\\{}}
+  bra-esc: charset {{}(} ;)
+  n: 0
   node [
     p i "ReM code:"
-    div .code mold/only x
+    div .code r
     p i "LOAD-REM: ReM => DoT"
     div .code mold t
     p i "MOLD-HTML: Dot => HTML"
@@ -44,10 +52,15 @@ p {ReM code is processed by LOAD-REM, that converts it into a document tree (DoT
 p [a %rem-tutorial.html "This HTML document" " has been generated in that way from " a %rem-tutorial.rem "REM source."]
 
 h2 "Text"
-demo ["Text must be quoted; <, &, >, are ok."]
+demo "Text must be quoted; <, &, >, are ok."
 demo [{Space must be explicitly inserted}
   { in strings } {or with 'space. } space {This} {is} {one} {long} {word.}
 ]
+
+demo/rem "^ is not an escape character"
+  {"^ is not an escape character"}
+demo/rem "\\ is an escape character, but only before \\ \" \{ \} \(28)"
+  {"\\\\ is an escape character, but only before \\\\ \\" \\{ \\} \\(28)"} 
 
 h2 "Tags"
 p  ["Tags are variadic function whose syntax is: " i "tag-name [attributes] [content]" " content is a string, a tag or a block."]
