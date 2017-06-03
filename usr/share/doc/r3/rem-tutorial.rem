@@ -4,7 +4,8 @@ REBOL []
 demo: func [x /rem src t: b:] [
   unless block? x [x: reduce [x]]
   t: node x
-  r: either rem [src] [mold/only x]
+  r: either rem [src]
+  [ replace/all mold/only x "^^" "^" ]
   string-begin: charset "\"{" ;}
   dquo-spec: charset {^\\"}
   dquo-esc: charset {"(} ;)
@@ -12,14 +13,11 @@ demo: func [x /rem src t: b:] [
   bra-esc: charset {{}(} ;)
   n: 0
   node [
-    p i "ReM code:"
-    div .code r
-    p i "LOAD-REM: ReM => DoT"
-    div .code mold t
-    p i "MOLD-HTML: Dot => HTML"
-    div .code mold-html copy t
-    p i "Display:"
-    div .sample x
+    div .rem raw-text r
+    p [i"(load-rem)" "↓"]
+    div .dot raw-text mold t
+    p [i"(mold-html)" "↓"]
+    div .html x
     br
   ]
 ]
@@ -36,55 +34,49 @@ header [
     body  {font-size: 12pt}
     h1  {text-align: center}
     div {padding: 1ex}
-    .sample  {border: 2px solid gray}
-    .code  {background: #dddddd;
+    .html, .rem {border: 2px solid;
+    }
+    .html  {border-color: blue}
+    .rem  {border-color: red}
+    .dot  {background: #dddddd;}
+    .rem, .dot {
       font-family: monospace;
       font-size: "11pt";
-      white-space: pre-wrap}
+      white-space: pre-wrap
+    }
   }
 ]
 body [
 
 h1 tit
 
-h2 ["ReM code"]
-p {ReM code is processed by LOAD-REM, that converts it into a document tree (DoT). Then MOLD-HTML converts DoT to HTML.}
-p [a %rem-tutorial.html "This HTML document" " has been generated in that way from " a %rem-tutorial.rem "REM source."]
+h2 ["Legenda"]
+p .rem {ReM code}
+p {is processed by LOAD-REM, that converts it into a}
+p .dot {document tree(DoT)}
+p {then MOLD-HTML converts DoT to }
+p .html {HTML}
 
-h2 "Text"
-demo "Text must be quoted; <, &, >, are ok."
-demo [{Space must be explicitly inserted}
-  { in strings } {or with 'space. } space {This} {is} {one} {long} {word.}
-]
-
-demo/rem "^ is not an escape character"
-  {"^ is not an escape character"}
-demo/rem "\\ is an escape character, but only before \\ \" \{ \} \(28)"
-  {"\\\\ is an escape character, but only before \\\\ \\" \\{ \\} \\(28)"} 
-
-h2 "Tags"
-p  ["Tags are variadic function whose syntax is: " i "tag-name [attributes] [content]" " content is a string, a tag or a block."]
-note "Tag names are like those in HTML, but: <HTML> is replaced by DOC, and <HEAD> by HEADER."
+h2  "Tags"
+p  ["Tags are variadic functions, whose syntax is: " i "tag-name [attributes] [content];"" content is a string or a block, return value is a DoT block"]
+note "Tag names are like in HTML, but DOC instead of <HTML>, HEADER instead of <HEAD>."
 demo [
-  h1 "Title"
   p [{paragraph with breakline} br
     b {bold} { normal } i {italic}
   ]
 ]
-note "Stuff outside tags requires NODE pseudo-tag:"
-demo [node ["stuff" br i "outside" " tag"]]
 
 h2 "Attributes"
-p [{Generic attributes are in the form } i {/refinement value} { (value is evaluated)}]
+p [{Generic attributes are in the form } i {/name value} {; value is evaluated}]
 demo [p /align first["right" "left"] [
   {first line} br {second line}
 ] ]
 
-h3   "Styles"
-p [{Style properties are in the form } i {set-word: value} { (value is evaluated.)}]
-demo [span font-size: to-percent 7 / 4 color: 'red "Great red text"]
+h3   "STYLE attribute"
+p [{Style properties are in the form } i {name: value} {; value is evaluated.}]
+demo [span font-size: to-percent 7 / 4 color: 'red "Big red text"]
 
-h3   "Ids, classes and STYLE tag"
+h3   "STYLE tag, ID and CLASS attribute"
 p [{Ids are in the form } i "#id" {, classes are } i ".class"]
 demo [
   style {
@@ -103,6 +95,18 @@ demo [
   img http://giuliolunati.altervista.org/r3/ren-c-logo.png height: "3.5ex" space
   a %/ font-size: "200%" "ROOT"
 ]
+
+
+h2 "Text"
+demo "Text must be quoted; <, &, >, are ok."
+demo [{Space must be explicitly inserted}
+  { in strings } {or with 'space. } space {This} {is} {one} {long} {word.}
+]
+
+demo/rem "^ is not an escape character"
+  {"^ is not an escape character"}
+demo/rem "\\ is an escape character, but only before \\ \" \{ \} \(28)"
+  {"\\\\ is an escape character, but only before \\\\ \\" \\{ \\} \\(28)"} 
 
 h2 "Defining things"
 
@@ -133,6 +137,50 @@ demo [
   (center-red: [/align "center" color: "red"] _)
   p :center-red "Red centered text"
 ]
+
+h2 "Smart text"
+p "The function 'smart-text recognize some asciidoc-like notation with special chars * / ^ _ \ :"
+demo [smart-text "*bold* /italic/ ^superscript^ _subscript_"]
+note {if you find "smart-text" too long, define a shortcut:}
+demo [s: :smart-text s"That's /very/ *smart*"]
+note {At the moment nesting doesn't work:}
+demo [s"*bold but /not italic/*"]
+
+h3  "Quoting"
+p "Special chars can be quoted with \ :"
+demo [s"star\*, *bold \* star*, backslash \\"]
+note s"However a space (or tab or newline or end-of-string) after an /opening/ special char 'disarm' it, and you don't need to quote:"
+demo [s{* / ^ _}]
+
+h3  "AsciiMath notation"
+p "for compatibility with AsciiMath notation, chars in `...` aren't special:"
+demo [s "`2*3*4/5/6` `int_0^1 x^2 dx`"]
+p "But obviously you can quote:"
+demo [s"\`*bold* /italic/ ^top^ _down_\`"]
+
+h3  "Breaklines"
+p s"'smart-text convert /n/ blank lines in /n+1/ breaklines:"
+demo [s{no
+breakline; two
+
+breaklines; three
+
+
+breaklines}]
+p s{If you need single breakline, use /\\ + newline/ or /\\ + space:/}
+demo [s{ one\ breakline; another \
+breakline}]
+
+h3  "Process-text"
+p "If you want smart-text to be implicitly applied, set 'process-text to 'smart-text:"
+demo [process-text: :smart-text p "/italic/ *bold*"]
+p "You can also set 'process-text to your own function:"
+demo [process-text: func [x] [uppercase copy x] p "uppercase text" process-text: _] 
+
+h3  "Raw-text"
+p "You can bypass 'process-text with 'raw-text:"
+demo [process-text: :smart-text "this is /smart text/" br raw-text "this /isn't/"]
+
 ] ;body
 ] ;doc
 ;; vim: set syn=rem sw=2 ts=2 sts=2 expandtab:

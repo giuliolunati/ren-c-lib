@@ -52,38 +52,34 @@ rem: make object! [
   ;; available with /SECURE:
   space: :lib/space
   func: :lib/func
-
+  ;; shortcuts
   macro: make block! 8
-  count: toc: _
-
   look-first: function [
       :look [any-value! <...>]
     ][
     if empty? macro [first look]
     else [first macro]
   ]
-
   take-first: function [
       :look [any-value! <...>]
     ][
     if empty? macro [take look]
     else [take macro]
   ]
-
   take-eval: function [
       args [any-value! <...>]
     ][
     either empty? macro [take args]
     [do/next macro 'macro]
   ]
-
   macro-tail?: function [
       :look [any-value! <...>]
     ][
     if empty? macro [tail? look]
     else [false]
   ]
-
+  ;; 
+  count: toc: _
   rem-tag: function [
       tag [word!]
       empty [logic!]
@@ -164,7 +160,7 @@ rem: make object! [
         switch/default tag [
           'script [t: reduce [%.js t]]
           'style [t: reduce [%.css t]]
-        ][t: reduce [%.txt t]]
+        ][if string? t [t: maybe-process-text t]]
       ]
       if find [h1 h2 h3 h4 h5 h6] tag [
         if toc [
@@ -197,7 +193,9 @@ rem: make object! [
     if not block? x [return x]
     buf: make block! 8
     while [not tail? x] [
-      dot-append buf do/next x 'x
+      t: do/next x 'x
+      if string? :t [t: maybe-process-text t]
+      dot-append buf :t
     ]
     buf
   ]
@@ -227,7 +225,6 @@ rem: make object! [
   ]
   ; declare 'meta, thus can use it in viewport
   meta: _ 
-
   viewport: func [content] [
     if number? content [
       content: unspaced ["initial-scale=" content]
@@ -243,6 +240,67 @@ rem: make object! [
     span a b i sup sub
     table tr td
   ]
+  ;; smart-text
+  process-text: false
+  raw-text: function [x] [reduce [%.txt x]]
+  maybe-process-text: func [x [string!]] [
+    case [
+      :process-text = true [smart-text x]
+      any-function? :process-text [process-text x]
+      true [x]
+    ]
+  ]
+  smart-text: function [x] [
+    c: _
+    t: make block! 8
+    x: copy x
+    replace/all x "--" "—"
+    replace/all x "->" "^(2192)" ; right arrow
+    replace/all x "=>" "^(21d2)" ; right double arrow
+    get-markdown: [
+      copy v: [any [
+        [to xchar | to end]
+        [ remove "\" skip
+        | and c break
+        | skip
+        ]
+      ]] skip
+    ]
+    spaces: charset " ^-"
+    xchar: charset "*/^^_`\^/"
+    parse x [any [
+      copy v: [to xchar | to end]
+      (if v > "" [dot-append t [%.txt v]])
+      [ "\" [newline | spaces]
+        (dot-append t [<br/> _])
+      | newline some [
+          any spaces newline
+          (dot-append t [<br/> _])
+        ]
+        (dot-append t [<br/> _])
+      | remove "\" set c: skip
+        (dot-append t [%.txt c])
+      | copy c: [skip [spaces | newline]]
+        (dot-append t [%.txt c])
+      | set c: "*" get-markdown
+        (dot-append t [<b> v])
+      | set c: "/" get-markdown
+        (dot-append t [<i> v])
+      | set c: "^^" get-markdown
+        (dot-append t [<sup> v])
+      | set c: "_" get-markdown
+        (dot-append t [<sub> v])
+      | set c: "`" get-markdown
+        (dot-append t [%.txt unspaced ["`" v "`"]])
+      | set v xchar
+        ( if empty? t [dot-append t [%.txt v]]
+          else [append last t v]
+        )
+      ]
+    ]]
+    t
+  ]
+  reset: func[] [process-text: false]
 ]
 
 load-rem: function [
