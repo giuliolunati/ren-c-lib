@@ -177,6 +177,7 @@ handle-request: function [
       ]
     ][
       if error? data: trap [
+        rem/rem/reset
         rem-to-html data
       ] [ data: form data mimetype: 'text ]
       else [ mimetype: 'html ]
@@ -222,7 +223,7 @@ server: open compose [
     ] else [
       response/status: res/1
       response/type: res/2
-      response/content: res/3
+      response/content: to-binary res/3
     ]
     if verbose >= 2 [print mold request]
     if verbose >= 1 [
