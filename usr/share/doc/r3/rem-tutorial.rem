@@ -57,7 +57,22 @@ p .dot {document tree(DoT)}
 p {then MOLD-HTML converts DoT to }
 p .html {HTML}
 
-h2  "Tags"
+h2 "Text"
+demo "Text must be written as strings, with braces or double quotes."
+demo/rem
+  "The escape char in ReM is \\ -- but only before \\ \{ \} \" \(28)"
+  {"The escape char in ReM is \\\\ -- but only before \\\\ \\{ \\} \\\" \\(28)"}
+demo/rem
+  "Otherwise \\ is literal: \a \n \/ \-"
+  {"Otherwise \\\\ is literal: \\a \\n \\/ \\-a"}
+demo "< , & , > and ^ are literal"
+demo [
+  {Space}{ must }{be} space {explicitly inserted:}
+  br
+  {This} {is} {one} {long} {word.}
+]
+
+h2 "Tags"
 p  ["Tags are variadic functions, whose syntax is: " i "tag-name [attributes] [content];"" content is a string or a block, return value is a DoT block"]
 note "Tag names are like in HTML, but DOC instead of <HTML>, HEADER instead of <HEAD>."
 demo [
@@ -71,13 +86,12 @@ p [{Generic attributes are in the form } i {/name value} {; value is evaluated}]
 demo [p /align first["right" "left"] [
   {first line} br {second line}
 ] ]
+p "Some attributes can be written more quickly:"
 
-h3   "STYLE attribute"
-p [{Style properties are in the form } i {name: value} {; value is evaluated.}]
+h3   "Special attributes: STYLE, ID, CLASS"
+p [{Style properties can be written as } i {name: value} {; value is evaluated.}]
 demo [span font-size: to-percent 7 / 4 color: 'red "Big red text"]
-
-h3   "STYLE tag, ID and CLASS attribute"
-p [{Ids are in the form } i "#id" {, classes are } i ".class"]
+p [{Id and class attributes can be written respectively as } i "#some_id" { and } i {.some_class}]
 demo [
   style {
     #bluey, .bluey {color: blue; background: yellow}
@@ -87,26 +101,15 @@ demo [
   br
   span .bluey .big "Big blue on yellow"
 ]
+note {The STYLE tag value is a CSS string.}
 
-h3   "HREF and SRC"
+h3   "Special attributes: HREF and SRC"
 p "URLs and FILES are HREF and SRC attributes:"
 demo [
   a https://github.com/metaeducation/ren-c
   img http://giuliolunati.altervista.org/r3/ren-c-logo.png height: "3.5ex" space
   a %/ font-size: "200%" "ROOT"
 ]
-
-
-h2 "Text"
-demo "Text must be quoted; <, &, >, are ok."
-demo [{Space must be explicitly inserted}
-  { in strings } {or with 'space. } space {This} {is} {one} {long} {word.}
-]
-
-demo/rem "^ is not an escape character"
-  {"^ is not an escape character"}
-demo/rem "\\ is an escape character, but only before \\ \" \{ \} \(28)"
-  {"\\\\ is an escape character, but only before \\\\ \\" \\{ \\} \\(28)"} 
 
 h2 "Defining things"
 
@@ -131,8 +134,8 @@ p "However you can easily hide it with a GROUP ending in BLANK:"
 demo [(three: #"3" two: "2" one: 1 _)
 one two three]
 
-h3   "Shortcuts"
-p ["Functions and variables can't work for attributes, because (1) attributes are not normally evaluated, but processed by tag functions (2) a word ends attribute processing. For this purpose you can define " i "shortcuts"" and expand they with get-words:"]
+h3   "Macros"
+p ["Functions and variables can't work for attributes, because (1) attributes are not normally evaluated, but processed by tag functions (2) a word ends attribute processing. For this purpose you can define " i "macros"" and expand they with get-words:"]
 demo [
   (center-red: [/align "center" color: "red"] _)
   p :center-red "Red centered text"
@@ -148,7 +151,7 @@ demo [s"*bold but /not italic/*"]
 
 h3  "Quoting"
 p "Special chars can be quoted with \ :"
-demo [s"star\*, *bold \* star*, backslash \\"]
+demo [s"star\*, *bold \* star*"]
 note s"However a space (or tab or newline or end-of-string) after an /opening/ special char 'disarm' it, and you don't need to quote:"
 demo [s{* / ^ _}]
 
@@ -167,7 +170,7 @@ breaklines; three
 
 
 breaklines}]
-p s{If you need single breakline, use /\\ + newline/ or /\\ + space:/}
+p s{If you need single breakline, use /\\\\ + newline/ or /\\\\ + space:/}
 demo [s{ one\ breakline; another \
 breakline}]
 
