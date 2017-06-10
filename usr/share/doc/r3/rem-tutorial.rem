@@ -49,6 +49,7 @@ header [
 body [
 
 h1 tit
+a /href "#toc" "[TOC]"
 
 h2 ["Legenda"]
 p .rem {ReM code}
@@ -110,6 +111,13 @@ demo [
   img http://giuliolunati.altervista.org/r3/ren-c-logo.png height: "3.5ex" space
   a %/ font-size: "200%" "ROOT"
 ]
+
+h2 "Table of Contents"
+p {If an element exist with ID = "TOC", it will be filled with a copy of every Hn element, placed after other contents:}
+demo [div #toc font-size: 50%
+  p /align 'center b i {(-- Here you can place ToC header --)}
+] 
+note {The ToC filling happens when closing BODY element, thus if you want the ToC you must explicitly call BODY}
 
 h2 "Defining things"
 

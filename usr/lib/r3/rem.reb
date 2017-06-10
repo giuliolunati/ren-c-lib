@@ -79,7 +79,7 @@ rem: make object! [
     else [false]
   ]
   ;; 
-  count: toc: _
+  count: toc-content: _
   rem-tag: function [
       tag [word!]
       empty [logic!]
@@ -137,7 +137,7 @@ rem: make object! [
       tag: append to-tag tag "/"
     ] else [
       if 'body = tag [
-        set 'toc make block! 8
+        set 'toc-content make block! 8
         set 'count 1
       ]
       case [
@@ -160,25 +160,24 @@ rem: make object! [
         switch/default tag [
           'script [t: reduce [%.js t]]
           'style [t: reduce [%.css t]]
-        ][if string? t [t: maybe-process-text t]]
+        ][
+          t: maybe-process-text t
+        ]
       ]
-      if find [h1 h2 h3 h4 h5 h6] tag [
-        if toc [
-          dot-append toc
+      if all[toc-content | find [h1 h2 h3 h4 h5 h6] tag] [
+        dot-append toc-content reduce [
+          (to-tag tag)
           reduce [
-            (to-tag tag)
-            reduce [
-              <a> join-of reduce [
-                #href join-of "#toc" count
-              ] :t
-            ]
+            <a> join-of reduce [
+              #href join-of "#toc" count
+            ] :t
           ]
         ]
         dot-append buf reduce [
-          <a> [#id join-of "toc" ++ count]
+          <a> reduce [#id join-of "toc" ++ count]
         ]
       ]
-      if 'body = tag [dot-toc :t toc]
+      if 'body = tag [dot-toc :t toc-content]
       dot-append buf :t
     ]
     case [
@@ -247,7 +246,7 @@ rem: make object! [
     case [
       :process-text = true [smart-text x]
       any-function? :process-text [process-text x]
-      true [x]
+      true [reduce [%.txt x]]
     ]
   ]
   smart-text: function [x] [
