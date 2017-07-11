@@ -3,7 +3,7 @@ REBOL [
   Type: 'module
   Name: 'text
   Exports: [
-    decode-text
+    smart-decode-text
     quote-string
     unquote-string
   ]
@@ -11,7 +11,7 @@ REBOL [
   Version: 0.1.0
 ]
 ;=== FUNCTIONS === 
-decode-text: function [ {convert binary! to string!"
+smart-decode-text: function [ {convert binary! to string!"
     support utf8 and cp1252 (autodetect)}
     binary [binary!]
     /utf8 "force utf8"
@@ -19,7 +19,7 @@ decode-text: function [ {convert binary! to string!"
   ][
   if all [
     not cp1252
-    any [utf8 (invalid-utf? binary) = none]
+    any [utf8 (invalid-utf8? binary) = _]
   ] [return to string! binary]
   cp1252-map: "^(20ac)^(81)^(201A)^(0192)^(201E)^(2026)^(2020)^(2021)^(02C6)^(2030)^(0160)^(2039)^(0152)^(8d)^(017D)^(8f)^(90)^(2018)^(2019)^(201C)^(201D)^(2022)^(2013)^(2014)^(02DC)^(2122)^(0161)^(203A)^(0153)^(017E)^(9e)^(0178)"
   mark: :binary
