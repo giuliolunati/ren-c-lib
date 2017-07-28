@@ -29,6 +29,7 @@ usr/share/scripts/demo-fraction.reb \
 usr/share/scripts/demo-html.reb \
 usr/share/scripts/demo-rec.reb \
 usr/share/scripts/demo-rem.reb \
+usr/share/scripts/memo.reb \
 usr/share/scripts/factors.reb \
 usr/share/scripts/webserver.reb
 
