@@ -16,6 +16,7 @@ usr/lib/r3/dot.reb \
 usr/lib/r3/fraction.reb \
 usr/lib/r3/html.reb \
 usr/lib/r3/httpd.reb \
+usr/lib/r3/input-line.reb \
 usr/lib/r3/profile.reb \
 usr/lib/r3/rec.reb \
 usr/lib/r3/rem.reb \
