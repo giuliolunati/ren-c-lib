@@ -174,7 +174,7 @@ rem: make object! [
           ]
         ]
         dot-append buf reduce [
-          <a> reduce [#id join-of "toc" ++ count]
+          <a> reduce [#id join-of "toc" count: ++ 1]
         ]
       ]
       if 'body = tag [dot-toc :t toc-content]
@@ -340,8 +340,8 @@ load-rem: function [
           if (n > 0)
           [to bra-spec | to end]
           [ {^^} insert {^^}
-          | "{" (++ n)
-          | "}" (-- n)
+          | "{" (n: ++ 1)
+          | "}" (n: -- 1)
           | and ["\" escapable]
             change skip "^^" skip
           | "\" remove "\"
