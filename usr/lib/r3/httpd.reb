@@ -146,7 +146,7 @@ sys/make-scheme [
 
             switch/default event/type [
                 read [
-                    ++ instance
+                    instance: ++ 1
                     ; print rejoin ["[" instance "]"]
 
                     either find client/data #{0D0A0D0A} [
