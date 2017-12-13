@@ -1,3 +1,4 @@
+REBOL [Name: "webserver"]
 -help: does [print {
 USAGE: r3 webserver.reb [OPTIONS]
 OPTIONS:
@@ -105,36 +106,36 @@ html-list-dir: function [
 ]
 
 handle-request: function [
-    req [object!]
+    request [object!]
   ][
-  path-elements: next split req/target #"/"
-  if parse req/request-uri ["/http" opt "s" "://" to end] [
+  path-elements: next split request/target #"/"
+  if parse request/request-uri ["/http" opt "s" "://" to end] [
     ; 'extern' url /http://ser.ver/...
     if all [
       3 = length path-elements
       #"/" != last path-elements/3
     ] [; /http://ser.ver w/out final slash
       path: unspaced [
-        req/target "/"
-        if req/query-string unspaced [
-          "?" to-string req/query-string
+        request/target "/"
+        if request/query-string unspaced [
+          "?" to-string request/query-string
         ]
       ]
       return redirect-response path
     ]
-    path: to-url next req/request-uri
+    path: to-url next request/request-uri
     path-type: 'file
   ] else [
-    path: join-of root req/target
+    path: join-of root request/target
     path-type: exists? path
   ]
   if path-type = 'dir [
     if not access-dir [return 403]
     if not #"/" = last path [
       path: unspaced [
-        req/target "/"
-        if req/query-string unspaced [
-          "?" to-string req/query-string
+        request/target "/"
+        if request/query-string unspaced [
+          "?" to-string request/query-string
         ]
       ]
       return redirect-response path
