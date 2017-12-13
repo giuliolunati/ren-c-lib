@@ -38,14 +38,14 @@ smart-decode-text: function [ {convert binary! to string!"
 ]
 quote-string: function [
     {Quote string s with " + escape with \}
-    s [string!]
+    s [string!] "MODIFIED!"
     /single "use single quotes"
   ] [
   q: charset either single [{\'}] [{\"}]
-  parse to string! s [any[to q insert "\" skip]]
-  ajoin either/only single
-  [{'} s {'}] 
-  [{"} s {"}] 
+  parse s [any [to q insert "\" skip]]
+  unspaced
+    if single [[{'} s {'}]]
+    else [[{"} s {"}]] 
 ]
 unquote-string: function [
     {Remove \ escape and  quotes}
