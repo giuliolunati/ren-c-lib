@@ -186,8 +186,6 @@ t0: now
 forall arg [
   case [
     "-auto" = arg/1 [
-      thr: to-decimal arg/2
-      arg: next arg
       arg: next arg
       b: make block! 16
       r: 0
@@ -214,7 +212,6 @@ forall arg [
       print format [-6 -8 " "]
       [ "DELAY" "Q/DAY" "FILE" ]
       b: last b
-      if b/1 <= thr [quit]
       desk-file: to-file b/3
       print ["^/Opening" desk-file]
       print/only ["Hit ENTER when ready.^/"]
