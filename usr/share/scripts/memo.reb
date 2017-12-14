@@ -10,7 +10,7 @@ REBOL []
 ; ]
 
 context-length: 4
-tmin: 30
+tmin: 60
 zone: now/zone
 rate: 0
 
@@ -40,16 +40,16 @@ load-desk: function [
   ]
   if empty? text [text: _]
   else [
-    assert [(length desk) <= (length text)]
-    while [(length desk) < (length text)] [
-      repend/only desk [1 + length desk _ _ _ _]
+    assert [(length of desk) <= (length of text)]
+    while [(length of desk) < (length of text)] [
+      repend/only desk [1 + length of desk _ _ _ _]
     ]
   ]
   set 'rate 0
-	repeat i length desk [
+	repeat i length of desk [
     d: desk/:i
     new-line/all d false
-    while [6 > length d] [append d _]
+    while [6 > length of d] [append d _]
     d/6: i
     if d/4
     [ set 'rate (86400 / d/4 + rate) ] ; queries/day
@@ -90,7 +90,7 @@ add-cards: function [
     [ if block? desk/1 [d: desk break] ]
     insert d src
     d: (index-of d) - 1 
-    repeat i length src [
+    repeat i length of src [
       repend/only desk [i + d _ _ _ _]
     ]
   ] else [
@@ -161,7 +161,7 @@ print-stats: procedure [
     x: x + s/:i
     print ["  "
       i - 1
-      to-percent round/to/ceiling (x / length desk) .01
+      to-percent round/to/ceiling (x / length of desk) .01
     ]
   ]
   print ["  q/day:" to-integer s/rate]
@@ -223,7 +223,7 @@ forall arg [
     ]
     "-stat" = arg/1 [
       arg: next arg
-      if 1 < length arg [
+      if 1 < length of arg [
         b: make block! 16
         r: 0
         t: x: _
@@ -363,20 +363,27 @@ forever [
   q: do-command
   d/2: default [q]
   if text [print (
-    if i < length text [text/(i + 1)]
+    if i < length of text [text/(i + 1)]
     else ["=== END ==="]
   )]
-  else [print d/2]
+  else [print form reduce d/2]
   print "  -----------------"
   print/only "  quality? [0-5] > "
   while [not integer? q: do-command] []
   d/3: default 0
   if d/4 [set 'rate (-86400 / d/4 + rate)]
   d/4: default [tmin / t-factor 0 0]
-  if d/5 [d/4: d/4 + subtract-date t d/5]
+  ;if d/5 [d/4: d/4 + subtract-date t d/5]
   t: t-factor d/3 q
   t: 0.95 + (random 0.1) * t
   t: d/4 * t
+  if q < 3 [
+    t: exp (
+      q * (log-e t)
+      + (3 - q * log-e tmin)
+      / 3
+    )
+  ]
   d/4: if t < tmin [tmin] else [t]
   set 'rate (86400 / d/4 + rate)
   d/3: q
@@ -386,4 +393,4 @@ forever [
   else [sort/compare desk :cmp45]
 ]
 
-;; vim: set sw=2 ts=2 sts=2 expandtab:
+;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
