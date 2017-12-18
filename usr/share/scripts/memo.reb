@@ -192,7 +192,7 @@ forall arg [
       t: x: _
       forall arg [
         desk: first load-desk to-file arg/1
-        if desk/1/5 > t0 [continue]
+        if try[desk/1/5 > t0] [continue]
         s: stats desk
         repend/only b [
           s/delay
@@ -312,10 +312,7 @@ do-command: function [] [
       quit
     ]
   ]
-  if error? try [q: to-integer c] [return c]
-  if q < 0 [return 0]
-  if q > 5 [return 5]
-  q
+  c
 ]
 
 forever [
@@ -357,16 +354,22 @@ forever [
       d/2 ["[NEW] ? "]
     ] else ["  >>>>>>>>>>>>>>>>> "]
   ]
-  q: do-command
-  d/2: default [q]
+  uinput: do-command
+  bind d 'uinput
+  d/2: default [uinput]
   if text [print (
     if i < length of text [text/(i + 1)]
     else ["=== END ==="]
   )]
-  else [print form reduce d/2]
+  else [
+    print form q: try [reduce d/2]
+    if error? q [continue]
+  ]
   print "  -----------------"
   print/only "  quality? [0-5] > "
-  while [not integer? q: do-command] []
+  while [not attempt [q: to-integer do-command]] []
+  if q < 0 [q: 0]
+  if q > 5 [q: 5]
   d/3: default 0
   if d/4 [set 'rate (-86400 / d/4 + rate)]
   d/4: default [tmin / t-factor 0 0]
