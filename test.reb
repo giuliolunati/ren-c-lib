@@ -1,17 +1,7 @@
 html: import 'html
 
-dot: html/split-html
-%test.html
-;"<tr><td style='my: 4' >testo<br a='b'></td></tr>"
-dot: html/load-html dot
-dot: html/clean dot [
-  attributes --
-  tags -
-  <html> + <body> +
-  <p> + <br/> +
-  <b> + <i> +
-  <td> <p>
-]
+dot: html/load-html
+"<tr><td style='my: 4' >testo<br a='b'></td></tr>"
 print
 html/mold-html dot
 
