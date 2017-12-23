@@ -32,9 +32,7 @@ maps-equal?: func [value1 [map! blank!] value2 [map! blank!]][
 	equal? value1 value2
 ]
 
-rgchris.markup: make map! 0
-
-rgchris.markup/increment: func ['word [word!]][
+increment: func ['word [word!]][
 	either number? get :word [
 		also get word set word add get word 1
 	][
@@ -42,7 +40,7 @@ rgchris.markup/increment: func ['word [word!]][
 	]
 ]
 
-rgchris.markup/references: make object! [ ; need to update references
+references: make object! [ ; need to update references
 	codepoints: [
 		34 "quot" #{22} 38 "amp" #{26} 60 "lt" #{3C} 62 "gt" #{3E} 160 "nbsp" #{C2A0}
 		161 "iexcl" #{C2A1} 162 "cent" #{C2A2} 163 "pound" #{C2A3} 164 "curren" #{C2A4} 165 "yen" #{C2A5}
@@ -183,7 +181,7 @@ rgchris.markup/references: make object! [ ; need to update references
 	]
 ]
 
-rgchris.markup/word: [ ; reserved for future use
+word-rule: [ ; reserved for future use
 	w1: charset [
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
 		#"^(C0)" - #"^(D6)" #"^(D8)" - #"^(F6)" #"^(F8)" - #"^(02FF)"
@@ -201,7 +199,7 @@ rgchris.markup/word: [ ; reserved for future use
 	word: [w1 any w+]
 ]
 
-rgchris.markup/decode: make object! [
+decode: make object! [
 	digit: charset "0123456789"
 	hex-digit: charset "0123456789abcdefABCDEF"
 	specials: charset [#"0" - #"9" #"=" #"a" - #"z" #"A" - #"Z"]
@@ -221,7 +219,7 @@ rgchris.markup/decode: make object! [
 
 	resolve: func [char [integer!]][
 		any [
-			select rgchris.markup/references/replacements char
+			select references/replacements char
 			if find prohibited char [65533]
 			char
 		]
@@ -230,7 +228,7 @@ rgchris.markup/decode: make object! [
 	codepoint: name: character: _
 	codepoints: make map! 0
 	names: remove sort/skip/compare/reverse collect [
-		foreach [codepoint name character] rgchris.markup/references/codepoints [
+		foreach [codepoint name character] references/codepoints [
 			put codepoints name to string! character
 			keep '|
 			keep name
@@ -285,9 +283,9 @@ rgchris.markup/decode: make object! [
 	]
 ]
 
-decode-markup: get in rgchris.markup/decode 'decode-markup
+decode-markup: :decode/decode-markup
 
-rgchris.markup/html-tokenizer: make object! [
+html-tokenizer: make object! [
 	; 8.2.4 Tokenization https://www.w3.org/TR/html5/syntax.html#tokenization
 	series: mark: buffer: attribute: token: last-token: character: closer: additional-character: _
 	is-paused: is-done: false
@@ -317,7 +315,7 @@ rgchris.markup/html-tokenizer: make object! [
 	non-rcdata: complement charset "^@&<"
 	non-script: complement charset "^@<"
 	not-null: complement charset "^@"
-	; word: get in rgchris.markup/word 'word
+	; word: :word-rule/word
 
 	error: [(report 'parse-error)]
 	null-error: [#"^@" (report 'unexpected-null-character)]
@@ -1793,7 +1791,7 @@ rgchris.markup/html-tokenizer: make object! [
 
 	adjust: func [token][
 		also token token/2: any [
-			select rgchris.markup/references/elements token/2
+			select references/elements token/2
 			token/2
 		]
 	]
@@ -1871,9 +1869,7 @@ rgchris.markup/html-tokenizer: make object! [
 	]
 ]
 
-html-tokenizer: rgchris.markup/html-tokenizer
-
-rgchris.markup/load: make object! [
+markup-loader: make object! [
 	last-token: _
 
 	load-markup: func [source [string!]][
@@ -1931,7 +1927,7 @@ rgchris.markup/load: make object! [
 	]
 ]
 
-load-markup: get in rgchris.markup/load 'load-markup
+load-markup: :markup-loader/load-markup
 
 trees: make object! [
 	; new: does [
@@ -2078,8 +2074,8 @@ trees: make object! [
 	]
 ]
 
-rgchris.markup/markup-as-block: function [node [map! block!]][
-	tags: rgchris.markup/references/tags
+markup-as-block: function [node [map! block!]][
+	tags: references/tags
 
 	new-line/all/skip collect [
 		switch/default node/type [
@@ -2126,9 +2122,7 @@ rgchris.markup/markup-as-block: function [node [map! block!]][
 	] true 2
 ]
 
-markup-as-block: select rgchris.markup 'markup-as-block
-
-rgchris.markup/load-html: make object! [
+html-loader: make object! [
 	document: space: head-node: body-node: form-node: parent: kid: last-token: _
 	open-elements: active-formatting-elements: pending-table-characters:
 	current-node: nodes: node: mark: _
@@ -2208,7 +2202,7 @@ rgchris.markup/load-html: make object! [
 					either all [
 						equal? node/name mark/1/name
 						maps-equal? node/value mark/1/value
-						(rgchris.markup/increment count) > 3
+						(increment count) > 3
 					][
 						remove mark
 					][
@@ -2266,7 +2260,7 @@ rgchris.markup/load-html: make object! [
 	tagify: func [name [word! string!] /close /local source][
 		source: either close ['end-tags]['tags]
 		any [
-			select rgchris.markup/references/:source name
+			select references/:source name
 			name
 		]
 	]
@@ -2600,7 +2594,7 @@ rgchris.markup/load-html: make object! [
 				count: 0
 
 				forever [
-					rgchris.markup/increment count
+					increment count
 
 					node: first mark: next mark
 
@@ -3799,7 +3793,7 @@ rgchris.markup/load-html: make object! [
 
 		loop-until [
 			last-mark: :mark
-			rgchris.markup/increment lines
+			increment lines
 			any [
 				not mark: find next mark newline
 				negative? offset-of mark string
@@ -3923,7 +3917,7 @@ rgchris.markup/load-html: make object! [
 ]
 
 list-elements: function [node [map! block!]][
-	tags: rgchris.markup/references/tags
+	tags: references/tags
 	print "LIST ELEMENTS:"
 	trees/walk node [
 		this: :node
@@ -3942,16 +3936,16 @@ list-elements: function [node [map! block!]][
 		]
 	]
 ]
-load-html-rgchris: get in rgchris.markup/load-html 'load-html
+load-html: :html-loader/load-html
 ;;;;;;;;;;;;; 
 
-load-html: function [
+my-load-html: function [
 		x [string! binary! file!]
 		/quiet
 	][
 	if file? x [x: read x]
 	if binary? x [x: smart-decode-text x]
-	apply 'load-html-rgchris [source: x quiet: quiet] 
+	apply 'load-html [source: x quiet: quiet] 
 ]
 
 is-empty?: function [t [any-string!]] [
