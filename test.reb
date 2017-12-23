@@ -1,6 +1,7 @@
 html: import 'html
 
 dot: html/load-html
+%test.html
 "<tr><td style='my: 4' >testo<br a='b'></td></tr>"
 print
 html/mold-html dot

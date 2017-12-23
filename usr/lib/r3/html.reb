@@ -3890,7 +3890,11 @@ html-loader: make object! [
 		_
 	]
 
-	load-html: func [source [string!]][
+	load-html: func [
+			source [string! binary! file!]
+		][
+		if file? source [source: read source]
+		if binary? source [source: smart-decode-text source]
 		open-elements: make block! 12
 		active-formatting-elements: make block! 6
 		last-token: _
@@ -3916,6 +3920,8 @@ html-loader: make object! [
 	]
 ]
 
+load-html: :html-loader/load-html
+
 list-elements: function [node [map! block!]][
 	tags: references/tags
 	print "LIST ELEMENTS:"
@@ -3935,17 +3941,6 @@ list-elements: function [node [map! block!]][
 			]
 		]
 	]
-]
-load-html: :html-loader/load-html
-;;;;;;;;;;;;; 
-
-my-load-html: function [
-		x [string! binary! file!]
-		/quiet
-	][
-	if file? x [x: read x]
-	if binary? x [x: smart-decode-text x]
-	apply 'load-html [source: x quiet: quiet] 
 ]
 
 is-empty?: function [t [any-string!]] [
