@@ -1709,62 +1709,86 @@ html-tokenizer: make object! [
 	]
 ]
 
-markup-loader: make object! [
+last-token: _
+
+split-html: func [
+		source [string! binary! file!]
+		/quiet
+	][
+	if file? source [source: read source]
+	if binary? source [source: smart-decode-text source]
+	if quiet [set 'verbose false]
 	last-token: _
-
-	load-markup: func [source [string!]][
-		last-token: _
-		collect [
-			html-tokenizer/init source
-			func [token [block! char! string!]][
-				case [
-					not block? token [
-						either all [
-							last-token
-							last-token/1 = 'text
-						][
-							append last-token/2 token
-							token: last-token
-						][
-							token: reduce ['text to string! token]
-							keep token/2
-						]
-					]
-
-					token/1 = 'tag [
-						keep to tag! token/2
-						if map? token/3 [keep token/3]
-						if token/4 [keep </>]
-
-						switch token/2 [
-							script [
-								html-tokenizer/use/until script-data form token/2
-							]
-							title [
-								html-tokenizer/use/until rcdata form token/2
-							]
-							style textarea [
-								html-tokenizer/use/until rawtext form token/2
-							]
-						]
-					]
-
-					token/1 = 'end-tag [
-						keep to tag! rejoin ["/" token/2]
-					]
-
-					token/1 = 'comment [
-						keep to tag! rejoin ["!--" token/2 "--"]
+	collect [
+		html-tokenizer/init source
+		func [token [block! char! string!]][
+			case [
+				not block? token [
+					either all [
+						last-token
+						last-token/1 = 'text
+					][
+						append last-token/2 token
+						token: last-token
+					][
+						token: reduce ['text to string! token]
+						keep token/2
 					]
 				]
 
-				also _ last-token: :token
-			]
-			func [value][value]
+				token/1 = 'tag [
+					keep to tag! token/2
+					if map? token/3 [keep token/3]
+					if token/4 [keep </>]
 
-			html-tokenizer/start
+					switch token/2 [
+						script [
+							html-tokenizer/use/until script-data form token/2
+						]
+						title [
+							html-tokenizer/use/until rcdata form token/2
+						]
+						style textarea [
+							html-tokenizer/use/until rawtext form token/2
+						]
+					]
+				]
+
+				token/1 = 'end-tag [
+					keep to tag! rejoin ["/" token/2]
+				]
+
+				token/1 = 'comment [
+					keep to tag! rejoin ["!--" token/2 "--"]
+				]
+			]
+
+			also _ last-token: :token
+		]
+		func [type [word! string!]][
+			report :type html-tokenizer/series
+		]
+
+		html-tokenizer/start
+	]
+]
+
+count-of: func [string [string!] /local lines chars mark last-mark][
+	lines: 0
+	mark: head string
+
+	loop-until [
+		last-mark: :mark
+		increment lines
+		any [
+			not mark: find next mark newline
+			negative? offset-of mark string
 		]
 	]
+
+	chars: offset-of last-mark string
+
+	rejoin ["(" lines "," chars ")"]
 ]
 
 markup-as-block: function [node [map! block!]][
@@ -1813,6 +1837,17 @@ markup-as-block: function [node [map! block!]][
 			keep to tag! node/type
 		]
 	] true 2
+]
+
+verbose: true
+
+report: func [
+	type [word! string!]
+	; info
+][
+	also type if verbose [
+		print unspaced ["** " count-of html-tokenizer/series ": " type]
+	]
 ]
 
 html-loader: make object! [
@@ -3497,13 +3532,6 @@ html-loader: make object! [
 
 		rejoin ["(" lines "," chars ")"]
 	]
-  verbose: true
-	report: func [
-		type [word! string!]
-		; info
-	][
-		also type if verbose [print unspaced ["** " count-of html-tokenizer/series ": " type]
-	]]
 
 	current-state-name: current-state: return-state: state: last-state-name: token: _
 
@@ -3585,11 +3613,11 @@ html-loader: make object! [
 
 	load-html: func [
 			source [string! binary! file!]
-      /quiet
+			/quiet
 		][
 		if file? source [source: read source]
 		if binary? source [source: smart-decode-text source]
-    if quiet [set 'verbose false]
+		if quiet [set 'verbose false]
 		open-elements: make block! 12
 		active-formatting-elements: make block! 6
 		last-token: _

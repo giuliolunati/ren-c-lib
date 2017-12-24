@@ -3,8 +3,9 @@ decode-markup: :markup/decode-markup
 
 html: import 'html
 load-html: :html/load-html
+split-html: :html/split-html
 
-probe dot: decode-markup
+probe dot: split-html/quiet
 "<?><b style='my: 4' >testo<br a='b'>"
 %test.html
 
