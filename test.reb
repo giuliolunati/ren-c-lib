@@ -1,8 +1,8 @@
 html: import 'html
 
-dot: html/load-html
+dot: html/load-html/quiet
+"<?><b style='my: 4' >testo<br a='b'>"
 %test.html
-"<tr><td style='my: 4' >testo<br a='b'></td></tr>"
 print
 html/mold-html dot
 

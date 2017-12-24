@@ -3804,13 +3804,13 @@ html-loader: make object! [
 
 		rejoin ["(" lines "," chars ")"]
 	]
-
+  verbose: true
 	report: func [
 		type [word! string!]
 		; info
 	][
-		also type print unspaced ["** " count-of html-tokenizer/series ": " type]
-	]
+		also type if verbose [print unspaced ["** " count-of html-tokenizer/series ": " type]
+	]]
 
 	current-state-name: current-state: return-state: state: last-state-name: token: _
 
@@ -3892,9 +3892,11 @@ html-loader: make object! [
 
 	load-html: func [
 			source [string! binary! file!]
+      /quiet
 		][
 		if file? source [source: read source]
 		if binary? source [source: smart-decode-text source]
+    if quiet [set 'verbose false]
 		open-elements: make block! 12
 		active-formatting-elements: make block! 6
 		last-token: _
