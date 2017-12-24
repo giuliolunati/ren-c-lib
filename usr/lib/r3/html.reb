@@ -13,10 +13,16 @@ Rebol [
 	]
 ]
 
+;;; IMPORT
+
 text-mod: import 'text
 smart-decode-text: :text-mod/smart-decode-text
 unquote-string: :text-mod/unquote-string
 quote-string: :text-mod/quote-string
+
+trees: import 'doc-tree
+
+;;; UTILITIES
 
 also: func [x [<opt> any-value!] y [<opt> any-value!]] [:x] 
 
@@ -31,6 +37,8 @@ maps-equal?: func [value1 [map! blank!] value2 [map! blank!]][
 	if map? value2 [value2: sort/skip body-of value2 2]
 	equal? value1 value2
 ]
+
+;;;
 
 increment: func ['word [word!]][
 	either number? get :word [
@@ -1924,153 +1932,6 @@ markup-loader: make object! [
 
 			html-tokenizer/start
 		]
-	]
-]
-
-load-markup: :markup-loader/load-markup
-
-trees: make object! [
-	; new: does [
-	; 	make map! [parent _ first _ last _ type document]
-	; ]
-	;
-	; make-node: does [
-	; 	make map! compose/only [
-	; 		parent _ back _ next _ first _ last _
-	; 		type _ name _ value _
-	; 	]
-	; ]
-
-	new: does [
-		new-line/all/skip copy [
-			parent _ first _ last _ name _ public _ system _
-			form _ head _ body _ type document
-		] true 2
-	]
-
-	make-node: does [
-		new-line/all/skip copy [
-			parent _ back _ next _ first _ last _
-			type _ name _ value _
-		] true 2
-	]
-
-	insert-before: func [item [block! map!] /local node][
-		node: make-node
-
-		node/parent: item/parent
-		node/back: item/back
-		node/next: item
-
-		either blank? item/back [
-			item/parent/first: node
-		][
-			item/back/next: node
-		]
-
-		item/back: node
-	]
-
-	insert-after: func [item [block! map!] /local node][
-		node: make-node
-
-		node/parent: item/parent
-		node/back: item
-		node/next: item/next
-
-		either blank? item/next [
-			item/parent/last: node
-		][
-			item/next/back: node
-		]
-
-		item/next: node
-	]
-
-	insert: func [list [block! map!]][
-		either list/first [
-			insert-before list/first
-		][
-			also list/first: list/last: make-node
-			list/first/parent: list
-		]
-	]
-
-	append: func [list [block! map!]][
-		either list/last [
-			insert-after list/last
-		][
-			insert list
-		]
-	]
-
-	append-existing: func [list [block! map!] node [block! map!]][
-		node/parent: list
-		node/next: _
-
-		either blank? list/last [
-			node/back: _
-			list/first: list/last: node
-		][
-			node/back: list/last
-			node/back/next: node
-			list/last: node
-		]
-	]
-
-	remove: func [item [block! map!] /back /next][
-		unless item/parent [
-			do make error! "Node does not exist in tree"
-		]
-
-		either item/back [
-			item/back/next: item/next
-		][
-			item/parent/first: item/next
-		]
-
-		either item/next [
-			item/next/back: item/back
-		][
-			item/parent/last: item/back
-		]
-
-		item/parent: item/back: item/next: _ ; node becomes freestanding
-
-		case [
-			back [item/back]
-			next [item/next]
-			/else [item]
-		]
-	]
-
-	clear: func [list [block! map!]][
-		while [list/first][remove list/first]
-	]
-
-	clear-from: func [item [block! map!]][
-		also item/back
-		loop-until [not item: remove item]
-	]
-
-	walk: func [node [block! map!] callback [block!] /into /only][
-		case bind compose/deep [
-			only [
-				node: node/first
-				while [:node][
-					(to group! callback)
-					node: node/next
-				]
-			]
-			/else [
-				(to group! callback)
-				node: node/first
-				while [:node][
-					walk/into node callback
-					node: node/next
-				]
-			]
-		] 'node
 	]
 ]
 
