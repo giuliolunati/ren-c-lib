@@ -22,6 +22,9 @@ quote-string: :text-mod/quote-string
 
 trees: import 'doc-tree
 
+markup: import 'markup
+decode-markup: :markup/decode-markup
+
 ;;; UTILITIES
 
 also: func [x [<opt> any-value!] y [<opt> any-value!]] [:x] 
@@ -49,91 +52,6 @@ increment: func ['word [word!]][
 ]
 
 references: make object! [ ; need to update references
-	codepoints: [
-		34 "quot" #{22} 38 "amp" #{26} 60 "lt" #{3C} 62 "gt" #{3E} 160 "nbsp" #{C2A0}
-		161 "iexcl" #{C2A1} 162 "cent" #{C2A2} 163 "pound" #{C2A3} 164 "curren" #{C2A4} 165 "yen" #{C2A5}
-		166 "brvbar" #{C2A6} 167 "sect" #{C2A7} 168 "uml" #{C2A8} 169 "copy" #{C2A9} 170 "ordf" #{C2AA}
-		171 "laquo" #{C2AB} 172 "not" #{C2AC} 173 "shy" #{C2AD} 174 "reg" #{C2AE} 175 "macr" #{C2AF}
-		176 "deg" #{C2B0} 177 "plusmn" #{C2B1} 178 "sup2" #{C2B2} 179 "sup3" #{C2B3} 180 "acute" #{C2B4}
-		181 "micro" #{C2B5} 182 "para" #{C2B6} 183 "middot" #{C2B7} 184 "cedil" #{C2B8} 185 "sup1" #{C2B9}
-		186 "ordm" #{C2BA} 187 "raquo" #{C2BB} 188 "frac14" #{C2BC} 189 "frac12" #{C2BD} 190 "frac34" #{C2BE}
-		191 "iquest" #{C2BF} 192 "Agrave" #{C380} 193 "Aacute" #{C381} 194 "Acirc" #{C382} 195 "Atilde" #{C383}
-		196 "Auml" #{C384} 197 "Aring" #{C385} 198 "AElig" #{C386} 199 "Ccedil" #{C387} 200 "Egrave" #{C388}
-		201 "Eacute" #{C389} 202 "Ecirc" #{C38A} 203 "Euml" #{C38B} 204 "Igrave" #{C38C} 205 "Iacute" #{C38D}
-		206 "Icirc" #{C38E} 207 "Iuml" #{C38F} 208 "ETH" #{C390} 209 "Ntilde" #{C391} 210 "Ograve" #{C392}
-		211 "Oacute" #{C393} 212 "Ocirc" #{C394} 213 "Otilde" #{C395} 214 "Ouml" #{C396} 215 "times" #{C397}
-		216 "Oslash" #{C398} 217 "Ugrave" #{C399} 218 "Uacute" #{C39A} 219 "Ucirc" #{C39B} 220 "Uuml" #{C39C}
-		221 "Yacute" #{C39D} 222 "THORN" #{C39E} 223 "szlig" #{C39F} 224 "agrave" #{C3A0} 225 "aacute" #{C3A1}
-		226 "acirc" #{C3A2} 227 "atilde" #{C3A3} 228 "auml" #{C3A4} 229 "aring" #{C3A5} 230 "aelig" #{C3A6}
-		231 "ccedil" #{C3A7} 232 "egrave" #{C3A8} 233 "eacute" #{C3A9} 234 "ecirc" #{C3AA} 235 "euml" #{C3AB}
-		236 "igrave" #{C3AC} 237 "iacute" #{C3AD} 238 "icirc" #{C3AE} 239 "iuml" #{C3AF} 240 "eth" #{C3B0}
-		241 "ntilde" #{C3B1} 242 "ograve" #{C3B2} 243 "oacute" #{C3B3} 244 "ocirc" #{C3B4} 245 "otilde" #{C3B5}
-		246 "ouml" #{C3B6} 247 "divide" #{C3B7} 248 "oslash" #{C3B8} 249 "ugrave" #{C3B9} 250 "uacute" #{C3BA}
-		251 "ucirc" #{C3BB} 252 "uuml" #{C3BC} 253 "yacute" #{C3BD} 254 "thorn" #{C3BE} 255 "yuml" #{C3BF}
-		338 "OElig" #{C592} 339 "oelig" #{C593} 352 "Scaron" #{C5A0} 353 "scaron" #{C5A1} 376 "Yuml" #{C5B8}
-		402 "fnof" #{C692} 710 "circ" #{CB86} 732 "tilde" #{CB9C} 913 "Alpha" #{CE91} 914 "Beta" #{CE92}
-		915 "Gamma" #{CE93} 916 "Delta" #{CE94} 917 "Epsilon" #{CE95} 918 "Zeta" #{CE96} 919 "Eta" #{CE97}
-		920 "Theta" #{CE98} 921 "Iota" #{CE99} 922 "Kappa" #{CE9A} 923 "Lambda" #{CE9B} 924 "Mu" #{CE9C}
-		925 "Nu" #{CE9D} 926 "Xi" #{CE9E} 927 "Omicron" #{CE9F} 928 "Pi" #{CEA0} 929 "Rho" #{CEA1}
-		931 "Sigma" #{CEA3} 932 "Tau" #{CEA4} 933 "Upsilon" #{CEA5} 934 "Phi" #{CEA6} 935 "Chi" #{CEA7}
-		936 "Psi" #{CEA8} 937 "Omega" #{CEA9} 945 "alpha" #{CEB1} 946 "beta" #{CEB2} 947 "gamma" #{CEB3}
-		948 "delta" #{CEB4} 949 "epsilon" #{CEB5} 950 "zeta" #{CEB6} 951 "eta" #{CEB7} 952 "theta" #{CEB8}
-		953 "iota" #{CEB9} 954 "kappa" #{CEBA} 955 "lambda" #{CEBB} 956 "mu" #{CEBC} 957 "nu" #{CEBD}
-		958 "xi" #{CEBE} 959 "omicron" #{CEBF} 960 "pi" #{CF80} 961 "rho" #{CF81} 962 "sigmaf" #{CF82}
-		963 "sigma" #{CF83} 964 "tau" #{CF84} 965 "upsilon" #{CF85} 966 "phi" #{CF86} 967 "chi" #{CF87}
-		968 "psi" #{CF88} 969 "omega" #{CF89} 977 "thetasym" #{CF91} 978 "upsih" #{CF92} 982 "piv" #{CF96}
-		8194 "ensp" #{E28082} 8195 "emsp" #{E28083} 8201 "thinsp" #{E28089} 8204 "zwnj" #{E2808C} 8205 "zwj" #{E2808D}
-		8206 "lrm" #{E2808E} 8207 "rlm" #{E2808F} 8211 "ndash" #{E28093} 8212 "mdash" #{E28094} 8216 "lsquo" #{E28098}
-		8217 "rsquo" #{E28099} 8218 "sbquo" #{E2809A} 8220 "ldquo" #{E2809C} 8221 "rdquo" #{E2809D} 8222 "bdquo" #{E2809E}
-		8224 "dagger" #{E280A0} 8225 "Dagger" #{E280A1} 8226 "bull" #{E280A2} 8230 "hellip" #{E280A6} 8240 "permil" #{E280B0}
-		8242 "prime" #{E280B2} 8243 "Prime" #{E280B3} 8249 "lsaquo" #{E280B9} 8250 "rsaquo" #{E280BA} 8254 "oline" #{E280BE}
-		8260 "frasl" #{E28184} 8364 "euro" #{E282AC} 8465 "image" #{E28491} 8472 "weierp" #{E28498} 8476 "real" #{E2849C}
-		8482 "trade" #{E284A2} 8501 "alefsym" #{E284B5} 8592 "larr" #{E28690} 8593 "uarr" #{E28691} 8594 "rarr" #{E28692}
-		8595 "darr" #{E28693} 8596 "harr" #{E28694} 8629 "crarr" #{E286B5} 8656 "lArr" #{E28790} 8657 "uArr" #{E28791}
-		8658 "rArr" #{E28792} 8659 "dArr" #{E28793} 8660 "hArr" #{E28794} 8704 "forall" #{E28880} 8706 "part" #{E28882}
-		8707 "exist" #{E28883} 8709 "empty" #{E28885} 8711 "nabla" #{E28887} 8712 "isin" #{E28888} 8713 "notin" #{E28889}
-		8715 "ni" #{E2888B} 8719 "prod" #{E2888F} 8721 "sum" #{E28891} 8722 "minus" #{E28892} 8727 "lowast" #{E28897}
-		8730 "radic" #{E2889A} 8733 "prop" #{E2889D} 8734 "infin" #{E2889E} 8736 "ang" #{E288A0} 8743 "and" #{E288A7}
-		8744 "or" #{E288A8} 8745 "cap" #{E288A9} 8746 "cup" #{E288AA} 8747 "int" #{E288AB} 8756 "there4" #{E288B4}
-		8764 "sim" #{E288BC} 8773 "cong" #{E28985} 8776 "asymp" #{E28988} 8800 "ne" #{E289A0} 8801 "equiv" #{E289A1}
-		8804 "le" #{E289A4} 8805 "ge" #{E289A5} 8834 "sub" #{E28A82} 8835 "sup" #{E28A83} 8836 "nsub" #{E28A84}
-		8838 "sube" #{E28A86} 8839 "supe" #{E28A87} 8853 "oplus" #{E28A95} 8855 "otimes" #{E28A97} 8869 "perp" #{E28AA5}
-		8901 "sdot" #{E28B85} 8968 "lceil" #{E28C88} 8969 "rceil" #{E28C89} 8970 "lfloor" #{E28C8A} 8971 "rfloor" #{E28C8B}
-		9001 "lang" #{E28CA9} 9002 "rang" #{E28CAA} 9674 "loz" #{E2978A} 9824 "spades" #{E299A0} 9827 "clubs" #{E299A3}
-		9829 "hearts" #{E299A5} 9830 "diams" #{E299A6}
-	]
-
-	replacements: make map! [
-		0 65533
-		128 8364
-		130 8218
-		131 402
-		132 8222
-		133 8230
-		134 8224
-		135 8225
-		136 710
-		137 8240
-		138 352
-		139 8249
-		140 338
-		142 381
-		145 8216
-		146 8217
-		147 8220
-		148 8221
-		149 8226
-		150 8211
-		151 8212
-		152 732
-		153 8482
-		154 353
-		155 8250
-		156 339
-		158 382
-		159 376
-	]
-
 	elements: make map! lock [
 		"a" a "abbr" abbr "address" address "applet" applet "area" area "article" article
 		"aside" aside "b" b "base" base "basefont" basefont "bgsound" bgsound
@@ -206,92 +124,6 @@ word-rule: [ ; reserved for future use
 	]
 	word: [w1 any w+]
 ]
-
-decode: make object! [
-	digit: charset "0123456789"
-	hex-digit: charset "0123456789abcdefABCDEF"
-	specials: charset [#"0" - #"9" #"=" #"a" - #"z" #"A" - #"Z"]
-	prohibited: charset collect [
-		keep [0 - 8 11 13 - 31 127 - 159 55296 - 57343 64976 - 65007]
-		if char? attempt [to char! 65536][
-			keep [
-				65534 65535 131070 131071 196606 196607
-				262142 262143 327678 327679 393214 393215
-				458750 458751 524286 524287 589822 589823
-				655358 655359 720894 720895 786430 786431
-				851966 851967 917502 917503 983038 983039
-				1048574 1048575 1114110 1114111
-			]
-		]
-	]
-
-	resolve: func [char [integer!]][
-		any [
-			select references/replacements char
-			if find prohibited char [65533]
-			char
-		]
-	]
-
-	codepoint: name: character: _
-	codepoints: make map! 0
-	names: remove sort/skip/compare/reverse collect [
-		foreach [codepoint name character] references/codepoints [
-			put codepoints name to string! character
-			keep '|
-			keep name
-			put codepoints name: rejoin [name ";"] to string! character
-			keep '|
-			keep name
-		]
-	] 2 2
-
-	get-hex: func [hex [string!]][
-		insert/dup hex #"0" 8 - length-of hex
-		to integer! debase/base hex 16
-	]
-
-	decode-markup: func [position [string!] /attribute /local char mark response][
-		; [char exit unresolvable no-terminus 
-		also response: reduce [_ position false false false]
-		parse/case position [
-			#"#" [
-				[#"x" | #"X"] [any #"0" copy char some hex-digit | some "0" (char: "00")] (
-					either 7 > length-of char [char: get-hex char][
-						response/3: 'could-not-resolve
-						char: 65533
-					]
-				)
-				|
-				[any #"0" copy char some digit | some #"0" (char: "0")] (
-					either 8 > length-of char [char: to integer! char][
-						response/3: 'could-not-resolve
-						char: 65533
-					]
-				)
-			]
-			mark: [#";" mark: | (response/4: 'no-semicolon)]
-			(
-				unless equal? char char: resolve char [response/3: 'could-not-resolve]
-				response/1: any [attempt [to char! char] to char! 65533]
-				response/2: :mark
-			)
-			|
-			copy char names mark: (
-				unless #";" = last char [response/4: 'no-semicolon]
-				either all [response/4 attribute find specials mark/1][
-					response/4: _
-					response/5: 'no-semicolon-in-attribute
-				][
-					response/1: select codepoints char
-					response/2: mark
-				]
-			)
-		]
-	]
-]
-
-decode-markup: :decode/decode-markup
 
 html-tokenizer: make object! [
 	; 8.2.4 Tokenization https://www.w3.org/TR/html5/syntax.html#tokenization
