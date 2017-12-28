@@ -16,14 +16,14 @@ Rebol [
 new: func ["Returns new empty document."] [
 	new-line/all/skip copy [
 		parent _ first _ last _ name _ public _ system _
-		form _ head _ body _ type document
+		form _ head _ body _ type document length 0
 	] true 2
 ]
 
 make-node: func ["Returns new empty node."] [
 	new-line/all/skip copy [
 		parent _ back _ next _ first _ last _
-		type _ name _ value _
+		type _ name _ value _ length 0
 	] true 2
 ]
 
@@ -43,6 +43,7 @@ insert-before: func [
 	][
 		item/back/next: node
 	]
+  item/parent/length: 1 + item/parent/length
 
 	item/back: node
 ]
@@ -63,6 +64,7 @@ insert-after: func [
 	][
 		item/next/back: node
 	]
+  item/parent/length: 1 + item/parent/length
 
 	item/next: node
 ]
@@ -71,6 +73,7 @@ insert: func [
 		"Insert a new empty node as LIST/FIRST and return it."
 		list [block! map!]
 	][
+	list/length: 1 + list/length
 	either list/first [
 		insert-before list/first
 	][
@@ -83,6 +86,7 @@ append: func [
 		"Append a new empty node as LIST/LAST and return it."
 		list [block! map!]
 	][
+	list/length: 1 + list/length
 	either list/last [
 		insert-after list/last
 	][
@@ -97,6 +101,7 @@ append-existing: func [
 	][
 	node/parent: list
 	node/next: _
+	list/length: 1 + list/length
 
 	either blank? list/last [
 		node/back: _
@@ -130,6 +135,7 @@ remove: func [
 		item/parent/last: item/back
 	]
 
+  item/parent/length: item/parent/length - 1
 	item/parent: item/back: item/next: _ ; node becomes freestanding
 
 	case [
@@ -143,15 +149,30 @@ clear: func [
 		"Removes all children from LIST."
 		list [block! map!]
 	][
+	list/length: 0
 	while [list/first] [remove list/first]
+]
+
+fix-length: func [
+    "Fixes NODE/LENGTH and returns it."
+		node [block! map!]
+		/local n item
+	][
+	n: 0
+	item: node/first
+	loop-until [n: ++ 1 not item: item/next]
+  node/length: n
 ]
 
 clear-from: func [
 		"Removes ITEM and all subsequent siblings from ITEM/PARENT."
 		item [block! map!]
+		/local n p
 	][
-	after item/back
-	[ loop-until [not item: remove item] ]
+	p: item/parent
+	n: p/length
+	loop-until [n: -- 1 not item: remove item]
+	p/length: n
 ]
 
 walk: func [
