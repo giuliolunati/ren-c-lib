@@ -227,4 +227,48 @@ make-element: func [
 	node/empty: empty
 	node
 ]
+
+mold-node: function [node [map! block!]][
+	new-line/all/skip collect [
+		switch/default node/type [
+			element [
+				keep node/name
+				either any [node/value node/first][
+					keep/only new-line/all/skip collect [
+						if node/value [
+							keep %.attrs
+							keep node/value
+						]
+						kid: node/first
+						while [kid][
+							keep mold-node kid
+							kid: kid/next
+						]
+					] true 2
+				][
+					keep _
+				]
+			]
+			document [
+				kid: node/first
+				while [kid][
+					keep mold-node kid
+					kid: kid/next
+				]
+			]
+			text [
+				keep %.txt
+				keep node/value
+			]
+			comment [
+				keep %.comment
+				keep to tag! rejoin ["!--" node/value "--"]
+			]
+		][
+			keep _
+			keep to tag! node/type
+		]
+	] true 2
+]
+
 ; vim: set sw=2 ts=2 sts=2:
