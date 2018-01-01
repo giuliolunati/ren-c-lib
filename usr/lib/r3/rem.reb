@@ -85,7 +85,7 @@ rem: make object! [
       args [any-value! <...>]
       :look [any-value! <...>]
     ][
-    buf: dot/make-node
+    node: dot/make-node
     attributes: class: id: style: _
     while [t: not tail? look] [
       t: apply 'look-first [look: args]
@@ -135,18 +135,13 @@ rem: make object! [
     ]
     case [
       block? t [
-        t: to-dot
-        apply 'take-first [look: args]
+        t: apply 'take-first [look: args]
       ]
       string? t [
         apply 'take-first [look: args]
       ]
       maybe [word! path!] t [
         t: apply 'take-eval [args: args]
-        if all [block? t | not dot/node? t] [
-          ;; REM block -> DOT block!
-          t: to-dot t
-        ]
       ]
     ]
     if string? t [
@@ -166,30 +161,34 @@ rem: make object! [
           ] :t
         ]
       ]
-      dot-append buf reduce [
+      dot-append node reduce [
         <a> reduce [#id join-of "toc" count: ++ 1]
       ]
     ]
     if 'body = name [dot-toc :t toc-content]
-    if t [dot/append-existing buf :t]
+    if t [dot/append-existing node to-node :t]
     case [
-      empty? buf [buf: _]
-      all [2 = length of buf | %.txt = buf/1] [
-        buf: buf/2
+      empty? node [node: _]
+      all [2 = length of node | %.txt = node/1] [
+        node: node/2
       ]
     ]
-    buf/value: attributes
-    dot/make-element/target name empty buf
+    node/value: attributes
+    dot/make-element/target name empty node
   ]
-  to-dot: function [x [block!]] [
-    if not block? x [return x]
+  node: to-node: function [x [block!]] [
+    if dot/maybe-node? x [return x]
     node: dot/make-node
     while [not tail? x] [
       t: do/next x 'x
       if string? :t [
         t: maybe-process-text t
       ]
-      dot/append-existing node :t
+      if maybe [char! any-string! any-number!] :t
+      [ t: dot/make-text t ]
+      if block? :t [
+        dot/append-existing node to-node t
+      ]
     ]
     node
   ]
@@ -348,7 +347,7 @@ load-rem: function [
     x: load x
   ]
   x: bind/(if secure ['new] else [_]) x rem
-  rem/to-dot x
+  rem/to-node x
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

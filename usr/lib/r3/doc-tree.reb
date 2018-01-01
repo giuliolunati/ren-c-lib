@@ -29,6 +29,25 @@ make-node: func ["Returns new empty node."] [
 	] true 2
 ]
 
+maybe-node?: func [
+		"Check if X may be a node."
+		x
+	][
+	if not block? x [return false]
+	if all [
+		x/1 = 'parent
+		x/3 = 'back
+		x/5 = 'next
+		x/7 = 'first
+		x/9 = 'last
+		x/11 = 'type
+		x/13 = 'name
+		x/15 = 'value
+	] [return true]
+	false
+]
+
+
 insert-before: func [
 		"Insert a new empty node before ITEM and return it."
 		item [block! map!]
