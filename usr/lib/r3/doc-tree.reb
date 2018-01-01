@@ -271,4 +271,16 @@ mold-node: function [node [map! block!]][
 	] true 2
 ]
 
+append-pair-to-map: function [
+    "If TARGET is blank, set it to MAP!, then set TARGET/KEY: VALUE."
+    'target [word! set-word!]
+    key
+    value
+  ][
+  x: get target
+  x: default [make map! 2]
+  x/:key: value
+  set target x
+]
+
 ; vim: set sw=2 ts=2 sts=2:
