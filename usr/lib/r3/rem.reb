@@ -4,18 +4,16 @@ REBOL [
   Author: "Giulio Lunati"
   Email: giuliolunati@gmail.com
   Description: "REbol Markup format"
-  Exports: [
-    def-empty-tags
-    def-tags
-    load-rem
-    mold-rem
-  ]
 ]
+
+dot: import 'doc-tree
++pair: enfix :dot/append-pair-to-map
 
 dot-append: proc [
     b [block!]
     v [any-value! <opt>]
   ][
+  fail "dot-append"
   if not (maybe [
     char! any-string! any-number! block!
   ] :v) [leave]
@@ -80,34 +78,35 @@ rem: make object! [
   ]
   ;; 
   count: toc-content: _
-  rem-tag: function [
-      tag [word!]
+  rem-element: function [
+      ;; WARNING: if change here, check specializations!
+      name [word!]
       empty [logic!]
       args [any-value! <...>]
       :look [any-value! <...>]
     ][
-    buf: make block! 4
-    class: id: style: _
-    while [not tail? look] [
+    buf: dot/make-node
+    attributes: class: id: style: _
+    while [t: not tail? look] [
       t: apply 'look-first [look: args]
       case [
         all [word? t | #"." = first to-string t] [
           apply 'take-first [look: args]
-          class: default [make block! 4]
+          class: default [make block! 2]
           append class to-word next to-string t
         ]
         refinement? t [
           apply 'take-first [look: args]
-          t: to-issue t
-          dot-append buf [t apply 'take-eval [args: args]]
+          attributes: +pair ;\
+            lock next to-string t
+            apply 'take-eval [args: args]
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
         ]
         set-word? t [
           apply 'take-first [look: args]
           t: to-word t
-          if not style [style: make block! 16]
-          dot-append style [t apply 'take-eval [args: args]]
+          style: +pair t apply 'take-eval [args: args]
         ]
         issue? t [
           apply 'take-first [look: args]
@@ -115,11 +114,10 @@ rem: make object! [
         ]
         maybe [url! file!] t [
           apply 'take-first [look: args]
-          dot-append buf [
-            if find [a link] tag [#href]
-            else [#src]
+          attributes: +pair ;\
+            if find [a link] name ["href"]
+            else ["src"]
             :t
-          ]
         ]
         get-word? t [
           apply 'take-first [look: args]
@@ -128,97 +126,94 @@ rem: make object! [
         true [break]
       ]
     ]
-    case/all [
-      id [dot-append buf [#id id]]
-      style [dot-append buf [#style style]]
-      class [dot-append buf [#class form class]]
-    ]
-    if empty [
-      tag: append to-tag tag "/"
-    ] else [
-      if 'body = tag [
-        set 'toc-content make block! 8
-        set 'count 1
-      ]
-      case [
-        block? t [
-          t: node
-          apply 'take-first [look: args]
-        ]
-        string? t [
-          apply 'take-first [look: args]
-        ]
-        maybe [word! path!] t [
-          t: apply 'take-eval [args: args]
-          if all [block? t | not dot? t] [
-            ;; REM block -> DOT block!
-            t: node t
-          ]
-        ]
-      ]
-      if string? t [
-        switch/default tag [
-          'script [t: reduce [%.js t]]
-          'style [t: reduce [%.css t]]
-        ][
-          t: maybe-process-text t
-        ]
-      ]
-      if all[toc-content | find [h1 h2 h3 h4 h5 h6] tag] [
-        dot-append toc-content reduce [
-          (to-tag tag)
-          reduce [
-            <a> join-of reduce [
-              #href join-of "#toc" count
-            ] :t
-          ]
-        ]
-        dot-append buf reduce [
-          <a> reduce [#id join-of "toc" count: ++ 1]
-        ]
-      ]
-      if 'body = tag [dot-toc :t toc-content]
-      dot-append buf :t
+    if id [attributes: +pair "id" id]
+    if style [attributes: +pair "style" style]
+    if class [attributes: +pair "class" class]
+    if 'body = name [
+      set 'toc-content make block! 8
+      set 'count 1
     ]
     case [
+      block? t [
+        t: to-dot
+        apply 'take-first [look: args]
+      ]
+      string? t [
+        apply 'take-first [look: args]
+      ]
+      maybe [word! path!] t [
+        t: apply 'take-eval [args: args]
+        if all [block? t | not dot/node? t] [
+          ;; REM block -> DOT block!
+          t: to-dot t
+        ]
+      ]
+    ]
+    if string? t [
+      switch/default name [
+        'script [t: reduce [%.js t]]
+        'style [t: reduce [%.css t]]
+      ][
+        t: maybe-process-text t
+      ]
+    ]
+    if all[toc-content | find [h1 h2 h3 h4 h5 h6] name] [
+      dot-append toc-content reduce [
+        name
+        reduce [
+          <a> join-of reduce [
+            #href join-of "#toc" count
+          ] :t
+        ]
+      ]
+      dot-append buf reduce [
+        <a> reduce [#id join-of "toc" count: ++ 1]
+      ]
+    ]
+    if 'body = name [dot-toc :t toc-content]
+    if t [dot/append-existing buf :t]
+    case [
       empty? buf [buf: _]
-      all [2 = length buf | %.txt = buf/1] [
+      all [2 = length of buf | %.txt = buf/1] [
         buf: buf/2
       ]
     ]
-    reduce [to-tag tag buf]
+    buf/value: attributes
+    dot/make-element/target name empty buf
   ]
-  node: function [x [block!]] [
+  to-dot: function [x [block!]] [
     if not block? x [return x]
-    buf: make block! 8
+    node: dot/make-node
     while [not tail? x] [
       t: do/next x 'x
-      if string? :t [t: maybe-process-text t]
-      dot-append buf :t
+      if string? :t [
+        t: maybe-process-text t
+      ]
+      dot/append-existing node :t
     ]
-    buf
+    node
   ]
-  def-empty-tags: func [
+  def-empty-elements: func [
       return: [function!]
-      tags [block!]
+      elements [block!]
       /bind
     ][
-    for-each tag tags [
-      if bind [tag: lib/bind/new to-word :tag this]
-      set :tag specialize 'rem-tag [
-        tag: :tag | empty: true
+    for-each element elements [
+      if bind [element: lib/bind/new to-word :element this]
+      set :element specialize 'rem-element [
+        name: :element empty: true
       ]
     ]
   ]
-  def-tags: func [
+  def-elements: func [
       return: [function!]
-      tags [block!]
+      elements [block!]
       /bind
     ][
-    for-each tag tags [
-      if bind [tag: lib/bind/new to-word :tag this]
-      set :tag specialize 'rem-tag [
-        tag: :tag | empty: false
+    for-each element elements [
+      if bind [element: lib/bind/new to-word :element this]
+      set :element specialize 'rem-element [
+        name: :element | empty: false
       ]
     ]
   ]
@@ -230,10 +225,10 @@ rem: make object! [
     ]
     meta /name "viewport" /content content
   ]
-  def-empty-tags/bind [
+  def-empty-elements/bind [
     meta hr br img link
   ]
-  def-tags/bind [
+  def-elements/bind [
     doc header title style script body
     div h1 h2 h3 h4 h5 h6 p
     span a b i sup sub
@@ -246,7 +241,7 @@ rem: make object! [
     case [
       :process-text = true [smart-text x]
       any-function? :process-text [process-text x]
-      true [reduce [%.txt x]]
+      true [dot/make-text x]
     ]
   ]
   smart-text: function [x] [
@@ -269,7 +264,7 @@ rem: make object! [
     xchar: charset "*/^^_`\^/"
     parse x [any [
       copy v: [to xchar | to end]
-      (if v > "" [dot-append t [%.txt v]])
+      (if v > "" [dot/append-existing t dot/make-text v])
       [ "\" [newline | spaces]
         (dot-append t [<br/> _])
       | newline some [
@@ -353,7 +348,7 @@ load-rem: function [
     x: load x
   ]
   x: bind/(if secure ['new] else [_]) x rem
-  rem/node x
+  rem/to-dot x
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

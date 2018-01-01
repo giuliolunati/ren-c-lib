@@ -3,7 +3,7 @@ load-rem: :rem/load-rem
 dot: import 'doc-tree
 html: import 'html
 node: load-rem
-{a .c1 http://example.com .c2 "content" img %../a.jpg}
+{a #id8 .c1 http://example.com .c2 ["testo" img %../a.jpg]}
 
 dot/make-element/target 'body false node
 probe
