@@ -17,13 +17,15 @@ new: func ["Returns new empty document."] [
 	new-line/all/skip copy [
 		parent _ first _ last _ name _ public _ system _
 		form _ head _ body _ type document length 0
+
 	] true 2
 ]
 
 make-node: func ["Returns new empty node."] [
 	new-line/all/skip copy [
 		parent _ back _ next _ first _ last _
-		type _ name _ value _ length 0
+		type _ name _ value _
+		length 0 empty _
 	] true 2
 ]
 
@@ -214,13 +216,15 @@ make-text: func [
 ]
 
 make-element: func [
-		"Makes an element node with name: NAME."
-		name [word! string! tag!]
+		"Makes an element node an sets NAME and EMPTY."
+		name [word!]
+		empty [logic!]
 		/target node [block! map!] "Use existing node"
 	][
 	node: default [make-node]
 	node/type: 'element
-	node/name: to-tag name
+	node/name: name
+	node/empty: empty
 	node
 ]
 ; vim: set sw=2 ts=2 sts=2:

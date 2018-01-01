@@ -2063,7 +2063,13 @@ html-loader: make object! [
 		]
 	]
 
-	append-element: func [token [block!] /to parent [map! block!] /namespace 'space [word!] /local node][
+	append-element: func [
+			token [block!]
+			/to parent [map! block!]
+			/namespace 'space [word!]
+			/empty
+			/local node
+		][
 		; probe token
 		set-insertion-point any [:parent _]
 
@@ -2078,6 +2084,7 @@ html-loader: make object! [
 		node/type: 'element
 		node/name: token/2
 		node/value: pick token 3
+		node/empty: empty
 		node
 	]
 
@@ -2734,12 +2741,12 @@ html-loader: make object! [
 			]
 			<area> <br> <embed> <img> <keygen> <wbr> [
 				reconstruct-formatting-elements
-				append-element token
+				append-element/empty token
 				; acknowledge self-closing flag
 			]
 			<input> [
 				reconstruct-formatting-elements
-				append-element token
+				append-element/empty token
 				; acknowledge self-closing flag
 			]
 			<param> <source> <track> [
@@ -2747,7 +2754,7 @@ html-loader: make object! [
 			]
 			<hr> [
 				close-para-if-in-scope
-				append-element token
+				append-element/empty token
 				; acknowledge self-closing flag
 			]
 			<image> [
@@ -3704,14 +3711,14 @@ mold-html: function [
 		element [
 			append ret "<"
 			append ret name: to-string x/name
-			empty: is-empty? name
+			empty: x/empty
 			attrib: x/value
 			for-each k attrib [
 				append ret unspaced [
 					" " k "=" quote-string copy attrib/:k
 				]
 			]
-			if empty [append ret " /"]
+			if empty [append ret "/"]
 			append ret ">"
 			x: select x 'first
 			while [x] [
