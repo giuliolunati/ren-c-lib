@@ -1,12 +1,13 @@
 rem: import 'rem
 load-rem: :rem/load-rem
 dot: import 'doc-tree
+html: import 'html
 node: load-rem
-{div /width "200" /id 'yup "def" }
-node/type: 'element
-node/name: 'body
+{a .c1 http://example.com .c2 "content" img %../a.jpg}
+
+dot/make-element/target 'body false node
 probe
-;html/mold-html
-dot/mold-tree
+;dot/mold-tree
+html/mold-html
 node
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

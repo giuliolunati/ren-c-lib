@@ -3681,13 +3681,15 @@ is-empty?: function [t [any-string!]] [
 ]
 
 mold-style: function [
-		x [block! string!]
+		x [map! block! string!]
 	][
-	if string? x [x] else [
-		delimit map-each [k v] x [
+	if map? x [x: to-block x]
+	if block? x [
+		x: delimit map-each [k v] x [
 			unspaced [k ":" space v]
 		] "; "
 	]
+	x
 ]
 
 mold-html: function [
@@ -3696,40 +3698,48 @@ mold-html: function [
 	][
 	if not x [return x]
 	ret: default [make string! 256]
-	switch x/type [
-		comment [
+	case [
+		'comment = x/type [
 			append ret "<!--"
 			append ret x/value
 			append ret "-->"
 		]
-		document [
+		'document = x/type [
 			append ret "<html>"
 			mold-html/into x/head ret
 			mold-html/into x/body ret
 			append ret "</html>"
 		]
-		element [
-			append ret "<"
-			append ret name: to-string x/name
-			empty: x/empty
-			attrib: x/value
-			for-each k attrib [
-				append ret unspaced [
-					" " k "=" quote-string copy attrib/:k
+		find [element _ ] x/type [
+			if x/type [
+				append ret "<"
+				append ret name: to-string x/name
+				empty: x/empty
+				if attrib: x/value [
+					assert [map? attrib]
+					for-each k attrib [
+						value: attrib/:k
+						if string? value [value: copy value]
+						if k = "style" [value: mold-style value]
+						if not string? value [value: form value] 
+						append ret unspaced [
+							" " k "=" quote-string value
+						]
+					]
 				]
+				if empty [append ret "/"]
+				append ret ">"
 			]
-			if empty [append ret "/"]
-			append ret ">"
-			x: select x 'first
-			while [x] [
-				mold-html/into x ret
-				x: select x 'next
+			y: select x 'first
+			while [y] [
+				mold-html/into y ret
+				y: select y 'next
 			]
-			if not empty [
+			if all [x/type not empty] [
 				append ret to-tag unspaced ["/" name]
 			]
 		]
-		text [append ret x/value]
+		'text = x/type [append ret x/value]
 	] else [
 		print ["!! unhandled type:" x/type]
 	]
