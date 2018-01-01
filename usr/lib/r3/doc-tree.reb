@@ -202,26 +202,25 @@ walk: func [
 ]
 
 make-text: func [
-		"Makes a text node with value TEXT."
-		text [string!]
+		"Makes a text node with value VALUE."
+		value [char! any-string! any-number!]
 		/target node [block! map!] "Use existing node"
 	][
+	if not string? value [value: form value]
 	node: default [make-node]
 	node/type: 'text
-	node/value: text
+	node/value: value
 	node
 ]
 
 make-element: func [
-		"Makes an element node with name: NAME value: ATTRIBUTES."
+		"Makes an element node with name: NAME."
 		name [word! string! tag!]
-		attributes [block! map! blank!]
 		/target node [block! map!] "Use existing node"
 	][
 	node: default [make-node]
 	node/type: 'element
 	node/name: to-tag name
-	node/value: attributes
 	node
 ]
 ; vim: set sw=2 ts=2 sts=2:
