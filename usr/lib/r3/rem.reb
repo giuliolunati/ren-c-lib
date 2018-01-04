@@ -47,6 +47,8 @@ dot-toc: function [body toc] [
 
 rem: make object! [
   this: self
+  ; declare some words, thus can use they later...
+  b: br: i: sup: sub: meta: _
   ;; available with /SECURE:
   space: :lib/space
   func: :lib/func
@@ -216,8 +218,6 @@ rem: make object! [
       ]
     ]
   ]
-  ; declare 'meta, thus can use it in viewport
-  meta: _ 
   viewport: func [content] [
     if number? content [
       content: unspaced ["initial-scale=" content]
@@ -244,9 +244,9 @@ rem: make object! [
     ]
   ]
   smart-text: function [x] [
-    c: _
-    t: make block! 8
     x: copy x
+    c: t: _
+    node: dot/make-node
     replace/all x "--" "—"
     replace/all x "->" "^(2192)" ; right arrow
     replace/all x "=>" "^(21d2)" ; right double arrow
@@ -263,35 +263,33 @@ rem: make object! [
     xchar: charset "*/^^_`\^/"
     parse x [any [
       copy v: [to xchar | to end]
-      (if v > "" [dot/append-existing t dot/make-text v])
+      (if v > "" [dot/append-existing node v])
       [ "\" [newline | spaces]
-        (dot-append t [<br/> _])
+        (dot/append-existing node br)
       | newline some [
           any spaces newline
-          (dot-append t [<br/> _])
+          (dot/append-existing node br)
         ]
-        (dot-append t [<br/> _])
+        (dot/append-existing node br)
       | remove "\" set c: skip
-        (dot-append t [%.txt c])
+        (dot/append-existing node c)
       | copy c: [skip [spaces | newline]]
-        (dot-append t [%.txt c])
+        (dot/append-existing node c)
       | set c: "*" get-markdown
-        (dot-append t [<b> v])
+        (dot/append-existing node b v)
       | set c: "/" get-markdown
-        (dot-append t [<i> v])
+        (dot/append-existing node i v)
       | set c: "^^" get-markdown
-        (dot-append t [<sup> v])
+        (dot/append-existing node sup v)
       | set c: "_" get-markdown
-        (dot-append t [<sub> v])
+        (dot/append-existing node sub v)
       | set c: "`" get-markdown
-        (dot-append t [%.txt unspaced ["`" v "`"]])
+        (dot/append-existing node unspaced ["`" v "`"])
       | set v xchar
-        ( if empty? t [dot-append t [%.txt v]]
-          else [append last t v]
-        )
+        (dot/append-existing node v)
       ]
     ]]
-    t
+    node
   ]
   reset: func[] [process-text: false]
 ]
