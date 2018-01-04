@@ -13,6 +13,8 @@ Rebol [
 	]
 ]
 
+this: self
+
 new: func ["Returns new empty document."] [
 	new-line/all/skip copy [
 		parent _ first _ last _ name _ public _ system _
@@ -118,8 +120,9 @@ append: func [
 append-existing: func [
 		"Append NODE as LIST/LAST and return it."
 		list [block! map!]
-		node [block! map!]
+		node [block! map! string! char!]
 	][
+	if maybe [string! char!] node [node: make-text node]
 	node/parent: list
 	node/next: _
 	list/length: 1 + list/length
