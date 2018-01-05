@@ -22,7 +22,7 @@ br: func ["Make a BR node"] [dot/make-element 'br true]
 
 b: specialize 'element [name: 'b]
 i: specialize 'element [name: 'i]
-sup: specialize 'element [name: 'sub]
+sup: specialize 'element [name: 'sup]
 sub: specialize 'element [name: 'sub]
 
 
@@ -33,7 +33,9 @@ smart-text: function [x] [
   replace/all x "--" "—"
   replace/all x "->" "^(2192)" ; right arrow
   replace/all x "=>" "^(21d2)" ; right double arrow
+  bs: [p: (p: back p) :p]
   get-markdown: [
+    bs spacer set c skip
     copy v: [any [
       [to xchar | to end]
       [ remove "\" skip
@@ -42,7 +44,7 @@ smart-text: function [x] [
       ]
     ]] skip
   ]
-  spaces: charset " ^-"
+  spacer: charset " ^-^/"
   xchar: charset "*/^^_`\^/"
   parse x [any [
     copy v: [to xchar | to end]
@@ -53,17 +55,17 @@ smart-text: function [x] [
       (append-existing node c)
     | newline
       (append-existing node br)
-    | copy c: [skip [spaces | newline]]
-      (append-existing node c)
-    | set c: "*" get-markdown
-      (append-existing node b v)
-    | set c: "/" get-markdown
+    | and "/" get-markdown
       (append-existing node i v)
-    | set c: "^^" get-markdown
+    | copy c: [skip spacer]
+      (append-existing node c)
+    | and "*" get-markdown
+      (append-existing node b v)
+    | and "^^" get-markdown
       (append-existing node sup v)
-    | set c: "_" get-markdown
+    | and "_" get-markdown
       (append-existing node sub v)
-    | set c: "`" get-markdown
+    | and "`" get-markdown
       (append-existing node unspaced ["`" v "`"])
     | set v xchar
       (append-existing node v)
