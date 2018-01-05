@@ -32,19 +32,6 @@ dot?: func [x] [
   all [block? x | maybe [tag! file!] x/1]
 ]
 
-dot-toc: function [body toc] [
-  for-each [k v] body [
-    if all [tag? k | block? v] [
-      if "toc" = select v #id [
-        append v toc
-        return true
-      ]
-      if t: dot-toc v toc [return t]
-    ]
-  ]
-  return false
-]
-
 rem: make object! [
   this: self
   ; declare some words, thus can use they later...
@@ -79,7 +66,6 @@ rem: make object! [
     else [false]
   ]
   ;; 
-  count: toc-content: _
   rem-element: function [
       ;; WARNING: if change here, check specializations!
       name [word!]
@@ -131,10 +117,6 @@ rem: make object! [
     if id [attributes: +pair "id" id]
     if style [attributes: +pair "style" style]
     if class [attributes: +pair "class" class]
-    if 'body = name [
-      set 'toc-content make block! 8
-      set 'count 1
-    ]
     case [
       block? t [
         t: apply 'take-first [look: args]
@@ -147,27 +129,8 @@ rem: make object! [
       ]
     ]
     if string? t [
-      switch/default name [
-        'script [t: reduce [%.js t]]
-        'style [t: reduce [%.css t]]
-      ][
-        t: maybe-process-text t
-      ]
+      t: maybe-process-text t
     ]
-    if all[toc-content | find [h1 h2 h3 h4 h5 h6] name] [
-      dot-append toc-content reduce [
-        name
-        reduce [
-          <a> join-of reduce [
-            #href join-of "#toc" count
-          ] :t
-        ]
-      ]
-      dot-append node reduce [
-        <a> reduce [#id join-of "toc" count: ++ 1]
-      ]
-    ]
-    if 'body = name [dot-toc :t toc-content]
     if t [dot/append-existing node to-node :t]
     case [
       empty? node [node: _]
