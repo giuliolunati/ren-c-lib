@@ -186,7 +186,7 @@ rem: make object! [
   raw-text: function [x] [reduce [%.txt x]]
   maybe-process-text: func [x [string!]] [
     case [
-      :process-text = true [smart-text x]
+      :process-text = true [smart-text/inline x]
       any-function? :process-text [process-text x]
       true [make-text x]
     ]

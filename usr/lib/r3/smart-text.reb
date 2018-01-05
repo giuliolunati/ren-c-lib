@@ -8,13 +8,17 @@ REBOL [
 
 dot: import 'doc-tree
 append-existing: :dot/append-existing
+make-node: :dot/make-node
+
+text: import 'text
+smart-decode-text: :text/smart-decode-text
 
 element: function ["Make a non-empty element."
     name [word!]
-    content [block! string!]
+    content [block! string! blank!]
   ][
   node: dot/make-element name false
-  append-existing node content
+  if content [append-existing node content]
   node
 ]
 
@@ -22,20 +26,26 @@ br: func ["Make a BR node"] [dot/make-element 'br true]
 
 b: specialize 'element [name: 'b]
 i: specialize 'element [name: 'i]
+p: specialize 'element [name: 'p]
 sup: specialize 'element [name: 'sup]
 sub: specialize 'element [name: 'sub]
 
-
-smart-text: function [x] [
+body: make-node
+smart-text: function ["Convert SmartText to doc-tree."
+    x [string! binary! file! url!]
+    /inline "Don't make paragraphs, only BR."
+  ][
+  if maybe [file! url!] x [x: read x]
+  if binary? x [x: smart-decode-text x]
   x: copy x
   c: t: _
-  node: dot/make-node
+  node: if inline [make-node] else [p _]
   replace/all x "--" "—"
   replace/all x "->" "^(2192)" ; right arrow
   replace/all x "=>" "^(21d2)" ; right double arrow
-  bs: [p: (p: back p) :p]
+  bs: [pos: (pos: back pos) :pos]
   get-markdown: [
-    bs spacer set c skip
+    bs [spacer | newline] set c skip
     copy v: [any [
       [to xchar | to end]
       [ remove "\" skip
@@ -44,7 +54,7 @@ smart-text: function [x] [
       ]
     ]] skip
   ]
-  spacer: charset " ^-^/"
+  spacer: charset " ^-"
   xchar: charset "*/^^_`\^/"
   parse x [any [
     copy v: [to xchar | to end]
@@ -53,8 +63,19 @@ smart-text: function [x] [
     remove "\^/"
     | remove "\" set c: skip
       (append-existing node c)
-    | newline
-      (append-existing node br)
+    | newline [
+      some
+        [ any spacer newline
+          (if inline [append-existing node br])
+        ] 
+        ( if inline [append-existing node br]
+          else [
+            append-existing body node
+            node: p _
+          ]
+        )
+      | (append-existing node br)
+      ]
     | and "/" get-markdown
       (append-existing node i v)
     | copy c: [skip spacer]
@@ -71,7 +92,8 @@ smart-text: function [x] [
       (append-existing node v)
     ]
   ]]
-  node
+  append-existing body node
+  body
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
