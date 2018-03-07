@@ -197,7 +197,7 @@ complex!/power: func [z k r:] [
   if all [integer? k  k > 0] [
     r: 1 
     while [k > 0] [
-      if odd? k [-- k r: c-mul r z]
+      if odd? k [k: me - 1 r: c-mul r z]
       k: k / 2
       z: c-mul z z
     ]

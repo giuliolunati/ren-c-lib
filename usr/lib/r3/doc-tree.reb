@@ -184,7 +184,7 @@ fix-length: func [
 	][
 	n: 0
 	item: node/first
-	loop-until [n: ++ 1 not item: item/next]
+	loop-until [n: me + 1 not item: item/next]
   node/length: n
 ]
 
@@ -195,7 +195,7 @@ clear-from: func [
 	][
 	p: item/parent
 	n: p/length
-	loop-until [n: -- 1 not item: remove item]
+	loop-until [n: me - 1 not item: remove item]
 	p/length: n
 ]
 

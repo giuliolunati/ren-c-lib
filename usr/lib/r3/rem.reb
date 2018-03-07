@@ -232,8 +232,8 @@ load-rem: function [
           if (n > 0)
           [to bra-spec | to end]
           [ {^^} insert {^^}
-          | "{" (n: ++ 1)
-          | "}" (n: -- 1)
+          | "{" (n: me + 1)
+          | "}" (n: me - 1)
           | and ["\" escapable]
             change skip "^^" skip
           | "\" remove "\"

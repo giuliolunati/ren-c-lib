@@ -3,18 +3,18 @@ heapsort: function [ar] [
 	l: to integer! ir / 2 + 1
 	forever [
 		either l > 1 [
-			-- l
+			l: me - 1
 			bak: ar/(l)
 		][
 			bak: ar/(ir)
 			ar/(ir): ar/1
-			-- ir
+			ir: me - 1
 			if ir = 1 [ar/1: bak return ar]
 		]
 		i: l
 		j: l + l
 		while [j <= ir] [
-			if all[j < ir ar/(j) < ar/(j + 1)] ++ j
+			if all [j < ir ar/(j) < ar/(j + 1)] [j: me + 1]
 			either bak < ar/(j) [
 				ar/(i): ar/(j)
 				i: j
