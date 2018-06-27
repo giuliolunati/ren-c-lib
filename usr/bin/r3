@@ -1,2 +1,0 @@
-#!/bin/sh
-exec /usr/bin/r3.bin "$@"
