@@ -63,15 +63,15 @@ rem: make object! [
     while [t: not tail? look] [
       t: apply 'look-first [look: args]
       case [
-        all [word? t | #"." = first to-string t] [
+        all [word? t | #"." = first to-text t] [
           apply 'take-first [look: args]
           class: default [make block! 2]
-          append class to-word next to-string t
+          append class to-word next to-text t
         ]
         refinement? t [
           apply 'take-first [look: args]
           attributes: +pair ;\
-            lock next to-string t
+            lock next to-text t
             apply 'take-eval [args: args]
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
@@ -83,9 +83,9 @@ rem: make object! [
         ]
         issue? t [
           apply 'take-first [look: args]
-          id: next to-string t
+          id: next to-text t
         ]
-        maybe [url! file!] t [
+        any [url? t file? t] [
           apply 'take-first [look: args]
           attributes: +pair ;\
             if find [a link] name ["href"]
@@ -106,14 +106,14 @@ rem: make object! [
       block? t [
         t: apply 'take-first [look: args]
       ]
-      string? t [
+      text? t [
         apply 'take-first [look: args]
       ]
-      maybe [word! path!] t [
+      any [word? t path? t] [
         t: apply 'take-eval [args: args]
       ]
     ]
-    if string? t [
+    if text? t [
       t: maybe-process-text t
     ]
     if t [append-existing node to-node :t]
@@ -131,10 +131,10 @@ rem: make object! [
     node: make-node
     while [not tail? x] [
       t: do/next x 'x
-      if string? :t [
+      if text? :t [
         t: maybe-process-text t
       ]
-      if maybe [char! any-string! any-number!] :t
+      if any [char? :t any-string? :t any-number? :t]
       [ t: make-text t ]
       if block? :t [
         append-existing node to-node t
@@ -143,7 +143,7 @@ rem: make object! [
     node
   ]
   def-empty-elements: func [
-      return: [function!]
+      return: [action!]
       elements [block!]
       /bind
     ][
@@ -155,7 +155,7 @@ rem: make object! [
     ]
   ]
   def-elements: func [
-      return: [function!]
+      return: [action!]
       elements [block!]
       /bind
     ][
@@ -184,10 +184,10 @@ rem: make object! [
   ;; smart-text
   process-text: false
   raw-text: function [x] [reduce [%.txt x]]
-  maybe-process-text: func [x [string!]] [
+  maybe-process-text: func [x [text!]] [
     case [
       :process-text = true [smart-text/inline x]
-      any-function? :process-text [process-text x]
+      action? :process-text [process-text x]
       true [make-text x]
     ]
   ]
@@ -195,14 +195,14 @@ rem: make object! [
 ]
 
 load-rem: function [
-    x [block! string! file! url! binary!]
+    x [block! text! file! url! binary!]
     /secure
   ][
-  if maybe [file! url!] x [
+  if any [file? x url? x] [
     x: read/string x
   ]
-  if binary? x [x: to-string x]
-  if string? x [
+  if binary? x [x: to-text x]
+  if text? x [
     ;; preprocess strings:
     ;; ^ -> ^^
     ;; \\ -> \

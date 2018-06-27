@@ -1,6 +1,5 @@
-smt: import 'smart-text
-smart-text: :smt/smart-text
-html: import 'html
-node: smart-text/inline to-file system/options/args/1 
-probe html/mold-html node
+rem: import 'rem
+dot: import 'doc-tree
+load-rem: :rem/load-rem
+probe dot/mold-node load-rem [p "ciao"]
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:

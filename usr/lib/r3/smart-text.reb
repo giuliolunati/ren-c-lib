@@ -15,7 +15,7 @@ smart-decode-text: :text/smart-decode-text
 
 element: function ["Make a non-empty element."
     name [word!]
-    content [block! string! blank!]
+    content [block! text! blank!]
   ][
   node: dot/make-element name false
   if content [append-existing node content]
@@ -32,10 +32,10 @@ sub: specialize 'element [name: 'sub]
 
 body: make-node
 smart-text: function ["Convert SmartText to doc-tree."
-    x [string! binary! file! url!]
+    x [text! binary! file! url!]
     /inline "Don't make paragraphs, only BR."
   ][
-  if maybe [file! url!] x [x: read x]
+  if any [file? x url? x] [x: read x]
   if binary? x [x: smart-decode-text x]
   x: copy x
   c: t: _

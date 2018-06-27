@@ -120,9 +120,9 @@ append: func [
 append-existing: func [
 		"Append NODE as LIST/LAST and return it."
 		list [block! map!]
-		node [block! map! string! char!]
+		node [block! map! text! char!]
 	][
-	if maybe [string! char!] node [node: make-text node]
+	if any [text? node char? node] [node: make-text node]
 	node/parent: list
 	node/next: _
 	list/length: 1 + list/length
@@ -230,7 +230,7 @@ make-text: func [
 		value [char! any-string! any-number!]
 		/target node [block! map!] "Use existing node"
 	][
-	if not string? value [value: form value]
+	if not text? value [value: form value]
 	node: default [make-node]
 	node/type: 'text
 	node/value: value
@@ -252,8 +252,8 @@ make-element: func [
 
 mold-node: function [node [map! block!]][
 	new-line/all/skip collect [
-		switch/default node/type [
-			element [
+		switch node/type [
+			'element _ [
 				keep node/name
 				either any [node/value node/first][
 					keep/only new-line/all/skip collect [
@@ -271,22 +271,22 @@ mold-node: function [node [map! block!]][
 					keep _
 				]
 			]
-			document [
+			'document [
 				kid: node/first
 				while [kid][
 					keep mold-node kid
 					kid: kid/next
 				]
 			]
-			text [
+			'text [
 				keep %.txt
 				keep node/value
 			]
-			comment [
+			'comment [
 				keep %.comment
 				keep to tag! rejoin ["!--" node/value "--"]
 			]
-		][
+		] else [
 			keep _
 			keep to tag! node/type
 		]
