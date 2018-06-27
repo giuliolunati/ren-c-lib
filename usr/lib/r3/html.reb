@@ -17,8 +17,6 @@ Rebol [
 
 text-mod: import 'text
 smart-decode-text: :text-mod/smart-decode-text
-unquote-string: :text-mod/unquote-string
-quote-string: :text-mod/quote-string
 
 trees: import 'doc-tree
 
@@ -3671,79 +3669,6 @@ list-elements: function [node [map! block!]][
 			]
 		]
 	]
-]
-
-is-empty?: function [t [any-string!]] [
-	any [ find [
-		"area" "base" "br" "col" "embed" "hr" "img" "input"
-		"keygen" "link" "meta" "param" "source" "track" "wbr"
-	] t | find "!?" t/1 ]
-]
-
-mold-style: function [
-		x [map! block! string!]
-	][
-	if map? x [x: to-block x]
-	if block? x [
-		x: delimit map-each [k v] x [
-			unspaced [k ":" space v]
-		] "; "
-	]
-	x
-]
-
-mold-html: function [
-		x [block!]
-		/into ret
-	][
-	if not x [return x]
-	ret: default [make string! 256]
-	case [
-		'comment = x/type [
-			append ret "<!--"
-			append ret x/value
-			append ret "-->"
-		]
-		'document = x/type [
-			append ret "<html>"
-			mold-html/into x/head ret
-			mold-html/into x/body ret
-			append ret "</html>"
-		]
-		find [element _ ] x/type [
-			if x/type [
-				append ret "<"
-				append ret name: to-string x/name
-				empty: x/empty
-				if attrib: x/value [
-					assert [map? attrib]
-					for-each k attrib [
-						value: attrib/:k
-						if string? value [value: copy value]
-						if k = "style" [value: mold-style value]
-						if not string? value [value: form value] 
-						append ret unspaced [
-							" " k "=" quote-string value
-						]
-					]
-				]
-				if empty [append ret "/"]
-				append ret ">"
-			]
-			y: select x 'first
-			while [y] [
-				mold-html/into y ret
-				y: select y 'next
-			]
-			if all [x/type not empty] [
-				append ret to-tag unspaced ["/" name]
-			]
-		]
-		'text = x/type [append ret x/value]
-	] else [
-		print ["!! unhandled type:" x/type]
-	]
-	ret
 ]
 
 ; vim: set sw=2 ts=2 sts=2:
