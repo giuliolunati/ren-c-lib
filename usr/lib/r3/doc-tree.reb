@@ -49,7 +49,6 @@ maybe-node?: func [
 	false
 ]
 
-
 insert-before: func [
 		"Insert a new empty node before ITEM and return it."
 		item [block! map!]
@@ -100,8 +99,8 @@ insert: func [
 	either list/first [
 		insert-before list/first
 	][
-		after list/first: list/last: make-node
-		[ list/first/parent: list ]
+		list/first: list/last: make-node
+		elide list/first/parent: list
 	]
 ]
 
@@ -184,7 +183,7 @@ fix-length: func [
 	][
 	n: 0
 	item: node/first
-	loop-until [n: me + 1 not item: item/next]
+	loop-until [n: n + 1 not item: item/next]
   node/length: n
 ]
 

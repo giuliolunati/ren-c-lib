@@ -30,11 +30,11 @@ p: specialize 'element [name: 'p]
 sup: specialize 'element [name: 'sup]
 sub: specialize 'element [name: 'sub]
 
-body: make-node
 smart-text: function ["Convert SmartText to doc-tree."
     x [text! binary! file! url!]
     /inline "Don't make paragraphs, only BR."
   ][
+  if not inline [body: make-node]
   if any [file? x url? x] [x: read x]
   if binary? x [x: smart-decode-text x]
   x: copy x
@@ -92,7 +92,9 @@ smart-text: function ["Convert SmartText to doc-tree."
       (append-existing node v)
     ]
   ]]
-  append-existing body node
+  if inline [body: node]
+  else [append-existing body node]
+  while [(body/length = 1) and (not body/type)] [body: body/first]
   body
 ]
 
