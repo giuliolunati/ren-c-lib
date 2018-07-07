@@ -12,21 +12,22 @@ custom: custom/custom
 
 complex!: make map! 8
 
-complex?: func [x] [
-  either attempt [same? x/custom-type complex!]
-  [true] [false]
+complex?: function [x] [
+  if attempt [same? x/custom-type complex!]
+  [true] else [false]
 ]
 
-to-complex: func [def o: t:] [
-  if complex? def [return def]
+complex!/make: function [type def] [
+  assert [same? type complex!]
+  if complex? def [return copy def]
   o: make map! reduce [
     'custom-type complex!
     'r 0 'i 0
   ]
   case [
-    number? def [o/r: def return o]
-    block? def [o/r: def/1 o/i: def/2 return o]
-    string? def [
+    any-number? def [o/r: def return o]
+    match [block! pair!] def [o/r: def/1 o/i: def/2 return o]
+    text? def [
       if attempt [
         t: split def #"i"
         insert t/2 take/last t/1
@@ -35,60 +36,70 @@ to-complex: func [def o: t:] [
       ] return o
     ]
   ]
-  fail/where ajoin [
+  fail/where unspaced [
     "Cannot make complex! from " mold def
   ] backtrace 4
 ]
 
-complex!/make: func [type def] [
-  if same? type complex! [ ;; MAKE
-    if complex? def [return copy def]
-    return to-complex def
-  ]
-  assert [complex? def] ;; TO
+complex!/to: function [
+    type [datatype! map!]
+    value [any-value!]
+  ][
   switch type [
-    :block! [return reduce [def/r def/i]]
-    :string! [return c-form def]
+    block! [reduce [value/r value/i]]
+    pair! [to-pair reduce [value/r value/i]]
+    text! [complex!/form value]
+    default [
+      fail/where [
+        "Cannot convert complex! to" mold type
+      ] 'type
+    ]
   ]
-  fail/where ajoin ["Cannot convert complex! to " type] backtrace 3
 ]
+
+to-complex: specialize :complex!/make [type: complex!]
 
 i: to-complex [0 1]
 
-+i: enfix func [
-  v1 [<tight> any-number!]
-  v2 [<tight> any-number!]
++i: enfix tighten function [
+  v1 [any-number!]
+  v2 [any-number!]
 ] [
   to-complex reduce [v1 v2]
 ]
 
--i: enfix func [
-  v1 [<tight> any-number!]
-  v2 [<tight> any-number!]
+-i: enfix tighten function [
+  v1 [any-number!]
+  v2 [any-number!]
 ] [
   to-complex reduce [v1 negate v2]
 ]
 
-complex!/form: c-form: func [
+complex!/form: c-form: function [
   value [<opt> any-value!]
-  /delimit delimiter [blank! any-scalar! any-string! block!]
-  /quote /new
-  r: frame:
 ] [
-  ajoin either value/i < 0
-  [[value/r "-i" negate value/i]]
-  [[value/r "+i" value/i]]
+  i: value/i r: value/r
+  case [
+    i < 0 [unspaced [
+      if r != 0 [r]
+      "-i" if i != -1 [negate value/i]
+    ]]
+    i > 0 [unspaced [
+      if r != 0 [r]
+      if r != 0 ["+"]
+      "i"
+      if i != 1 [i]
+    ]]
+    r != 0 [form r]
+    default ["0"]
+  ]
 ]
 
-complex!/mold: func [value /only /all /flat r:] [
-  lib/ajoin ["make complex! [" value/r space value/i "]"]
+complex!/mold: function [value /only /all /flat ] [
+  lib/unspaced ["make complex! [" value/r space value/i "]"]
 ]
 
-complex!/print: func [value] [
-  print c-form value
-]
-
-complex!/add: c-add: func [v1 v2 v:] [
+complex!/add: c-add: function [v1 v2] [
   v1: to-complex v1 v2: to-complex v2
   v: to-complex reduce[
     add v1/r v2/r
@@ -96,7 +107,7 @@ complex!/add: c-add: func [v1 v2 v:] [
   ]
 ]
 
-complex!/subtract: c-sub: func [v1 v2 v:] [
+complex!/subtract: c-sub: function [v1 v2] [
   v1: to-complex v1 v2: to-complex v2
   v: to-complex reduce[
     subtract v1/r v2/r
@@ -104,7 +115,7 @@ complex!/subtract: c-sub: func [v1 v2 v:] [
   ]
 ]
 
-complex!/multiply: c-mul: func [v1 v2 v:] [
+complex!/multiply: c-mul: function [v1 v2] [
   v1: to-complex v1 v2: to-complex v2
   v: to-complex reduce[
     subtract
@@ -116,7 +127,7 @@ complex!/multiply: c-mul: func [v1 v2 v:] [
   ]
 ]
 
-complex!/divide: c-div: func [v1 v2 v: r2:] [
+complex!/divide: c-div: function [v1 v2] [
   v1: to-complex v1 v2: to-complex v2
   v: to-complex reduce[
     add
@@ -134,28 +145,28 @@ complex!/divide: c-div: func [v1 v2 v: r2:] [
   v
 ]
 
-complex!/absolute: c-abs: func [v] [
+complex!/absolute: c-abs: function [v] [
   square-root add
     multiply v/r v/r
     multiply v/i v/i
 ]
 
-complex!/negate: func [z] [
+complex!/negate: function [z] [
   z: copy z
   z/r: negate z/r
   z/i: negate z/i
   z
 ]
 
-complex!/zero?: c-zero?: func [z] [
+complex!/zero?: c-zero?: function [z] [
   all [zero? z/r  zero? z/i]
 ]
 
-atan2: func [y x a:] [
-  either (absolute x) >= (absolute y) [
+atan2: function [y x] [
+  if (absolute x) >= (absolute y) [
     if zero? x [return 0]
     a: arctangent/radians (y / x)
-  ][
+  ] else [
     a: (pi / 2) - arctangent/radians (x / y)
   ]
   if x + y < 0 [a: a - pi]
@@ -164,13 +175,13 @@ atan2: func [y x a:] [
   a
 ]
 
-angle: func [z] [
+angle: function [z] [
   atan2 z/i z/r
 ]
 
-complex!/log-e: c-log: func [z o:] [
+complex!/log-e: c-log: function [z] [
   o: make map! 3
-  unless o/r: log-e c-abs z [
+  if not o/r: log-e c-abs z [
     make error! _
   ]
   o/custom-type: complex!
@@ -184,7 +195,7 @@ custom/log-e: adapt :custom/log-e [
   ]
 ]
 
-complex!/exp: c-exp: func [z o: r:] [
+complex!/exp: c-exp: function [z] [
   o: make map! 3
   o/custom-type: complex!
   r: exp z/r
@@ -193,9 +204,9 @@ complex!/exp: c-exp: func [z o: r:] [
   o
 ]
 
-complex!/power: func [z k r:] [
+complex!/power: function [z k] [
   if all [integer? k  k > 0] [
-    r: 1 
+    r: 1
     while [k > 0] [
       if odd? k [k: me - 1 r: c-mul r z]
       k: k / 2
@@ -212,7 +223,7 @@ complex!/power: func [z k r:] [
   c-exp c-mul k c-log z
 ]
 
-complex!/square-root: c-sqrt: func [z o: r: a:] [
+complex!/square-root: c-sqrt: function [z] [
   r: square-root c-abs z
   a: (angle z) / 2
   o: make map! 3
@@ -228,57 +239,57 @@ custom/square-root: adapt :custom/square-root [
   ]
 ]
 
-complex!/sin: c-sin: func [z t:] [
+complex!/sin: c-sin: function [z] [
   z: c-exp c-mul i z
   z: c-add z c-div -1 z
   t: z/r / -2  z/r: z/i / 2  z/i: t ;t=z/2i
   z
 ]
 
-complex!/asin: c-asin: func [z t:] [
+complex!/asin: c-asin: function [z] [
   z: c-mul z i
   t: c-sqrt (c-add 1 c-mul z z)
-  either z/r >= 0 [
-    t: c-add z t 
-  ][
+  if z/r >= 0 [
+    t: c-add z t
+  ] else [
     t: c-div -1 c-sub z t
   ]
   c-div c-log t i
 ]
 
-complex!/cos: c-cos: func [z] [
+complex!/cos: c-cos: function [z] [
   z: c-exp c-mul i z
   z: c-add z c-div 1 z
   c-div z 2
 ]
 
-complex!/acos: func [z] [
+complex!/acos: function [z] [
   c-sub (pi / 2) c-asin z
 ]
 
-complex!/tan: func [z] [
+complex!/tan: function [z] [
   c-div c-sin z c-cos z
 ]
 
-complex!/atan: func [z] [
+complex!/atan: function [z] [
   z: c-mul z i
   z: c-div c-add 1 z c-sub 1 z
   z: c-div c-log z 2
   c-div z i
 ]
-  
-complex!/equal?: c-=: func [a b] [
+
+complex!/equal?: c-=: function [a b] [
   unless all [complex? a complex? b] [
     a: to-complex a  b: to-complex b
   ]
   all [a/r = b/r  a/i = b/i]
 ]
 
-complex!/strict-equal?: func [a b] [
-  if all [complex? complex? b] [
+complex!/strict-equal?: function [a b] [
+  if all [complex? a complex? b] [
     return all [a/r == b/r  a/i == b/i]
   ]
   false
 ]
-  
+
 ; vim: set syn=rebol ts=2 sw=2 sts=2:

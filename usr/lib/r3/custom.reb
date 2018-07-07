@@ -12,61 +12,53 @@ indent+: does [append indented-line "    "]
 indent-: does [loop 4 [take/last indented-line]]
 mold-stack: lib/make block! 8
 
-mold-recur?: func [x] [
+mold-recur?: function [x] [
   for-each y mold-stack [
     if same? x y [return true]
   ]
   false
 ]
 
-custom-type?: func [x] [
-  all [map? x any-function? :x/make]
+is-custom-type?: function [x] [
+  all [map? x action? :x/make]
 ]
 
-fail-invalid-parameter: func [
-  func-name [string! word!]
+has-custom-type?: function [x] [
+  all [map? x is-custom-type? :x/custom-type]
+]
+
+fail-invalid-parameter: function [
+  func-name [text! word!]
   params [block! word!]
-] [
-  either word? params [
-    fail/where ajoin [
+][
+  if word? params [
+    fail/where unspaced [
       "Invalid parameter for " func-name ": "
       custom/form get params
     ] params
-  ] [
-    fail/where ajoin [
+  ] else [
+    fail/where unspaced [
       "Invalid parameters for " func-name ": "
       map-each x params [custom/form get x]
     ] params/1
   ]
 ]
 
-customize: proc ['where f:] [
-  foreach w bind/new words-of custom where [
-    set w :custom/:w
-  ]
-  foreach [o p] bind/new infix-alias where [
-    set/lookback o tighten :custom/:p
-  ]
-  foreach [a b] bind/new prefix-alias where [
-    set a :custom/:b
-  ]
-]
-
-try-method: func [method arg] [
+try-method: function [method arg] [
   all [
     attempt [method: :arg/custom-type/:method]
     attempt [method arg]
   ]
 ]
 
-try-method-1: func [method arg1 arg2] [
+try-method-1: function [method arg1 arg2] [
   all [
     attempt [method: :arg1/custom-type/:method]
     attempt [method arg1 arg2]
   ]
 ]
 
-try-method-2: func [method arg1 arg2] [
+try-method-2: function [method arg1 arg2] [
   all [
     attempt [method: :arg2/custom-type/:method]
     attempt [method arg1 arg2]
@@ -75,61 +67,101 @@ try-method-2: func [method arg1 arg2] [
 
 custom: make object! [
 
-make: adapt :lib/make [
-  if custom-type? get first lookahead [
-    type: take type
-    def: take def
-    exit/from/with 2 type/make type def
+make: enclose :lib/make function [f [frame!]] [
+  if is-custom-type? f/type [
+    return f/type/make f/type f/def
   ]
+  else [do f]
 ]
 
-to: adapt :lib/to [
-  if all [
-    map? value
-    custom-type? :value/custom-type
+to: function [
+    type [datatype! map!]
+    value [any-value!]
   ][
-    exit/from/with 2 value/custom-type/make type value
+  if has-custom-type? :value [
+    value/custom-type/to type value
   ]
+  else [lib/to type value]
 ]
 
-form: func [
-  value [<opt> any-value!]
-  /delimit delimiter [blank! any-scalar! any-string! block!]
-  /quote /new
-  r: frame: delim:
-  ] [
-  frame: [value: value delimit: delimit if delimit [delimiter: delimiter] quote: quote new: new]
-  if r: attempt [apply :value/custom-type/form frame]
-  [return r]
+to-action: specialize :to [type: action!]
+to-word: specialize :to [type: word!]
+to-set-word: specialize :to [type: set-word!]
+to-get-word: specialize :to [type: get-word!]
+to-lit-word: specialize :to [type: lit-word!]
+to-refinement: specialize :to [type: refinement!]
+to-issue: specialize :to [type: issue!]
+to-path: specialize :to [type: path!]
+to-set-path: specialize :to [type: set-path!]
+to-get-path: specialize :to [type: get-path!]
+to-lit-path: specialize :to [type: lit-path!]
+to-group: specialize :to [type: group!]
+to-block: specialize :to [type: block!]
+to-binary: specialize :to [type: binary!]
+to-text: specialize :to [type: text!]
+to-file: specialize :to [type: file!]
+to-email: specialize :to [type: email!]
+to-url: specialize :to [type: url!]
+to-tag: specialize :to [type: tag!]
+to-bitset: specialize :to [type: bitset!]
+to-image: specialize :to [type: image!]
+to-vector: specialize :to [type: vector!]
+to-map: specialize :to [type: map!]
+to-varargs: specialize :to [type: varargs!]
+to-object: specialize :to [type: object!]
+to-frame: specialize :to [type: frame!]
+to-module: specialize :to [type: module!]
+to-error: specialize :to [type: error!]
+to-port: specialize :to [type: port!]
+to-logic: specialize :to [type: logic!]
+to-integer: specialize :to [type: integer!]
+to-decimal: specialize :to [type: decimal!]
+to-percent: specialize :to [type: percent!]
+to-money: specialize :to [type: money!]
+to-char: specialize :to [type: char!]
+to-pair: specialize :to [type: pair!]
+to-tuple: specialize :to [type: tuple!]
+to-time: specialize :to [type: time!]
+to-date: specialize :to [type: date!]
+to-datatype: specialize :to [type: datatype!]
+to-typeset: specialize :to [type: typeset!]
+to-gob: specialize :to [type: gob!]
+to-event: specialize :to [type: event!]
+to-handle: specialize :to [type: handle!]
+to-struct: specialize :to [type: struct!]
+to-library: specialize :to [type: library!]
+to-blank: specialize :to [type: blank!]
+to-bar: specialize :to [type: bar!]
+to-lit-bar: specialize :to [type: lit-bar!]
+to-void: specialize :to [type: void!]
+to-function: specialize :to [type: action!]
+to-string: specialize :to [type: text!]
+to-paren: specialize :to [type: group!]
 
-  if any [block? :value group? :value] [
-    r: copy ""
-    either mold-recur? :value [append r "..."]
-    [
-      append/only mold-stack :value
-      if all[new not quote] [value: reduce :value]
-      delim: case [
-        not all [new delimit] [space]
-        block? delimiter [take delimiter]
-        true [delimiter]
-      ]
-      forall value [
-        if all [delim not head? :value] [append r delim]
-        append r apply :form [value: value/1 delimit: delimit if delimit [delimiter: delimiter] quote: quote new: new]
-      ]
-      take/last mold-stack
+form: enclose :lib/form function [f] [
+  value: f/value
+
+  if r: attempt [value/custom-type/form value] [return r]
+
+  if match [block! group!] :value [
+    value: as block! :value
+    r: copy "" begin: true
+    forall value [
+      if not begin [append r space]
+      begin: false
+      append r form value/1
     ]
     return r
   ]
 
   if map? :value [
     r: copy ""
-    either mold-recur? :value [append r "..."]
-    [
-      append/only mold-stack :value
-      for-each i :value [repend r [
+    if mold-recur? value [append r "..."]
+    else [
+      append/only mold-stack value
+      for-each i value [repend r [
         mold i space
-        apply :mold [value: select :value i delimit: delimit if delimit [delimiter: delimiter] quote: quote new: new]
+        mold select value i
         indented-line
       ]]
       take/last mold-stack
@@ -139,12 +171,12 @@ form: func [
 
   if object? :value [
     r: copy ""
-    either mold-recur? :value [append r "..."]
-    [
-      append/only mold-stack :value
-      for-each i :value [repend r [
+    if mold-recur? value [append r "..."]
+    else [
+      append/only mold-stack value
+      for-each i value [repend r [
         mold i ": "
-        apply :mold [value: select :value i delimit: delimit if delimit [delimiter: delimiter] quote: quote new: new]
+        mold select value i
         indented-line
       ]]
       take/last mold-stack
@@ -152,267 +184,249 @@ form: func [
     return r
   ]
 
-  apply :lib/form frame
-]
+  do f
+] ; form
 
-mold: func [
-  value [any-value!]
-  /only /all /flat
-  r: line: lines:
-  ] [
+mold: enclose :lib/mold function [f] [
+  value: :f/value only: f/only all: f/all flat: f/flat limit: f/limit
   if r: attempt [
-    apply :value/custom-type/mold [value: :value only: only all: all flat: flat]
-  ]
-  [return r]
+    apply :value/custom-type/mold [value: :value only: only all: all flat: flat limit: limit]
+  ] [return r]
 
-  line: either flat [:newline][:indented-line]
+  line: either flat [:newline] [:indented-line]
 
-  if any [block? :value group? :value] [
-    if group? :value [only: false]
-    unless only [indent+]
-    r: copy either group? :value ["("]
-    [either only [""] ["["]]
-    lines: false
-    either mold-recur? :value [append r "..."]
-    [
-      append/only mold-stack :value
-      forall value [
-        if new-line? :value [
-          lines: true
-          if r > "" [append r line]
+  r: case [
+    match [block! group!] :value [
+      if group? value [only: false]
+      if not only [indent+]
+      r: copy either group? value ["("]
+      [either only [""] ["["]]
+      lines: false
+      if mold-recur? value [append r "..."]
+      else [
+        append/only mold-stack value
+        forall value [
+          if new-line? value [
+            lines: true
+            if r > "" [append r line]
+          ]
+          append r apply 'mold [value: value/1 only: false all: all flat: flat]
+          append r space
         ]
-        append r apply :mold [value: value/1 only: false all: all flat: flat]
-        append r space
+        take/last mold-stack
       ]
-      take/last r
-      take/last mold-stack
+      if not only [indent- if lines [append r line]]
+      if space = last r [take/last r]
+      append r either group? value [")"]
+      [either only [""] ["]"]]
     ]
-    unless only [indent- if lines [append r line]]
-    return append r either group? :value [")"]
-    [either only [""] ["]"]]
-  ]
-
-  if map? :value [
-    r: copy either all
-    ["#[map! ["] ["make map! ["]
-    either mold-recur? :value [append r "..."]
-    [
-      append/only mold-stack :value
-      indent+
-      for-each i :value [repend r [
-          line
-          mold i space
-          apply :mold [value: select :value i only: false all: all flat: flat]
-      ]]
-      indent-
-      append r line
-      take/last mold-stack
+    map? :value [
+      r: copy either all ["#[map! ["]
+      ["make map! ["]
+      if mold-recur? value [append r "..."]
+      else [
+        append/only mold-stack value
+        indent+
+        for-each i value [repend r [
+            line
+            mold i space
+            apply 'mold [value: select value i only: false all: all flat: flat]
+        ]]
+        indent-
+        append r line
+        take/last mold-stack
+      ]
+      append r either all ["]]"] [#"]"]
     ]
-    append r either all ["]]"] [#"]"]
-    return r
-  ]
-
-  if object? :value [
-    r: copy either all
-    ["#[object! ["] ["make object! ["]
-    either mold-recur? :value [append r "..."]
-    [
-      append/only mold-stack :value
-      indent+
-      repend r [line "[self: "]
-      for-each i :value [repend r [mold i space]]
-      take/last r
-      repend r [#"]" line #"["]
-      indent+
-      for-each i :value [repend r [
-          line
-          mold i ": "
-          apply :mold [value: select :value i only: false all: all flat: flat]
-      ]]
-      indent-
-      repend r [line #"]"]
-      indent-
-      take/last mold-stack
+    object? :value [
+      r: copy either all ["#[object! ["]
+      ["make object! ["]
+      if mold-recur? value [append r "..."]
+      else [
+        append/only mold-stack :value
+        indent+
+        repend r [line "[self: "]
+        for-each i value [repend r [mold i space]]
+        take/last r
+        repend r [#"]" line #"["]
+        indent+
+        for-each i value [repend r [
+            line
+            mold i ": "
+            apply 'mold [value: select :value i only: false all: all flat: flat]
+        ]]
+        indent-
+        repend r [line #"]"]
+        indent-
+        take/last mold-stack
+      ]
+      repend r [line either all ["]]"] ["]"]]
     ]
-    repend r [line either all ["]]"] ["]"]]
-    return r
-  ]
+    default [do f]
+  ] ; case
+  if limit and (limit < length of r) [
+    head clear change r at r limit "..."
+  ] else [r]
+] ; mold
 
-  apply :lib/mold [value: :value only: only all: all flat: flat]
+delimit: enclose :lib/delimit function [f] [
+  block: reduce f/block
+  r: copy ""
+  if mold-recur? block [append r "..."]
+  else [
+    append/only mold-stack block
+    forall block [
+      if not head? block [append r f/delimiter]
+      append r form block/1
+    ]
+    take/last mold-stack
+  ]
+  r
 ]
 
-ajoin: func [
-  block [block!]
-  /delimit delimiter
-  ] [
-  unless delimit [delimiter: _]
-  apply :form [
-    value: block new: true
-    delimit: true
-    delimiter: delimiter
-  ]
-]
+spaced: specialize :delimit [delimiter: space]
 
-print: proc [
+unspaced: specialize :delimit [delimiter: ""]
+
+print: function [
   :lookup [any-value! <...>]
   value [any-value! <...>]
-  /only
-  /delimit delimiter
-  /quote
   /eval
-  l: v: 
+  return: <void>
   ] [
   l: first lookup
   v: take value
-  if attempt [apply :value/custom-type/print [
-    value: v eval: eval quote: quote delimit: delimit
-    if delimit [delimiter: delimiter]
-  ] ] [leave]
 
-  if all [block? v not block? l] [
-    lib/print v ; fail !!
-    leave
+  if block? v [
+    if not block? l [lib/print v return] ;fail
+    v: reduce v
   ]
-  
-  either only [
-    lib/print/only apply :form [
-      value: v new: true quote: quote
-      delimit: true delimiter: _
-    ]
-  ][
-    lib/print apply :form [
-      value: v new: true quote: quote
-      delimit: delimit
-      if delimit [delimiter: delimiter]
-    ]
-  ]
+
+  lib/print form v
 ]
 
-probe: func [value [any-value!] /form] [
-  lib/print either f
-  [custom/form :value]
-  [mold :value]
+probe: function [
+    value [<opt> any-value!]
+    return: [<opt> any-value!]
+    /form
+  ][
+  if form [print :value]
+  else [print mold :value]
   :value
 ]
 
-add: func [value1 value2] [any [
+add: function [value1 value2] [any [
   attempt [lib/add value1 value2]
   try-method-1 'add value1 value2
   try-method-2 'add value1 value2
   fail-invalid-parameter 'add [value1 value2]
 ]]
 
-subtract: func [value1 value2] [any [
+subtract: function [value1 value2] [any [
   attempt [lib/subtract value1 value2]
   try-method-1 'subtract value1 value2
   try-method-2 'subtract value1 value2
   fail-invalid-parameter 'subtract [value1 value2]
 ]]
 
-multiply: func [value1 value2] [any [
+multiply: function [value1 value2] [any [
   attempt [lib/multiply value1 value2]
   try-method-1 'multiply value1 value2
   try-method-2 'multiply value1 value2
   fail-invalid-parameter 'multiply [value1 value2]
 ]]
 
-divide: func [value1 value2] [any [
+divide: function [value1 value2] [any [
   attempt [lib/divide value1 value2]
   try-method-1 'divide value1 value2
   try-method-2 'divide value1 value2
   fail-invalid-parameter 'divide [value1 value2]
 ]]
 
-absolute: func [value] [any [
+absolute: function [value] [any [
   attempt [lib/absolute value]
   try-method 'absolute value
   attempt [lib/absolute to decimal! value]
   fail-invalid-parameter 'absolute 'value
 ]]
 
-negate: func [value] [any [
-  attempt [lib/negate value]
-  try-method 'negate value
-  fail-invalid-parameter 'negate 'value
+negate: function [number] [any [
+  attempt [lib/negate number]
+  try-method 'negate number
+  fail-invalid-parameter 'negate 'number
 ]]
 
-zero?: func [value] [any [
+zero?: function [value] [any [
   attempt [lib/zero? value]
   try-method 'zero? value
   fail-invalid-parameter 'zero? 'value
 ]]
 
-log-e: func [value] [any [
+log-e: function [value] [any [
   attempt [lib/log-e value]
   try-method 'log-e value
   attempt [lib/log-e to decimal! value]
   fail-invalid-parameter 'log-e 'value
 ]]
 
-exp: func [value] [any [
-  attempt [lib/exp value]
-  try-method 'exp value
-  attempt [lib/exp to decimal! value]
-  fail-invalid-parameter 'exp 'value
+exp: function [power] [any [
+  attempt [lib/exp power]
+  try-method 'exp power
+  attempt [lib/exp to decimal! power]
+  fail-invalid-parameter 'exp 'power
 ]]
 
-power: func [number exponent] [any [
+power: function [number exponent] [any [
   attempt [lib/power number exponent]
   try-method-1 'power number exponent
   try-method-2 'power number exponent
   fail-invalid-parameter 'power [number exponent]
 ]]
 
-square-root: func [value] [any [
+square-root: function [value] [any [
   attempt [lib/square-root value]
   try-method 'square-root value
   attempt [lib/square-root to decimal! value]
   fail-invalid-parameter 'square-root 'value
 ]]
 
-sin: func [value] [any [
-  attempt [lib/sine/radians value]
-  try-method 'sin value
-  attempt [lib/sine/radians to decimal! value]
-  fail-invalid-parameter 'sin 'value
+sine: function [angle /radians] [any [
+  attempt [apply :lib/sine [angle: :angle radians: radians]]
+  attempt [apply :angle/custom-type/sine [angle: :angle radians: radians]]
+  fail-invalid-parameter 'sine 'angle
 ]]
 
-cos: func [value] [any [
-  attempt [lib/cosine/radians value]
-  try-method 'cos value
-  attempt [lib/cosine/radians to decimal! value]
-  fail-invalid-parameter 'cos 'value
+cosine: function [angle /radians] [any [
+  attempt [apply :lib/cosine [angle: :angle radians: radians]]
+  attempt [apply :angle/custom-type/cosine [angle: :angle radians: radians]]
+  fail-invalid-parameter 'cosine 'angle
 ]]
 
-tan: func [value] [any [
-  attempt [lib/tangent/radians value]
-  try-method 'tan value
-  attempt [lib/tangent/radians to decimal! value]
-  fail-invalid-parameter 'tan 'value
+tangent: function [angle /radians] [any [
+  attempt [apply :lib/tangent [angle: :angle radians: radians]]
+  attempt [apply :angle/custom-type/tangent [angle: :angle radians: radians]]
+  fail-invalid-parameter 'tangent 'angle
 ]]
 
-asin: func [value] [any [
-  attempt [lib/arcsine/radians value]
-  try-method 'asin value
-  attempt [lib/arcsine/radians to decimal! value]
-  fail-invalid-parameter 'asin 'value
+arcsine: function [sine /radians] [any [
+  attempt [apply :lib/arcsine [sine: :sine radians: radians]]
+  attempt [apply :sine/custom-type/arcsine [sine: :sine radians: radians]]
+  fail-invalid-parameter 'arcsine 'sine
 ]]
 
-acos: func [value] [any [
-  attempt [lib/arccosine/radians value]
-  try-method 'acos value
-  attempt [lib/arccosine/radians to decimal! value]
-  fail-invalid-parameter 'acos 'value
+arccosine: function [cosine /radians] [any [
+  attempt [apply :lib/arccosine [cosine: :cosine radians: radians]]
+  attempt [apply :cosine/custom-type/arccosine [cosine: :cosine radians: radians]]
+  fail-invalid-parameter 'arccosine 'cosine
 ]]
 
-atan: func [value] [any [
-  attempt [lib/arctangent/radians value]
-  try-method 'atan value
-  attempt [lib/arctangent/radians to decimal! value]
-  fail-invalid-parameter 'atan 'value
+arctangent: function [tangent /radians] [any [
+  do [apply :lib/arctangent [tangent: :tangent radians: radians]]
+  attempt [apply :tangent/custom-type/arctangent [tangent: :tangent radians: radians]]
+  fail-invalid-parameter 'arctangent 'tangent
 ]]
 
-equal?: func [value1 value2 r:] [
+equal?: function [value1 value2 r:] [
   if map? value1 [
     r: trap [value1/custom-type/equal? value1 value2]
     if any [r == true | r == false] [return r]
@@ -424,11 +438,11 @@ equal?: func [value1 value2 r:] [
   lib/equal? value1 value2
 ]
 
-not-equal?: func [value1 value2 r:] [
+not-equal?: function [value1 value2 r:] [
   not equal? value1 value2
 ]
 
-strict-equal?: func [value1 value2 r:] [
+strict-equal?: function [value1 value2 r:] [
   if map? value1 [
     r: trap [value1/custom-type/strict-equal? value1 value2]
     if any [r == true | r == false] [return r]
@@ -440,11 +454,11 @@ strict-equal?: func [value1 value2 r:] [
   lib/equal? value1 value2
 ]
 
-strict-not-equal?: func [value1 value2 r:] [
+strict-not-equal?: function [value1 value2 r:] [
   not strict-equal? value1 value2
 ]
 
-lesser?: func [value1 value2 r:] [
+lesser?: function [value1 value2 r:] [
   r: trap [lib/lesser? value1 value2]
   if any [r == true | r == false] [return r]
   r: trap [value1/custom-type/lesser? value1 value2]
@@ -454,11 +468,11 @@ lesser?: func [value1 value2 r:] [
   false
 ]
 
-greater?: func [value1 value2] [
+greater?: function [value1 value2] [
   lesser? value2 value1
 ]
 
-lesser-or-equal?: func [value1 value2 r:] [
+lesser-or-equal?: function [value1 value2 r:] [
   r: trap [lib/lesser-or-equal? value1 value2]
   if any [r == true | r == false] [return r]
   r: trap [value1/custom-type/lesser-or-equal? value1 value2]
@@ -468,7 +482,7 @@ lesser-or-equal?: func [value1 value2 r:] [
   false
 ]
 
-greater-or-equal?: func [value1 value2] [
+greater-or-equal?: function [value1 value2] [
   lesser-or-equal? value2 value1
 ]
 
@@ -484,5 +498,17 @@ infix-alias: [
 ]
 
 prefix-alias: [abs absolute  log log-e  sqrt square-root]
+
+customize: function ['where return: <void>] [
+  foreach w bind/new words-of custom where [
+    set w :custom/:w
+  ]
+  foreach [o p] bind/new infix-alias where [
+    set/enfix o tighten :custom/:p
+  ]
+  foreach [a b] bind/new prefix-alias where [
+    set a :custom/:b
+  ]
+]
 
 ; vim: set syn=rebol ts=2 sw=2 sts=2:
