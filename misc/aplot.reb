@@ -9,9 +9,8 @@ left: 0 step: 1
 dot: #"*"
 line: copy ""
 
-histogram: function [x /two x2 /label text] [
+histogram: function [x /two x2] [
   clear line
-  if label [append line text]
   x: if x [to-integer x - left / step + 1]
     else [0]
   if two [
@@ -26,4 +25,20 @@ histogram: function [x /two x2 /label text] [
   ]
 ]
 
+scale: function [width n] [
+  d: n * step
+  x: power 10 round/ceiling log-10 d
+  for-each i [0.2 0.5 1] [
+    if x * i >= d [d: x * i break]
+  ]
+  s: append/dup (make text! 0) space width + 1
+  a: round/ceiling/to left d
+  b: width * step + left
+  for x a b d [
+    i: to-integer round x - left / step + 1
+    change at s i "^^"
+    change at s i + 1 format n - 1 x
+  ]
+  s
+]
 ; vim: set syn=rebol sw=2 ts=2:
