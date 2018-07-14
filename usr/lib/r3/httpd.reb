@@ -59,7 +59,7 @@ sys/make-scheme [
             request [object!]
             response [object!]
         ] case [
-            function? get in server 'awake [body-of get in server 'awake]
+            action? get in server 'awake [body-of get in server 'awake]
             block? server/awake [server/awake]
             block? server/spec/does [server/spec/does]
             true [default-response]
@@ -144,7 +144,7 @@ sys/make-scheme [
         func [event [event!] /local client request response this][
             client: event/port
 
-            switch/default event/type [
+            switch event/type [
                 read [
                     instance: me + 1
                     ; print rejoin ["[" instance "]"]
@@ -166,7 +166,7 @@ sys/make-scheme [
                     client
                 ]
                 close [close client]
-            ][
+            ] else [
                 ; probe event/type
             ]
         ]

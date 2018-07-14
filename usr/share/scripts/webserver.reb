@@ -168,7 +168,7 @@ handle-request: function [
     mimetype: attempt [ext-map/:file-ext]
     if error? data: trap [read path] [return 403]
     if all [
-      function? :rem-to-html
+      action? :rem-to-html
       any [
         mimetype = 'rem
         all [
