@@ -1,5 +1,5 @@
 REBOL [Name: "webserver"]
--help: does [print {
+-help: does [lib/print {
 USAGE: r3 webserver.reb [OPTIONS]
 OPTIONS:
   -h, -help, --help : this help
@@ -35,6 +35,11 @@ forall a [case [
 ]]
 
 ;; LIBS
+exists?: enclose :lib/exists? func [f] [
+  if f/target = %/ [return 'dir]
+  do f
+]
+
 import 'httpd
 
 rem-to-html: attempt [
@@ -81,7 +86,7 @@ html-list-dir: function [
   "Output dir contents in HTML."
   dir [file!]
   ][
-  if error? try [list: read dir] [return _]
+  if error? trap [list: read dir] [return _]
   sort/compare list func [x y] [
     case [
       all [dir? x not dir? y] [true]
@@ -226,20 +231,20 @@ server: open compose [
       response/type: res/2
       response/content: to-binary res/3
     ]
-    if verbose >= 2 [print mold request]
+    if verbose >= 2 [lib/print mold request]
     if verbose >= 1 [
-      print spaced [
+      lib/print spaced [
         request/method
         request/request-uri
       ]
-      print spaced ["=>" response/status]
+      lib/print spaced ["=>" response/status]
     ]
   ]
 ]
-if verbose >= 1 [print spaced ["Serving on port" port]]
+if verbose >= 1 [lib/print spaced ["Serving on port" port]]
 if verbose >= 2 [
-  print spaced ["root:" root]
-  print spaced ["access-dir:" access-dir]
+  lib/print spaced ["root:" root]
+  lib/print spaced ["access-dir:" access-dir]
 ]
 
 wait server
