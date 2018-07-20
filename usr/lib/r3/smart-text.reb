@@ -1,5 +1,5 @@
 REBOL [
-  Name: 'smart-text
+  Name: smart-text
   Type: module
   Author: "Giulio Lunati"
   Email: giuliolunati@gmail.com

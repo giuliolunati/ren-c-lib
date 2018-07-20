@@ -3,7 +3,7 @@ REBOL [
   Author: "giuliolunati@gmail.com"
   Version: 0.1.0
   Type: module
-  Name: 'fraction
+  Name: fraction
   Exports: [
     fraction! fraction? to-fraction
     approximate gcd

@@ -3,7 +3,7 @@ REBOL [
   Author: "giuliolunati@gmail.com"
   Version: 0.1.0
   Type: module
-  Name: 'complex
+  Name: complex
   Exports: [complex! complex? to-complex i +i -i]
 ]
 

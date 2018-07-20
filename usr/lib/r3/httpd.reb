@@ -8,7 +8,7 @@ Rebol [
     Purpose: "An elementary Web Server scheme for creating fast prototypes"
     Rights: http://opensource.org/licenses/Apache-2.0
     Type: module
-    Name: rgchris.httpd
+    Name: httpd
     History: [
         16-Mar-2018 0.3.3 "Add COMPRESS? option"
         14-Mar-2018 0.3.2 "Closes connections (TODO: support Keep-Alive)"

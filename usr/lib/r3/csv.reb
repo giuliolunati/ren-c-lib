@@ -1,5 +1,5 @@
 REBOL [
-  Name: 'csv
+  Name: csv
   Type: module
   Author: "Giulio Lunati"
   Email: giuliolunati@gmail.com

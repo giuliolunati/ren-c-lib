@@ -1,7 +1,7 @@
 REBOL [ 
   Title: "Optimization tools"
-  Type: 'module
-  Name: 'optimize
+  Type: module
+  Name: optimize
   Author: "giuliolunati@gmail.com"
 ]
 

@@ -1,7 +1,7 @@
 REBOL [ 
   Title: "Statistical stuff"
-  Type: 'module
-  Name: 'stat
+  Type: module
+  Name: stat
   Author: "giuliolunati@gmail.com"
 ]
 

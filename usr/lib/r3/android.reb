@@ -1,7 +1,7 @@
 REBOL [
 	title: "SL4A interface"
-	name: 'android
-	type: 'module
+	name: android
+	type: module
 	exports: [android]
 	needs: [altjson]
 	Purpose: "R3 interface for Scripting Layer 4 Android"

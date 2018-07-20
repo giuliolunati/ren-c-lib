@@ -1,5 +1,5 @@
 REBOL [
-  Name: 'input-line
+  Name: input-line
   Type: module
   Author: ["@draegtun" "Giulio Lunati"]
   Description: "read lines from pipe"

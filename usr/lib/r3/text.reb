@@ -1,7 +1,7 @@
 REBOL [ 
   Title: "Text utils for REBOL 3"
-  Type: 'module
-  Name: 'text
+  Type: module
+  Name: text
   Exports: [
     smart-decode-text
     quote-string

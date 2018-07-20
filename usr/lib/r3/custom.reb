@@ -3,7 +3,7 @@ REBOL [
 	Author: "giuliolunati@gmail.com"
 	Version: 0.1.0
 	Type: module
-	Name: 'custom
+	Name: custom
   Exports: [custom customize]
 ]
 

@@ -1,5 +1,5 @@
 REBOL [
-  Name: 'dot
+  Name: dot
   Type: module
   Author: "Giulio Lunati"
   Email: giuliolunati@gmail.com
