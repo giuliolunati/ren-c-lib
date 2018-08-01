@@ -65,7 +65,8 @@ try-method-2: function [method arg1 arg2] [
   ]
 ]
 
-custom: make object! [
+custom: append make object! [] [/ _ < _ <= _ > _ >= _] ;; dirty trick :-/
+custom: make custom [
 
 make: enclose :lib/make function [f [frame!]] [
   if is-custom-type? f/type [
@@ -315,35 +316,35 @@ probe: function [
   :value
 ]
 
-add: function [value1 value2] [any [
++: enfix tighten add: function [value1 value2] [any [
   attempt [lib/add value1 value2]
   try-method-1 'add value1 value2
   try-method-2 'add value1 value2
   fail-invalid-parameter 'add [value1 value2]
 ]]
 
-subtract: function [value1 value2] [any [
+-: enfix tighten subtract: function [value1 value2] [any [
   attempt [lib/subtract value1 value2]
   try-method-1 'subtract value1 value2
   try-method-2 'subtract value1 value2
   fail-invalid-parameter 'subtract [value1 value2]
 ]]
 
-multiply: function [value1 value2] [any [
+*: enfix tighten multiply: function [value1 value2] [any [
   attempt [lib/multiply value1 value2]
   try-method-1 'multiply value1 value2
   try-method-2 'multiply value1 value2
   fail-invalid-parameter 'multiply [value1 value2]
 ]]
 
-divide: function [value1 value2] [any [
+set/enfix quote / tighten divide: function [value1 value2] [any [
   attempt [lib/divide value1 value2]
   try-method-1 'divide value1 value2
   try-method-2 'divide value1 value2
   fail-invalid-parameter 'divide [value1 value2]
 ]]
 
-absolute: function [value] [any [
+abs: absolute: function [value] [any [
   attempt [lib/absolute value]
   try-method 'absolute value
   attempt [lib/absolute to decimal! value]
@@ -376,7 +377,7 @@ exp: function [power] [any [
   fail-invalid-parameter 'exp 'power
 ]]
 
-power: function [number exponent] [any [
+**: enfix tighten power: function [number exponent] [any [
   attempt [lib/power number exponent]
   try-method-1 'power number exponent
   try-method-2 'power number exponent
@@ -426,7 +427,7 @@ arctangent: function [tangent /radians] [any [
   fail-invalid-parameter 'arctangent 'tangent
 ]]
 
-equal?: function [value1 value2 r:] [
+=: enfix equal?: function [value1 value2 r:] [
   if map? value1 [
     r: trap [value1/custom-type/equal? value1 value2]
     if any [r == true | r == false] [return r]
@@ -438,11 +439,11 @@ equal?: function [value1 value2 r:] [
   lib/equal? value1 value2
 ]
 
-not-equal?: function [value1 value2 r:] [
+!=: enfix not-equal?: function [value1 value2 r:] [
   not equal? value1 value2
 ]
 
-strict-equal?: function [value1 value2 r:] [
+==: enfix strict-equal?: function [value1 value2 r:] [
   if map? value1 [
     r: trap [value1/custom-type/strict-equal? value1 value2]
     if any [r == true | r == false] [return r]
@@ -454,11 +455,11 @@ strict-equal?: function [value1 value2 r:] [
   lib/equal? value1 value2
 ]
 
-strict-not-equal?: function [value1 value2 r:] [
+!==: enfix strict-not-equal?: function [value1 value2 r:] [
   not strict-equal? value1 value2
 ]
 
-lesser?: function [value1 value2 r:] [
+set/enfix quote < lesser?: function [value1 value2 r:] [
   r: trap [lib/lesser? value1 value2]
   if any [r == true | r == false] [return r]
   r: trap [value1/custom-type/lesser? value1 value2]
@@ -468,11 +469,11 @@ lesser?: function [value1 value2 r:] [
   false
 ]
 
-greater?: function [value1 value2] [
+set/enfix quote > greater?: function [value1 value2] [
   lesser? value2 value1
 ]
 
-lesser-or-equal?: function [value1 value2 r:] [
+set/enfix quote <= lesser-or-equal?: function [value1 value2 r:] [
   r: trap [lib/lesser-or-equal? value1 value2]
   if any [r == true | r == false] [return r]
   r: trap [value1/custom-type/lesser-or-equal? value1 value2]
@@ -482,33 +483,33 @@ lesser-or-equal?: function [value1 value2 r:] [
   false
 ]
 
-greater-or-equal?: function [value1 value2] [
+set/enfix quote >= greater-or-equal?: function [value1 value2] [
   lesser-or-equal? value2 value1
 ]
 
 ] ; custom object
 
-infix-alias: [
-  + add  - subtract
-  * multiply  / divide  ** power
-  = equal?  == strict-equal?
-  != not-equal?  !== strict-not-equal?
-  < lesser?  <= lesser-or-equal?
-  > greater?  >= greater-or-equal?
-]
-
-prefix-alias: [abs absolute  log log-e  sqrt square-root]
-
-customize: function ['where return: <void>] [
-  foreach w bind/new words-of custom where [
-    set w :custom/:w
+customize: function [
+    code [block! object! word! action!]
+    /words
+  ][
+  switch type of :code [
+    word! [
+      if enfixed? :code [set/enfix :code :custom/:code]
+      else [set :code :custom/:code]
+    ]
+    object! [
+      for-each w
+        bind (intersect words-of custom words of :code) :code
+        [ customize :w ]
+    ]
+    action! [bind body of :code custom]
+    block! [
+      if words [for-each w code [customize :w]]
+      else [bind :code custom]
+    ]
   ]
-  foreach [o p] bind/new infix-alias where [
-    set/enfix o tighten :custom/:p
-  ]
-  foreach [a b] bind/new prefix-alias where [
-    set a :custom/:b
-  ]
-]
+  :code
+] 
 
 ; vim: set syn=rebol ts=2 sw=2 sts=2:

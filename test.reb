@@ -1,15 +1,34 @@
-import 'complex
+complex: import 'complex
 
-my!: make map! reduce [
-  'custom-type true
-  'form func [value] ["I'm a my!"]
-]
+write-stdout {
+;; CUSTOMIZE code -block :"
+>> probe make complex! [1 2] ; not customized
+== }
+probe make complex! [1 2]
+write-stdout {>> do customize [probe make complex! [1 2]]
+== }
+do customize [probe make complex! [1 2]]
 
-m: make map! reduce [
-  'custom-type my!
-]
+test: function [def] [probe make complex! def]
+write-stdout {
+;; CUSTOMIZE :function :
+>> test: function [def] [probe make complex! def]
+>> test [1 2] ; not customized
+== }
+test [1 2]
+write-stdout {>> customize :test
+>> test [1 2]
+== }
+customize :test
+test [1 2]
 
-print m
-
-print 1 +i 2
-;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
+write-stdout {
+;; CUSTOMIZE self ;or other object :"
+>> probe make complex! [1 2] ; not customized
+== }
+probe make complex! [1 2]
+write-stdout {>> customize self
+>> probe make complex! [1 2]
+== }
+customize self
+probe make complex! [1 2]
