@@ -22,7 +22,7 @@ access-dir: true
 verbose: 1
 
 a: system/options/args
-forall a [case [
+for-next a [case [
     "-a" = a/1 [
         access-dir: a/2
         a: next a
@@ -35,20 +35,16 @@ forall a [case [
 ]]
 
 ;; LIBS
-exists?: enclose :lib/exists? func [f] [
-  if f/target = %/ [return 'dir]
-  do f
-]
 
 import 'httpd
 
-rem-to-html: attempt [
+rem-to-html: try attempt [
   rem: import 'rem
   html: import 'html
   chain [:rem/load-rem :html/mold-html]
 ]
 
-ext-map: make block! [
+ext-map: [
   "css" css
   "gif" gif
   "htm" html
@@ -87,6 +83,8 @@ html-list-dir: function [
   dir [file!]
   ][
   if error? trap [list: read dir] [return _]
+  for-next list [if 'dir = exists? join-of dir list/1 [append list/1 %/]]
+  ;; ^-- workaround for #838
   sort/compare list func [x y] [
     case [
       all [dir? x not dir? y] [true]
@@ -123,7 +121,7 @@ handle-request: function [
       path: unspaced [
         request/target "/"
         if request/query-string unspaced [
-          "?" to-string request/query-string
+          "?" to-text request/query-string
         ]
       ]
       return redirect-response path
@@ -132,7 +130,7 @@ handle-request: function [
     path-type: 'file
   ] else [
     path: join-of root request/target
-    path-type: exists? path
+    path-type: try exists? path
   ]
   if path-type = 'dir [
     if not access-dir [return 403]
@@ -140,7 +138,7 @@ handle-request: function [
       path: unspaced [
         request/target "/"
         if request/query-string unspaced [
-          "?" to-string request/query-string
+          "?" to-text request/query-string
         ]
       ]
       return redirect-response path
@@ -156,7 +154,7 @@ handle-request: function [
         dir-index: map-each x [%.reb %.rem %.html] [join-of dir-index x]
       ]
       for-each x dir-index [
-        if 'file = path-type: exists? x [path: x break]
+        if 'file = path-type: try exists? x [path: x break]
       ]
       if not 'file = path-type [return 403]
       ;; else drop to path-type = 'file below
@@ -170,7 +168,7 @@ handle-request: function [
   if path-type = 'file [
     pos: find/last last path-elements "."
     file-ext: (if pos [copy next pos] else [_])
-    mimetype: attempt [ext-map/:file-ext]
+    mimetype: try attempt [ext-map/:file-ext]
     if error? data: trap [read path] [return 403]
     if all [
       action? :rem-to-html
@@ -178,7 +176,7 @@ handle-request: function [
         mimetype = 'rem
         all [
           mimetype = 'html
-          "REBOL" = uppercase to-string copy/part data 5
+          "REBOL" = uppercase to-text copy/part data 5
         ]
       ]
     ][
