@@ -7,6 +7,9 @@ REBOL [
   Exports: [custom customize]
 ]
 
+
+;; GLOBALS
+
 indented-line: "^/"
 indent+: does [append indented-line "    "]
 indent-: does [loop 4 [take/last indented-line]]
@@ -64,6 +67,12 @@ try-method-2: function [method arg1 arg2] [
     attempt [method arg1 arg2]
   ]
 ]
+
+rad-to-deg: 180 / pi
+deg-to-rad: pi / 180
+
+
+;; CUSTOM OBJECT
 
 custom: append make object! [] [/ _ < _ <= _ > _ >= _] ;; dirty trick :-/
 custom: make custom [
@@ -391,40 +400,94 @@ square-root: function [value] [any [
   fail-invalid-parameter 'square-root 'value
 ]]
 
+sin: function [angle] [any [
+  attempt [lib/sin :angle]
+  try-method 'sin angle
+  attempt [lib/sin to-decimal :angle]
+  fail-invalid-parameter 'sin 'angle
+]]
+
+cos: function [angle] [any [
+  attempt [lib/cos :angle]
+  try-method 'cos angle
+  attempt [lib/cos to-decimal :angle]
+  fail-invalid-parameter 'cos 'angle
+]]
+
+tan: function [angle] [any [
+  attempt [lib/tangent/radians :angle]
+  try-method 'tan angle
+  attempt [lib/tangent/radians to-decimal :angle]
+  fail-invalid-parameter 'tan 'angle
+]]
+
+asin: function [sine] [any [
+  attempt [lib/asin :sine]
+  try-method 'asin sine
+  attempt [lib/asin to-decimal :sine]
+  fail-invalid-parameter 'asin 'sine
+]]
+
+acos: function [cosine] [any [
+  attempt [lib/acos :cosine]
+  try-method 'acos cosine
+  attempt [lib/acos to-decimal :cosine]
+  fail-invalid-parameter 'acos 'cosine
+]]
+
+atan: function [tangent] [any [
+  attempt [lib/atan :tangent]
+  try-method 'atan tangent
+  attempt [lib/atan to-decimal :tangent]
+  fail-invalid-parameter 'atan 'tangent
+]]
+
 sine: function [angle /radians] [any [
   attempt [apply :lib/sine [angle: :angle radians: radians]]
-  attempt [apply :angle/custom-type/sine [angle: :angle radians: radians]]
+  attempt [ if not radians [
+    angle: multiply angle deg-to-rad
+  ] sin angle ]
   fail-invalid-parameter 'sine 'angle
 ]]
 
 cosine: function [angle /radians] [any [
   attempt [apply :lib/cosine [angle: :angle radians: radians]]
-  attempt [apply :angle/custom-type/cosine [angle: :angle radians: radians]]
+  attempt [ if not radians [
+    angle: multiply angle deg-to-rad
+  ] cos angle ]
   fail-invalid-parameter 'cosine 'angle
 ]]
 
 tangent: function [angle /radians] [any [
   attempt [apply :lib/tangent [angle: :angle radians: radians]]
-  attempt [apply :angle/custom-type/tangent [angle: :angle radians: radians]]
+  attempt [ if not radians [
+    angle: multiply angle deg-to-rad
+  ] tan angle ]
   fail-invalid-parameter 'tangent 'angle
 ]]
 
 arcsine: function [sine /radians] [any [
   attempt [apply :lib/arcsine [sine: :sine radians: radians]]
-  attempt [apply :sine/custom-type/arcsine [sine: :sine radians: radians]]
+  attempt [a: asin sine if not radians [
+    a: multiply a rad-to-deg
+  ] a]
   fail-invalid-parameter 'arcsine 'sine
 ]]
 
 arccosine: function [cosine /radians] [any [
   attempt [apply :lib/arccosine [cosine: :cosine radians: radians]]
-  attempt [apply :cosine/custom-type/arccosine [cosine: :cosine radians: radians]]
+  attempt [a: acos cosine if not radians [
+    a: multiply a rad-to-deg
+  ] a]
   fail-invalid-parameter 'arccosine 'cosine
 ]]
 
 arctangent: function [tangent /radians] [any [
-  do [apply :lib/arctangent [tangent: :tangent radians: radians]]
-  attempt [apply :tangent/custom-type/arctangent [tangent: :tangent radians: radians]]
-  fail-invalid-parameter 'arctangent 'tangent
+  attempt [apply :lib/arctangent [tangent: :tangent radians: radians]]
+  attempt [a: atan tangent if not radians [
+    a: multiply a rad-to-deg
+  ] a] 
+  fail-invalid-parameter 'arcsine 'sine
 ]]
 
 =: enfix equal?: function [value1 value2 r:] [
@@ -488,6 +551,7 @@ set/enfix quote >= greater-or-equal?: function [value1 value2] [
 ]
 
 ] ; custom object
+
 
 customize: function [
     code [block! object! word! action!]
