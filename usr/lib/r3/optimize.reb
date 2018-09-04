@@ -38,12 +38,14 @@ golden-search: function [
     b [any-number!]
     precision [any-number!]
     f [action!]
+    /params data
   ][
+  if params [f: specialize :f data]
   d: b - a
   d: d * phi * phi
   a: a + d
   x: b - d
-  d: d * phi
+  d: x - a
   y0: f a
   while [precision < abs d] [
     y: f x
