@@ -41,6 +41,8 @@ complex!/make: function [type def] [
   ] backtrace 4
 ]
 
+make-complex: specialize complex!/make [type: complex!]
+
 complex!/to: function [
     type [datatype! map!]
     value [any-value!]
@@ -57,22 +59,22 @@ complex!/to: function [
   ]
 ]
 
-to-complex: specialize :complex!/make [type: complex!]
+to-complex: specialize :custom/to [type: complex!]
 
-i: to-complex [0 1]
+i: make-complex [0 1]
 
 +i: enfix tighten function [
   v1 [any-number!]
   v2 [any-number!]
 ] [
-  to-complex reduce [v1 v2]
+  make-complex reduce [v1 v2]
 ]
 
 -i: enfix tighten function [
   v1 [any-number!]
   v2 [any-number!]
 ] [
-  to-complex reduce [v1 negate v2]
+  make-complex reduce [v1 negate v2]
 ]
 
 complex!/form: c-form: function [
@@ -100,24 +102,24 @@ complex!/mold: function [value /only /all /flat ] [
 ]
 
 complex!/add: c-add: function [v1 v2] [
-  v1: to-complex v1 v2: to-complex v2
-  v: to-complex reduce[
+  v1: make-complex v1 v2: make-complex v2
+  v: make-complex reduce[
     add v1/r v2/r
     add v1/i v2/i
   ]
 ]
 
 complex!/subtract: c-sub: function [v1 v2] [
-  v1: to-complex v1 v2: to-complex v2
-  v: to-complex reduce[
+  v1: make-complex v1 v2: make-complex v2
+  v: make-complex reduce[
     subtract v1/r v2/r
     subtract v1/i v2/i
   ]
 ]
 
 complex!/multiply: c-mul: function [v1 v2] [
-  v1: to-complex v1 v2: to-complex v2
-  v: to-complex reduce[
+  v1: make-complex v1 v2: make-complex v2
+  v: make-complex reduce[
     subtract
       multiply v1/r v2/r
       multiply v1/i v2/i
@@ -128,8 +130,8 @@ complex!/multiply: c-mul: function [v1 v2] [
 ]
 
 complex!/divide: c-div: function [v1 v2] [
-  v1: to-complex v1 v2: to-complex v2
-  v: to-complex reduce[
+  v1: make-complex v1 v2: make-complex v2
+  v: make-complex reduce[
     add
       multiply v1/r v2/r
       multiply v1/i v2/i
@@ -191,7 +193,7 @@ complex!/log-e: c-log: function [z] [
 
 custom/log-e: adapt :custom/log-e [
   if all [any-number? value  value < 0] [
-    value: to-complex value
+    value: make-complex value
   ]
 ]
 
@@ -214,8 +216,8 @@ complex!/power: function [z k] [
     ]
     return r
   ]
-  z: to-complex z
-  k: to-complex k
+  z: make-complex z
+  k: make-complex k
   if c-zero? z [
     if k/r > 0 [return 0]
     return make error! _
@@ -235,7 +237,7 @@ complex!/square-root: c-sqrt: function [z] [
 
 custom/square-root: adapt :custom/square-root [
   if all [any-number? value  value < 0] [
-    value: to-complex value
+    value: make-complex value
   ]
 ]
 
@@ -280,7 +282,7 @@ complex!/atan: function [z] [
 
 complex!/equal?: c-=: function [a b] [
   unless all [complex? a complex? b] [
-    a: to-complex a  b: to-complex b
+    a: make-complex a  b: make-complex b
   ]
   all [a/r = b/r  a/i = b/i]
 ]
