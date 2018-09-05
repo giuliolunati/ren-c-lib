@@ -151,7 +151,7 @@ to-paren: specialize :to [type: group!]
 form: enclose :lib/form function [f] [
   value: f/value
 
-  if r: attempt [value/custom-type/form value] [return r]
+  if r: try attempt [value/custom-type/form value] [return r]
 
   if match [block! group!] :value [
     value: as block! :value
@@ -199,7 +199,7 @@ form: enclose :lib/form function [f] [
 
 mold: enclose :lib/mold function [f] [
   value: :f/value only: f/only all: f/all flat: f/flat limit: f/limit
-  if r: attempt [
+  if r: try attempt [
     apply :value/custom-type/mold [value: :value only: only all: all flat: flat limit: limit]
   ] [return r]
 
