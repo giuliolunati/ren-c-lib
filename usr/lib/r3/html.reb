@@ -1,29 +1,20 @@
 Rebol [
-	Name: html
-	Type: module
-	Title: "HTML Codec"
-
+	Title: "Markup Codec"
 	Author: ["Christopher Ross-Gill" "Giulio Lunati"]
 	Date: 23-Dec-2017
 	File: %html.reb
-	Version: 0.2.0
+	Version: 0.2.1
+	Purpose: "Markup Loader for Ren-C"
 	Rights: http://opensource.org/licenses/Apache-2.0
+	Type: module
+	Name: html
 	History: [
-		23-Dec-2017 0.2.0 "rewrite based on rgchris' markup.reb"
+		23-Dec-2017 0.2.2 "html-mold"
+		28-Aug-2017 0.2.1 "Working Adoption Agency algorithm"
+		21-Aug-2017 0.2.0 "Working Tree Creation (with caveats)"
+		24-Jul-2017 0.1.0 "Initial Version"
 	]
 ]
-
-;;; IMPORT
-
-text-mod: import 'text
-smart-decode-text: :text-mod/smart-decode-text
-
-trees: import 'doc-tree
-
-markup: import 'markup
-decode-markup: :markup/decode-markup
-
-;;; UTILITIES
 
 also: func [x [<opt> any-value!] y [<opt> any-value!]] [:x] 
 
@@ -39,9 +30,9 @@ maps-equal?: func [value1 [map! blank!] value2 [map! blank!]][
 	equal? value1 value2
 ]
 
-;;;
+rgchris.markup: make map! 0
 
-increment: func ['word [word!]][
+rgchris.markup/increment: func ['word [word!]][
 	either number? get :word [
 		also get word set word add get word 1
 	][
@@ -49,7 +40,92 @@ increment: func ['word [word!]][
 	]
 ]
 
-references: make object! [ ; need to update references
+rgchris.markup/references: make object! [ ; need to update references
+	codepoints: [
+		34 "quot" #{22} 38 "amp" #{26} 60 "lt" #{3C} 62 "gt" #{3E} 160 "nbsp" #{C2A0}
+		161 "iexcl" #{C2A1} 162 "cent" #{C2A2} 163 "pound" #{C2A3} 164 "curren" #{C2A4} 165 "yen" #{C2A5}
+		166 "brvbar" #{C2A6} 167 "sect" #{C2A7} 168 "uml" #{C2A8} 169 "copy" #{C2A9} 170 "ordf" #{C2AA}
+		171 "laquo" #{C2AB} 172 "not" #{C2AC} 173 "shy" #{C2AD} 174 "reg" #{C2AE} 175 "macr" #{C2AF}
+		176 "deg" #{C2B0} 177 "plusmn" #{C2B1} 178 "sup2" #{C2B2} 179 "sup3" #{C2B3} 180 "acute" #{C2B4}
+		181 "micro" #{C2B5} 182 "para" #{C2B6} 183 "middot" #{C2B7} 184 "cedil" #{C2B8} 185 "sup1" #{C2B9}
+		186 "ordm" #{C2BA} 187 "raquo" #{C2BB} 188 "frac14" #{C2BC} 189 "frac12" #{C2BD} 190 "frac34" #{C2BE}
+		191 "iquest" #{C2BF} 192 "Agrave" #{C380} 193 "Aacute" #{C381} 194 "Acirc" #{C382} 195 "Atilde" #{C383}
+		196 "Auml" #{C384} 197 "Aring" #{C385} 198 "AElig" #{C386} 199 "Ccedil" #{C387} 200 "Egrave" #{C388}
+		201 "Eacute" #{C389} 202 "Ecirc" #{C38A} 203 "Euml" #{C38B} 204 "Igrave" #{C38C} 205 "Iacute" #{C38D}
+		206 "Icirc" #{C38E} 207 "Iuml" #{C38F} 208 "ETH" #{C390} 209 "Ntilde" #{C391} 210 "Ograve" #{C392}
+		211 "Oacute" #{C393} 212 "Ocirc" #{C394} 213 "Otilde" #{C395} 214 "Ouml" #{C396} 215 "times" #{C397}
+		216 "Oslash" #{C398} 217 "Ugrave" #{C399} 218 "Uacute" #{C39A} 219 "Ucirc" #{C39B} 220 "Uuml" #{C39C}
+		221 "Yacute" #{C39D} 222 "THORN" #{C39E} 223 "szlig" #{C39F} 224 "agrave" #{C3A0} 225 "aacute" #{C3A1}
+		226 "acirc" #{C3A2} 227 "atilde" #{C3A3} 228 "auml" #{C3A4} 229 "aring" #{C3A5} 230 "aelig" #{C3A6}
+		231 "ccedil" #{C3A7} 232 "egrave" #{C3A8} 233 "eacute" #{C3A9} 234 "ecirc" #{C3AA} 235 "euml" #{C3AB}
+		236 "igrave" #{C3AC} 237 "iacute" #{C3AD} 238 "icirc" #{C3AE} 239 "iuml" #{C3AF} 240 "eth" #{C3B0}
+		241 "ntilde" #{C3B1} 242 "ograve" #{C3B2} 243 "oacute" #{C3B3} 244 "ocirc" #{C3B4} 245 "otilde" #{C3B5}
+		246 "ouml" #{C3B6} 247 "divide" #{C3B7} 248 "oslash" #{C3B8} 249 "ugrave" #{C3B9} 250 "uacute" #{C3BA}
+		251 "ucirc" #{C3BB} 252 "uuml" #{C3BC} 253 "yacute" #{C3BD} 254 "thorn" #{C3BE} 255 "yuml" #{C3BF}
+		338 "OElig" #{C592} 339 "oelig" #{C593} 352 "Scaron" #{C5A0} 353 "scaron" #{C5A1} 376 "Yuml" #{C5B8}
+		402 "fnof" #{C692} 710 "circ" #{CB86} 732 "tilde" #{CB9C} 913 "Alpha" #{CE91} 914 "Beta" #{CE92}
+		915 "Gamma" #{CE93} 916 "Delta" #{CE94} 917 "Epsilon" #{CE95} 918 "Zeta" #{CE96} 919 "Eta" #{CE97}
+		920 "Theta" #{CE98} 921 "Iota" #{CE99} 922 "Kappa" #{CE9A} 923 "Lambda" #{CE9B} 924 "Mu" #{CE9C}
+		925 "Nu" #{CE9D} 926 "Xi" #{CE9E} 927 "Omicron" #{CE9F} 928 "Pi" #{CEA0} 929 "Rho" #{CEA1}
+		931 "Sigma" #{CEA3} 932 "Tau" #{CEA4} 933 "Upsilon" #{CEA5} 934 "Phi" #{CEA6} 935 "Chi" #{CEA7}
+		936 "Psi" #{CEA8} 937 "Omega" #{CEA9} 945 "alpha" #{CEB1} 946 "beta" #{CEB2} 947 "gamma" #{CEB3}
+		948 "delta" #{CEB4} 949 "epsilon" #{CEB5} 950 "zeta" #{CEB6} 951 "eta" #{CEB7} 952 "theta" #{CEB8}
+		953 "iota" #{CEB9} 954 "kappa" #{CEBA} 955 "lambda" #{CEBB} 956 "mu" #{CEBC} 957 "nu" #{CEBD}
+		958 "xi" #{CEBE} 959 "omicron" #{CEBF} 960 "pi" #{CF80} 961 "rho" #{CF81} 962 "sigmaf" #{CF82}
+		963 "sigma" #{CF83} 964 "tau" #{CF84} 965 "upsilon" #{CF85} 966 "phi" #{CF86} 967 "chi" #{CF87}
+		968 "psi" #{CF88} 969 "omega" #{CF89} 977 "thetasym" #{CF91} 978 "upsih" #{CF92} 982 "piv" #{CF96}
+		8194 "ensp" #{E28082} 8195 "emsp" #{E28083} 8201 "thinsp" #{E28089} 8204 "zwnj" #{E2808C} 8205 "zwj" #{E2808D}
+		8206 "lrm" #{E2808E} 8207 "rlm" #{E2808F} 8211 "ndash" #{E28093} 8212 "mdash" #{E28094} 8216 "lsquo" #{E28098}
+		8217 "rsquo" #{E28099} 8218 "sbquo" #{E2809A} 8220 "ldquo" #{E2809C} 8221 "rdquo" #{E2809D} 8222 "bdquo" #{E2809E}
+		8224 "dagger" #{E280A0} 8225 "Dagger" #{E280A1} 8226 "bull" #{E280A2} 8230 "hellip" #{E280A6} 8240 "permil" #{E280B0}
+		8242 "prime" #{E280B2} 8243 "Prime" #{E280B3} 8249 "lsaquo" #{E280B9} 8250 "rsaquo" #{E280BA} 8254 "oline" #{E280BE}
+		8260 "frasl" #{E28184} 8364 "euro" #{E282AC} 8465 "image" #{E28491} 8472 "weierp" #{E28498} 8476 "real" #{E2849C}
+		8482 "trade" #{E284A2} 8501 "alefsym" #{E284B5} 8592 "larr" #{E28690} 8593 "uarr" #{E28691} 8594 "rarr" #{E28692}
+		8595 "darr" #{E28693} 8596 "harr" #{E28694} 8629 "crarr" #{E286B5} 8656 "lArr" #{E28790} 8657 "uArr" #{E28791}
+		8658 "rArr" #{E28792} 8659 "dArr" #{E28793} 8660 "hArr" #{E28794} 8704 "forall" #{E28880} 8706 "part" #{E28882}
+		8707 "exist" #{E28883} 8709 "empty" #{E28885} 8711 "nabla" #{E28887} 8712 "isin" #{E28888} 8713 "notin" #{E28889}
+		8715 "ni" #{E2888B} 8719 "prod" #{E2888F} 8721 "sum" #{E28891} 8722 "minus" #{E28892} 8727 "lowast" #{E28897}
+		8730 "radic" #{E2889A} 8733 "prop" #{E2889D} 8734 "infin" #{E2889E} 8736 "ang" #{E288A0} 8743 "and" #{E288A7}
+		8744 "or" #{E288A8} 8745 "cap" #{E288A9} 8746 "cup" #{E288AA} 8747 "int" #{E288AB} 8756 "there4" #{E288B4}
+		8764 "sim" #{E288BC} 8773 "cong" #{E28985} 8776 "asymp" #{E28988} 8800 "ne" #{E289A0} 8801 "equiv" #{E289A1}
+		8804 "le" #{E289A4} 8805 "ge" #{E289A5} 8834 "sub" #{E28A82} 8835 "sup" #{E28A83} 8836 "nsub" #{E28A84}
+		8838 "sube" #{E28A86} 8839 "supe" #{E28A87} 8853 "oplus" #{E28A95} 8855 "otimes" #{E28A97} 8869 "perp" #{E28AA5}
+		8901 "sdot" #{E28B85} 8968 "lceil" #{E28C88} 8969 "rceil" #{E28C89} 8970 "lfloor" #{E28C8A} 8971 "rfloor" #{E28C8B}
+		9001 "lang" #{E28CA9} 9002 "rang" #{E28CAA} 9674 "loz" #{E2978A} 9824 "spades" #{E299A0} 9827 "clubs" #{E299A3}
+		9829 "hearts" #{E299A5} 9830 "diams" #{E299A6}
+	]
+
+	replacements: make map! [
+		0 65533
+		128 8364
+		130 8218
+		131 402
+		132 8222
+		133 8230
+		134 8224
+		135 8225
+		136 710
+		137 8240
+		138 352
+		139 8249
+		140 338
+		142 381
+		145 8216
+		146 8217
+		147 8220
+		148 8221
+		149 8226
+		150 8211
+		151 8212
+		152 732
+		153 8482
+		154 353
+		155 8250
+		156 339
+		158 382
+		159 376
+	]
+
 	elements: make map! lock [
 		"a" a "abbr" abbr "address" address "applet" applet "area" area "article" article
 		"aside" aside "b" b "base" base "basefont" basefont "bgsound" bgsound
@@ -99,13 +175,13 @@ references: make object! [ ; need to update references
 	tags: make map! 0
 	end-tags: make map! 0
 	element: _
-	foreach element words-of elements [
+	for-each element words-of elements [
 		put tags elements/:element to tag! elements/:element
 		put end-tags elements/:element rejoin [</> elements/:element]
 	]
 ]
 
-word-rule: [ ; reserved for future use
+rgchris.markup/word: [ ; reserved for future use
 	w1: charset [
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
 		#"^(C0)" - #"^(D6)" #"^(D8)" - #"^(F6)" #"^(F8)" - #"^(02FF)"
@@ -123,7 +199,93 @@ word-rule: [ ; reserved for future use
 	word: [w1 any w+]
 ]
 
-html-tokenizer: make object! [
+rgchris.markup/decode: make object! [
+	digit: charset "0123456789"
+	hex-digit: charset "0123456789abcdefABCDEF"
+	specials: charset [#"0" - #"9" #"=" #"a" - #"z" #"A" - #"Z"]
+	prohibited: charset collect [
+		keep [0 - 8 11 13 - 31 127 - 159 55296 - 57343 64976 - 65007]
+		if char? attempt [to char! 65536][
+			keep [
+				65534 65535 131070 131071 196606 196607
+				262142 262143 327678 327679 393214 393215
+				458750 458751 524286 524287 589822 589823
+				655358 655359 720894 720895 786430 786431
+				851966 851967 917502 917503 983038 983039
+				1048574 1048575 1114110 1114111
+			]
+		]
+	]
+
+	resolve: func [char [integer!]][
+		any [
+			select rgchris.markup/references/replacements char
+			if find prohibited char [65533]
+			char
+		]
+	]
+
+	codepoint: name: character: _
+	codepoints: make map! 0
+	names: remove sort/skip/compare/reverse collect [
+		for-each [codepoint name character] rgchris.markup/references/codepoints [
+			put codepoints name to text! character
+			keep '|
+			keep name
+			put codepoints name: rejoin [name ";"] to text! character
+			keep '|
+			keep name
+		]
+	] 2 2
+
+	get-hex: func [hex [text!]][
+		insert/dup hex #"0" 8 - length-of hex
+		to integer! debase/base hex 16
+	]
+
+	decode-markup: func [position [text!] /attribute /local char mark response][
+		; [char exit unresolvable no-terminus 
+		also response: reduce [_ position false false false]
+		parse/case position [
+			#"#" [
+				[#"x" | #"X"] [any #"0" copy char some hex-digit | some "0" (char: "00")] (
+					either 7 > length-of char [char: get-hex char][
+						response/3: 'could-not-resolve
+						char: 65533
+					]
+				)
+				|
+				[any #"0" copy char some digit | some #"0" (char: "0")] (
+					either 8 > length-of char [char: to integer! char][
+						response/3: 'could-not-resolve
+						char: 65533
+					]
+				)
+			]
+			mark: [#";" mark: | (response/4: 'no-semicolon)]
+			(
+				unless equal? char char: resolve char [response/3: 'could-not-resolve]
+				response/1: any [attempt [to char! char] to char! 65533]
+				response/2: :mark
+			)
+			|
+			copy char names mark: (
+				unless #";" = last char [response/4: 'no-semicolon]
+				either all [response/4 attribute find specials mark/1][
+					response/4: _
+					response/5: 'no-semicolon-in-attribute
+				][
+					response/1: select codepoints char
+					response/2: mark
+				]
+			)
+		]
+	]
+]
+
+decode-markup: get in rgchris.markup/decode 'decode-markup
+
+rgchris.markup/html-tokenizer: make object! [
 	; 8.2.4 Tokenization https://www.w3.org/TR/html5/syntax.html#tokenization
 	series: mark: buffer: attribute: token: last-token: character: closer: additional-character: _
 	is-paused: is-done: false
@@ -153,11 +315,11 @@ html-tokenizer: make object! [
 	non-rcdata: complement charset "^@&<"
 	non-script: complement charset "^@<"
 	not-null: complement charset "^@"
-	; word: :word-rule/word
+	; word: get in rgchris.markup/word 'word
 
 	error: [(report 'parse-error)]
 	null-error: [#"^@" (report 'unexpected-null-character)]
-	unknown: to string! #{EFBFBD}
+	unknown: to text! #{EFBFBD}
 	timely-end: [end (is-done: true emit [end]) fail]
 	untimely-end: [end (report 'untimely-end use data)]
 	emit-one: [mark: skip (emit mark/1)]
@@ -327,7 +489,7 @@ html-tokenizer: make object! [
 		rcdata-less-than-sign: [
 			#"/" (
 				use rcdata-end-tag-open
-				buffer: make string! 0
+				buffer: make text! 0
 			)
 			|
 			(
@@ -396,7 +558,7 @@ html-tokenizer: make object! [
 		rawtext-less-than-sign: [
 			#"/" (
 				use rawtext-end-tag-open
-				buffer: make string! 0
+				buffer: make text! 0
 			)
 			|
 			(
@@ -465,7 +627,7 @@ html-tokenizer: make object! [
 		script-data-less-than-sign: [
 			#"/" (
 				use script-data-end-tag-open
-				buffer: make string! 0
+				buffer: make text! 0
 			)
 			|
 			#"!" (
@@ -626,7 +788,7 @@ html-tokenizer: make object! [
 		script-data-escaped-less-than-sign: [
 			#"/" (
 				use script-data-escaped-end-tag-open
-				buffer: make string! 0
+				buffer: make text! 0
 			)
 			|
 			copy mark some alpha (
@@ -792,7 +954,7 @@ html-tokenizer: make object! [
 			#"/" (
 				use script-data-double-escape-end
 				emit "/"
-				buffer: make string! 0
+				buffer: make text! 0
 			)
 			|
 			[end | emit-one] (
@@ -843,7 +1005,7 @@ html-tokenizer: make object! [
 			] (
 				use attribute-name
 				token/3: any [token/3 make map! 0]
-				attribute: reduce [mark make string! 0]
+				attribute: reduce [mark make text! 0]
 			)
 		]
 
@@ -911,7 +1073,7 @@ html-tokenizer: make object! [
 				| copy mark skip
 			] (
 				use attribute-name
-				attribute: reduce [mark make string! 0]
+				attribute: reduce [mark make text! 0]
 			)
 		]
 
@@ -1070,7 +1232,7 @@ html-tokenizer: make object! [
 		markup-declaration-open: [
 			"--" (
 				use comment-start
-				token: reduce ['comment make string! 0]
+				token: reduce ['comment make text! 0]
 			)
 			|
 			d o c t y p e (
@@ -1317,12 +1479,12 @@ html-tokenizer: make object! [
 			|
 			#"^(22)" error (
 				use doctype-public-identifier-double-quoted
-				token/3: make string! 0
+				token/3: make text! 0
 			)
 			|
 			#"'" error (
 				use doctype-public-identifier-single-quoted
-				token/3: make string! 0
+				token/3: make text! 0
 			)
 			|
 			#">" error (
@@ -1347,12 +1509,12 @@ html-tokenizer: make object! [
 			|
 			#"^(22)" (
 				use doctype-public-identifier-double-quoted
-				token/3: make string! 0
+				token/3: make text! 0
 			)
 			|
 			#"'" (
 				use doctype-public-identifier-single-quoted
-				token/3: make string! 0
+				token/3: make text! 0
 			)
 			|
 			#">" error (
@@ -1424,12 +1586,12 @@ html-tokenizer: make object! [
 			|
 			#"^(22)" error (
 				use doctype-system-identifier-double-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			#"'" error (
 				use doctype-system-identifier-single-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			untimely-end (
@@ -1453,12 +1615,12 @@ html-tokenizer: make object! [
 			|
 			#"^(22)" (
 				use doctype-system-identifier-double-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			#"'" (
 				use doctype-system-identifier-single-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			untimely-end (
@@ -1478,12 +1640,12 @@ html-tokenizer: make object! [
 			|
 			#"^(22)" (
 				use doctype-system-identifier-double-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			#"'" (
 				use doctype-system-identifier-single-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			#">" (
@@ -1510,12 +1672,12 @@ html-tokenizer: make object! [
 			|
 			#"^(22)" (
 				use doctype-system-identifier-double-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			#"'" (
 				use doctype-system-identifier-single-quoted
-				token/4: make string! 0
+				token/4: make text! 0
 			)
 			|
 			#">" error (
@@ -1629,14 +1791,14 @@ html-tokenizer: make object! [
 
 	adjust: func [token][
 		also token token/2: any [
-			select references/elements token/2
+			select rgchris.markup/references/elements token/2
 			token/2
 		]
 	]
 
 	current-state-name: current-state: state: last-state-name: _
 
-	use: func ['target [word!] /until end-tag [string!]][
+	use: func ['target [word!] /until end-tag [text!]][
 		last-state-name: :current-state-name
 		current-state-name: target
 		if until [closer: :end-tag]
@@ -1665,9 +1827,9 @@ html-tokenizer: make object! [
 
 	init: func [
 		"Initialize the tokenization process"
-		source [string!] "A markup string to tokenize"
-		token-handler [function!] "A function to handle tokens"
-		error-handler [function!] "A function to handle errors"
+		source [text!] "A markup string to tokenize"
+		token-handler [action!] "A function to handle tokens"
+		error-handler [action!] "A function to handle errors"
 	][
 		mark: buffer: attribute: token: last-token: character: additional-character: _
 		current-state-name: current-state: state: last-state-name: _
@@ -1681,7 +1843,7 @@ html-tokenizer: make object! [
 	start: func [
 		"Start the tokenization process"
 	][
-		unless string? series [
+		unless text? series [
 			do make error! "Tokenization process has not been initialized"
 		]
 		use data
@@ -1698,7 +1860,7 @@ html-tokenizer: make object! [
 	resume: func [
 		"Resume the tokenization process"
 	][
-		unless string? series [
+		unless text? series [
 			do make error! "Tokenization process has not been initialized"
 		]
 		is-paused: false
@@ -1707,90 +1869,215 @@ html-tokenizer: make object! [
 	]
 ]
 
-last-token: _
+html-tokenizer: rgchris.markup/html-tokenizer
 
-split-html: func [
-		source [string! binary! file!]
-		/quiet
-	][
-	if file? source [source: read source]
-	if binary? source [source: smart-decode-text source]
-	if quiet [set 'verbose false]
+rgchris.markup/load: make object! [
 	last-token: _
-	collect [
-		html-tokenizer/init source
-		func [token [block! char! string!]][
-			case [
-				not block? token [
-					either all [
-						last-token
-						last-token/1 = 'text
-					][
-						append last-token/2 token
-						token: last-token
-					][
-						token: reduce ['text to string! token]
-						keep token/2
+
+	load-markup: func [source [text!]][
+		last-token: _
+		collect [
+			html-tokenizer/init source
+			func [token [block! char! text!]][
+				case [
+					not block? token [
+						either all [
+							last-token
+							last-token/1 = 'text
+						][
+							append last-token/2 token
+							token: last-token
+						][
+							token: reduce ['text to text! token]
+							keep token/2
+						]
+					]
+
+					token/1 = 'tag [
+						keep to tag! token/2
+						if map? token/3 [keep token/3]
+						if token/4 [keep </>]
+
+						switch token/2 [
+							script [
+								html-tokenizer/use/until script-data form token/2
+							]
+							title [
+								html-tokenizer/use/until rcdata form token/2
+							]
+							style textarea [
+								html-tokenizer/use/until rawtext form token/2
+							]
+						]
+					]
+
+					token/1 = 'end-tag [
+						keep to tag! rejoin ["/" token/2]
+					]
+
+					token/1 = 'comment [
+						keep to tag! rejoin ["!--" token/2 "--"]
 					]
 				]
 
-				token/1 = 'tag [
-					keep to tag! token/2
-					if map? token/3 [keep token/3]
-					if token/4 [keep </>]
+				also _ last-token: :token
+			]
+			func [value][value]
 
-					switch token/2 [
-						script [
-							html-tokenizer/use/until script-data form token/2
-						]
-						title [
-							html-tokenizer/use/until rcdata form token/2
-						]
-						style textarea [
-							html-tokenizer/use/until rawtext form token/2
-						]
-					]
-				]
+			html-tokenizer/start
+		]
+	]
+]
 
-				token/1 = 'end-tag [
-					keep to tag! rejoin ["/" token/2]
-				]
+load-markup: get in rgchris.markup/load 'load-markup
 
-				token/1 = 'comment [
-					keep to tag! rejoin ["!--" token/2 "--"]
+trees: make object! [
+	; new: does [
+	; 	make map! [parent _ first _ last _ type document]
+	; ]
+	;
+	; make-node: does [
+	; 	make map! compose/only [
+	; 		parent _ back _ next _ first _ last _
+	; 		type _ name _ value _
+	; 	]
+	; ]
+
+	new: does [
+		new-line/all/skip copy [
+			parent _ first _ last _ name _ public _ system _
+			form _ head _ body _ type document
+		] true 2
+	]
+
+	make-node: does [
+		new-line/all/skip copy [
+			parent _ back _ next _ first _ last _
+			type _ name _ value _
+		] true 2
+	]
+
+	insert-before: func [item [block! map!] /local node][
+		node: make-node
+
+		node/parent: item/parent
+		node/back: item/back
+		node/next: item
+
+		either blank? item/back [
+			item/parent/first: node
+		][
+			item/back/next: node
+		]
+
+		item/back: node
+	]
+
+	insert-after: func [item [block! map!] /local node][
+		node: make-node
+
+		node/parent: item/parent
+		node/back: item
+		node/next: item/next
+
+		either blank? item/next [
+			item/parent/last: node
+		][
+			item/next/back: node
+		]
+
+		item/next: node
+	]
+
+	insert: func [list [block! map!]][
+		either list/first [
+			insert-before list/first
+		][
+			also list/first: list/last: make-node
+			list/first/parent: list
+		]
+	]
+
+	append: func [list [block! map!]][
+		either list/last [
+			insert-after list/last
+		][
+			insert list
+		]
+	]
+
+	append-existing: func [list [block! map!] node [block! map!]][
+		node/parent: list
+		node/next: _
+
+		either blank? list/last [
+			node/back: _
+			list/first: list/last: node
+		][
+			node/back: list/last
+			node/back/next: node
+			list/last: node
+		]
+	]
+
+	remove: func [item [block! map!] /back /next][
+		unless item/parent [
+			do make error! "Node does not exist in tree"
+		]
+
+		either item/back [
+			item/back/next: item/next
+		][
+			item/parent/first: item/next
+		]
+
+		either item/next [
+			item/next/back: item/back
+		][
+			item/parent/last: item/back
+		]
+
+		item/parent: item/back: item/next: _ ; node becomes freestanding
+
+		case [
+			back [item/back]
+			next [item/next]
+			/else [item]
+		]
+	]
+
+	clear: func [list [block! map!]][
+		while [list/first][remove list/first]
+	]
+
+	clear-from: func [item [block! map!]][
+		also item/back
+		loop-until [not item: remove item]
+	]
+
+	walk: func [node [block! map!] callback [block!] /into /only][
+		case bind compose/deep [
+			only [
+				node: node/first
+				while [:node][
+					(to group! callback)
+					node: node/next
 				]
 			]
-
-			also _ last-token: :token
-		]
-		func [type [word! string!]][
-			report :type html-tokenizer/series
-		]
-
-		html-tokenizer/start
+			/else [
+				(to group! callback)
+				node: node/first
+				while [:node][
+					walk/into node callback
+					node: node/next
+				]
+			]
+		] 'node
 	]
 ]
 
-count-of: func [string [string!] /local lines chars mark last-mark][
-	lines: 0
-	mark: head string
-
-	loop-until [
-		last-mark: :mark
-		increment lines
-		any [
-			not mark: find next mark newline
-			negative? offset-of mark string
-		]
-	]
-
-	chars: offset-of last-mark string
-
-	rejoin ["(" lines "," chars ")"]
-]
-
-markup-as-block: function [node [map! block!]][
-	tags: references/tags
+rgchris.markup/markup-as-block: function [node [map! block!]][
+	tags: rgchris.markup/references/tags
 
 	new-line/all/skip collect [
 		switch/default node/type [
@@ -1837,18 +2124,9 @@ markup-as-block: function [node [map! block!]][
 	] true 2
 ]
 
-verbose: true
+markup-as-block: select rgchris.markup 'markup-as-block
 
-report: func [
-	type [word! string!]
-	; info
-][
-	also type if verbose [
-		print unspaced ["** " count-of html-tokenizer/series ": " type]
-	]
-]
-
-html-loader: make object! [
+rgchris.markup/load-html: make object! [
 	document: space: head-node: body-node: form-node: parent: kid: last-token: _
 	open-elements: active-formatting-elements: pending-table-characters:
 	current-node: nodes: node: mark: _
@@ -1928,7 +2206,7 @@ html-loader: make object! [
 					either all [
 						equal? node/name mark/1/name
 						maps-equal? node/value mark/1/value
-						(increment count) > 3
+						(rgchris.markup/increment count) > 3
 					][
 						remove mark
 					][
@@ -1960,7 +2238,7 @@ html-loader: make object! [
 
 	find-element: func [from [block!] element [block! map!]][
 		catch [
-			also _ forall from [
+			also _ for-next from [
 				case [
 					issue? from/1 [break]
 
@@ -1972,9 +2250,9 @@ html-loader: make object! [
 		]
 	]
 
-	select-element: func [from [block!] name [word! string!]][
+	select-element: func [from [block!] name [word! text!]][
 		catch [
-			also _ foreach node from [
+			also _ for-each node from [
 				case [
 					issue? node [break]
 					node/name = name [throw node]
@@ -1983,10 +2261,10 @@ html-loader: make object! [
 		]
 	]
 
-	tagify: func [name [word! string!] /close /local source][
+	tagify: func [name [word! text!] /close /local source][
 		source: either close ['end-tags]['tags]
 		any [
-			select references/:source name
+			select rgchris.markup/references/:source name
 			name
 		]
 	]
@@ -2023,11 +2301,11 @@ html-loader: make object! [
 
 	reset-insertion-mode: func [/local mark node][
 		mark: :open-elements
-		forall mark [
+		for-next mark [
 			if any-value? switch tagify mark/1/name [
 				<select> [
 					use in-select
-					foreach node next mark [
+					for-each node next mark [
 						switch tagify node/name [
 							<template> [break]
 							<table> [
@@ -2061,13 +2339,7 @@ html-loader: make object! [
 		]
 	]
 
-	append-element: func [
-			token [block!]
-			/to parent [map! block!]
-			/namespace 'space [word!]
-			/empty
-			/local node
-		][
+	append-element: func [token [block!] /to parent [map! block!] /namespace 'space [word!] /local node][
 		; probe token
 		set-insertion-point any [:parent _]
 
@@ -2082,7 +2354,6 @@ html-loader: make object! [
 		node/type: 'element
 		node/name: token/2
 		node/value: pick token 3
-		node/empty: empty
 		node
 	]
 
@@ -2099,7 +2370,7 @@ html-loader: make object! [
 		node
 	]
 
-	append-text: func [token [char! string!] /to parent [map! block!] /local target][
+	append-text: func [token [char! text!] /to parent [map! block!] /local target][
 		set-insertion-point any [:parent _]
 
 		target: switch insertion-type [
@@ -2116,14 +2387,14 @@ html-loader: make object! [
 				before [trees/insert-before insertion-point]
 			]
 			target/type: 'text
-			target/value: make string! 0
+			target/value: make text! 0
 		]
 
 		append target/value token
 	]
 
 	close-element: func [token [block!]][
-		foreach node open-elements [
+		for-each node open-elements [
 			case [
 				token/2 = node/name [
 					generate-implied-end-tags/thru :token/2
@@ -2154,7 +2425,7 @@ html-loader: make object! [
 		mark: :open-elements
 
 		catch [
-			also false forall mark [
+			also false for-next mark [
 				case [
 					find target mark/1/name [throw mark/1]
 					find scope mark/1/name [break]
@@ -2181,7 +2452,7 @@ html-loader: make object! [
 		mark: :open-elements
 
 		catch [
-			also false forall mark [
+			also false for-next mark [
 				case [
 					same? element mark/1 [throw mark]
 					find scope mark/1/name [break]
@@ -2190,7 +2461,7 @@ html-loader: make object! [
 		]
 	]
 
-	close-thru: func ['name [word! string! block!] /quiet][
+	close-thru: func ['name [word! text! block!] /quiet][
 		name: compose [(name)]
 		loop-until [
 			; is assumed that NAME exists in the OPEN-ELEMENTS stack
@@ -2200,7 +2471,7 @@ html-loader: make object! [
 	]
 
 	generate-implied-end-tags: func [
-		/thru 'target [word! string! block!]
+		/thru 'target [word! text! block!]
 		/except exceptions [block!]
 	][
 		target: compose [(any [:target []])]
@@ -2327,7 +2598,7 @@ html-loader: make object! [
 				count: 0
 
 				forever [
-					increment count
+					rgchris.markup/increment count
 
 					node: first mark: next mark
 
@@ -2654,7 +2925,7 @@ html-loader: make object! [
 			]
 			<li> [
 				nodes: :open-elements
-				forall nodes [
+				for-next nodes [
 					node: pick nodes 1
 					case [
 						node/name = 'li [
@@ -2671,7 +2942,7 @@ html-loader: make object! [
 				push append-element token
 			]
 			<dd> <dt> [
-				foreach node open-elements [
+				for-each node open-elements [
 					case [
 						node/name = 'dd [
 							generate-implied-end-tags/thru dd
@@ -2739,12 +3010,12 @@ html-loader: make object! [
 			]
 			<area> <br> <embed> <img> <keygen> <wbr> [
 				reconstruct-formatting-elements
-				append-element/empty token
+				append-element token
 				; acknowledge self-closing flag
 			]
 			<input> [
 				reconstruct-formatting-elements
-				append-element/empty token
+				append-element token
 				; acknowledge self-closing flag
 			]
 			<param> <source> <track> [
@@ -2752,7 +3023,7 @@ html-loader: make object! [
 			]
 			<hr> [
 				close-para-if-in-scope
-				append-element/empty token
+				append-element token
 				; acknowledge self-closing flag
 			]
 			<image> [
@@ -2942,7 +3213,7 @@ html-loader: make object! [
 				close-element token
 			]
 			end [
-				foreach node open-elements [
+				for-each node open-elements [
 					unless find [dd dt li p tbody td tfoot th thead tr body html] node/name [
 						report 'expected-closing-tag-but-got-eof
 						break
@@ -3072,7 +3343,7 @@ html-loader: make object! [
 				append pending-table-characters token
 			]
 			doctype tag end-tag comment end [
-				either find next pending-table-characters string! [
+				either find next pending-table-characters text! [
 					report 'needs-fostering
 					do-else/in rejoin pending-table-characters in-table
 					pending-table-characters: _
@@ -3520,13 +3791,13 @@ html-loader: make object! [
 		]
 	]
 
-	count-of: func [string [string!] /local lines chars mark last-mark][
+	count-of: func [string [text!] /local lines chars mark last-mark][
 		lines: 0
 		mark: head string
 
 		loop-until [
 			last-mark: :mark
-			increment lines
+			rgchris.markup/increment lines
 			any [
 				not mark: find next mark newline
 				negative? offset-of mark string
@@ -3536,6 +3807,13 @@ html-loader: make object! [
 		chars: offset-of last-mark string
 
 		rejoin ["(" lines "," chars ")"]
+	]
+
+	report: func [
+		type [word! text!]
+		; info
+	][
+		also type print unspaced ["** " count-of html-tokenizer/series ": " type]
 	]
 
 	current-state-name: current-state: return-state: state: last-state-name: token: _
@@ -3553,7 +3831,7 @@ html-loader: make object! [
 		state
 	]
 
-	do-token: func [this [block! char! string!] /in 'other [word!] /local target operative-state][
+	do-token: func [this [block! char! text!] /in 'other [word!] /local target operative-state][
 		operative-state: _
 
 		if word? :other [
@@ -3569,7 +3847,7 @@ html-loader: make object! [
 
 		target: case [
 			char? token ['space]
-			any [string? this char? this]['text]
+			any [text? this char? this]['text]
 			not block? this [do make error! "Not A Token"]
 			all [
 				this/1 = 'tag
@@ -3592,7 +3870,7 @@ html-loader: make object! [
 		_
 	]
 
-	do-else: func [this [block! char! string!] /in 'other [word!] /local operative-state][
+	do-else: func [this [block! char! text!] /in 'other [word!] /local operative-state][
 		operative-state: _
 
 		if word? :other [
@@ -3616,13 +3894,7 @@ html-loader: make object! [
 		_
 	]
 
-	load-html: func [
-			source [string! binary! file!]
-			/quiet
-		][
-		if file? source [source: read source]
-		if binary? source [source: smart-decode-text source]
-		if quiet [set 'verbose false]
+	load-html: func [source [text!]][
 		open-elements: make block! 12
 		active-formatting-elements: make block! 6
 		last-token: _
@@ -3635,10 +3907,10 @@ html-loader: make object! [
 		use initial
 
 		html-tokenizer/init source ; /
-		func [current [block! char! string!]][
+		func [current [block! char! text!]][
 			do-token token: :current
 		] ; /
-		func [type [word! string!]][
+		func [type [word! text!]][
 			report :type html-tokenizer/series
 		]
 
@@ -3648,10 +3920,8 @@ html-loader: make object! [
 	]
 ]
 
-load-html: :html-loader/load-html
-
 list-elements: function [node [map! block!]][
-	tags: references/tags
+	tags: rgchris.markup/references/tags
 	print "LIST ELEMENTS:"
 	trees/walk node [
 		this: :node
@@ -3669,6 +3939,84 @@ list-elements: function [node [map! block!]][
 			]
 		]
 	]
+]
+load-html-rgchris: get in rgchris.markup/load-html 'load-html
+;;;;;;;;;;;;; 
+text-mod: import 'text
+smart-decode-text: :text-mod/smart-decode-text
+unquote-string: :text-mod/unquote-string
+quote-string: :text-mod/quote-string
+
+load-html: function [
+		x [text! binary! file!]
+		/quiet
+	][
+	if file? x [x: read x]
+	if binary? x [x: smart-decode-text x]
+	apply 'load-html-rgchris [source: x quiet: quiet] 
+]
+
+is-empty?: function [t [any-string!]] [
+	any [ find [
+		"area" "base" "br" "col" "embed" "hr" "img" "input"
+		"keygen" "link" "meta" "param" "source" "track" "wbr"
+	] t | find "!?" t/1 ]
+]
+
+mold-style: function [
+		x [block! text!]
+	][
+	if text? x [x] else [
+		delimit map-each [k v] x [
+			unspaced [k ":" space v]
+		] "; "
+	]
+]
+
+mold-html: function [
+		x [block!]
+		/into ret
+	][
+	if not x [return x]
+	ret: default [make text! 256]
+	switch x/type [
+		comment [
+			append ret "<!--"
+			append ret x/value
+			append ret "-->"
+		]
+		document [
+			append ret "<html>"
+			mold-html/into x/head ret
+			mold-html/into x/body ret
+			append ret "</html>"
+		]
+		element [
+			append ret "<"
+			append ret name: to-string x/name
+			empty: is-empty? name
+			attrib: x/value
+			for-each k attrib [
+				append ret unspaced [
+					" " k "=" quote-string copy attrib/:k
+				]
+			]
+			if empty [append ret " /"]
+			append ret ">"
+			x: select x 'first
+			while [x] [
+				mold-html/into x ret
+				x: select x 'next
+			]
+			if not empty [
+				append ret to-tag unspaced ["/" name]
+			]
+		]
+		text [append ret x/value]
+	] else [
+		print ["!! unhandled type:" x/type]
+	]
+	ret
 ]
 
 ; vim: set sw=2 ts=2 sts=2:

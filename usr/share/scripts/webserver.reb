@@ -83,7 +83,7 @@ html-list-dir: function [
   dir [file!]
   ][
   if error? trap [list: read dir] [return _]
-  for-next list [if 'dir = exists? join-of dir list/1 [append list/1 %/]]
+  ;;for-next list [if 'dir = exists? join-of dir list/1 [append list/1 %/]]
   ;; ^-- workaround for #838
   sort/compare list func [x y] [
     case [
@@ -191,7 +191,7 @@ handle-request: function [
       if error? data: trap [
         data: do data
       ] [mimetype: 'text]
-      if any-function? :data [
+      if action? :data [
         data: data request
       ]
       if block? data [
