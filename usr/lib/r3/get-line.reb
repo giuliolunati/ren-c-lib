@@ -12,10 +12,10 @@ get-line: function [
   ][
   data: _
   forever [
-    if f: find buffer #{0D} [
+    if f: try find buffer #{0D} [
       remove f
     ]
-    if f: find buffer #{0A} [
+    if f: try find buffer #{0A} [
       remove f
       break
     ]
@@ -32,7 +32,7 @@ get-line: function [
   if all [empty? data empty? buffer] [
     return _
   ]
-  to-string take/part buffer f
+  to-text take/part buffer f
 ]
 
 input-line: specialize :get-line [p: _]
