@@ -6,7 +6,7 @@ REBOL [
   Description: "REbol Markup format"
 ]
 
-dot: import 'doc-tree
+dot: import 'dom
 +pair: enfix :dot/append-pair-to-map
 append-existing: :dot/append-existing
 make-node: :dot/make-node

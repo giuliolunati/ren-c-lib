@@ -6,7 +6,7 @@ REBOL [
   Description: "Smart Text format"
 ]
 
-dot: import 'doc-tree
+dot: import 'dom
 append-existing: :dot/append-existing
 make-node: :dot/make-node
 
@@ -30,7 +30,7 @@ p: specialize 'element [name: 'p]
 sup: specialize 'element [name: 'sup]
 sub: specialize 'element [name: 'sub]
 
-smart-text: function ["Convert SmartText to doc-tree."
+smart-text: function ["Convert SmartText to  DOM doc-tree."
     x [text! binary! file! url!]
     /inline "Don't make paragraphs, only BR."
   ][

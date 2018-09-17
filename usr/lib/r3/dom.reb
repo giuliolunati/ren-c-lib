@@ -1,11 +1,11 @@
 Rebol [
-	Name: doc-tree
+	Name: dom
 	Type: module
 	Title: "Document tree"
 
 	Author: ["Christopher Ross-Gill" "Giulio Lunati"]
 	Date: 24-Dec-2017
-	File: %doc-tree.reb
+	File: %dom.reb
 	Version: 0.1.0
 	Rights: http://opensource.org/licenses/Apache-2.0
 	History: [
