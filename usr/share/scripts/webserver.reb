@@ -7,42 +7,35 @@ OPTIONS:
   -v      : verbose: 2 (debug)
   INTEGER : port number [8000]
   OTHER   : web root [system/options/path]
-  -a val  : access-dir [true]
-     val = true  : list directory content
-     val = false : access forbidden
-     val = INDEX : show directory/INDEX
-        (if no extension try .reb, .rem, .html)
+  -a name : access-dir via name.*
 EXAMPLE: 8080 /my/web/root -q -a index
 }]
 
 ;; INIT
 port: 8888
-root: %""
-access-dir: true
+root-dir: %""
+access-dir: false
 verbose: 1
 
 a: system/options/args
 for-next a [case [
-    "-a" = a/1 [
-        access-dir: a/2
-        a: next a
-    ]
+    "-a" = a/1 [access-dir: a/2 a: next a]
     find ["-h" "-help" "--help"] a/1 [-help quit]
     "-q" = a/1 [verbose: 0]
     "-v" = a/1 [verbose: 2]
     integer? load a/1 [port: load a/1]
-    true [root: to-file a/1]
+    true [root-dir: to-file a/1]
 ]]
 
 ;; LIBS
 
 import 'httpd
 
-rem-to-html: try attempt [
+if error? rem-to-html: trap [
   rem: import 'rem
-  html: import 'html
-  chain [:rem/load-rem :html/mold-html]
-]
+  to-html: import 'to-html
+  chain [:rem/load-rem :to-html/to-html]
+] [fail rem-to-html]
 
 ext-map: [
   "css" css
@@ -93,14 +86,14 @@ html-list-dir: function [
       true [false]
     ]
   ]
-  insert list %../
+  if dir != %/ [insert list %../]
   data: copy {<head>
     <meta name="viewport" content="initial-scale=1.0" />
     <style> a {text-decoration: none} </style>
   </head>}
   for-each i list [
     append data unspaced [
-      {<a href="} i {">}
+      {<a href="} i {?">}
       if dir? i ["&gt; "]
       i </a> <br/>
     ]
@@ -129,44 +122,26 @@ handle-request: function [
     path: to-url next request/request-uri
     path-type: 'file
   ] else [
-    path: join-of root request/target
+    path: join-of root-dir request/target
     path-type: try exists? path
   ]
   if path-type = 'dir [
     if not access-dir [return 403]
-    if not #"/" = last path [
-      path: unspaced [
-        request/target "/"
-        if request/query-string unspaced [
-          "?" to-text request/query-string
-        ]
-      ]
-      return redirect-response path
-    ]
-    while [#"/" = last path] [take/last path]
-    append path #"/"
-    dir-index: _
-    if any-string? access-dir [
-      dir-index: join-of path to-file access-dir
-      if find access-dir "." [
-        dir-index: reduce [join-of path to-file access-dir]
-      ] else [
-        dir-index: map-each x [%.reb %.rem %.html] [join-of dir-index x]
-      ]
-      for-each x dir-index [
-        if 'file = path-type: try exists? x [path: x break]
-      ]
-      if not 'file = path-type [return 403]
-      ;; else drop to path-type = 'file below
-    ] else [
+    if request/query-string [
       if data: html-list-dir path [
         return reduce [200 mime/html data]
       ] 
-      else return 403
+      return 500
     ]
+    dir-index: map-each x [%.reb %.rem %.html %.htm] [join-of to-file access-dir x]
+    for-each x dir-index [
+      if 'file = try exists? join-of path x [dir-index: x break]
+    ] then [dir-index: "?"]
+    return redirect-response join-of request/target dir-index
   ]
   if path-type = 'file [
-    pos: find/last last path-elements "."
+    pos: try find/last last path-elements
+      "."
     file-ext: (if pos [copy next pos] else [_])
     mimetype: try attempt [ext-map/:file-ext]
     if error? data: trap [read path] [return 403]
@@ -188,15 +163,17 @@ handle-request: function [
     ]
     if mimetype = 'rebol [
       mimetype: 'html
-      if error? data: trap [
+      data: trap [
         data: do data
-      ] [mimetype: 'text]
+      ]
       if action? :data [
-        data: data request
+        data: trap [data request]
       ]
       if block? data [
         mimetype: first data
         data: next data
+      ] else [
+        if error? data [mimetype: 'text]
       ]
       data: form data
     ]
@@ -241,7 +218,7 @@ server: open compose [
 ]
 if verbose >= 1 [lib/print spaced ["Serving on port" port]]
 if verbose >= 2 [
-  lib/print spaced ["root:" root]
+  lib/print spaced ["root-dir:" root-dir]
   lib/print spaced ["access-dir:" access-dir]
 ]
 

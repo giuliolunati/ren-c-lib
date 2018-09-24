@@ -287,7 +287,7 @@ sys/make-scheme [
 
         request-query (use [chars] [
             chars: complement charset [#"^@" - #" "]
-            [some chars]
+            [any chars]
         ])
 
         header-feed ([newline | cr lf])
@@ -438,7 +438,13 @@ sys/make-scheme [
         ])
     ][
         client/locals/response: response: make response-prototype []
-        client/locals/parent/locals/handler client/locals/request response
+        if object? client/locals/request [
+            client/locals/parent/locals/handler client/locals/request response
+        ] else [ ;; e.g localhost/?
+            response/status: 500
+            response/type: "text/html"
+            response/content: "Bad request."
+        ]
 
         if response/compress? [
             response/content: gzip response/content
