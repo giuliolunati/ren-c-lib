@@ -2,7 +2,7 @@ REBOL []
 ; setup
 (tit: "ReM format tutorial" _)
 demo: func [x /rem src t: b:] [
-  unless block? x [x: reduce [x]]
+  if not block? x [x: reduce [x]]
   t: node x
   r: either rem [src]
   [ replace/all mold/only x "^^" "^" ]
@@ -141,13 +141,6 @@ one two three]
 p "However you can easily hide it with a GROUP ending in BLANK:"
 demo [(three: #"3" two: "2" one: 1 _)
 one two three]
-
-h3   "Macros"
-p ["Functions and variables can't work for attributes, because (1) attributes are not normally evaluated, but processed by tag functions (2) a word ends attribute processing. For this purpose you can define " i "macros"" and expand they with get-words:"]
-demo [
-  (center-red: [/align "center" color: "red"] _)
-  p :center-red "Red centered text"
-]
 
 h2 "Smart text"
 p "The function 'smart-text recognize some asciidoc-like notation with special chars * / ^ _ \ :"

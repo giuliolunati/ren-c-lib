@@ -15,7 +15,6 @@ make-text: :dot/make-text
 maybe-node?: :dot/maybe-node?
 
 smt: import 'smart-text
-smart-text: :smt/smart-text
 
 rem: make object! [
   this: self
@@ -25,31 +24,6 @@ rem: make object! [
   space: :lib/space
   func: :lib/func
   ;; shortcuts
-  macro: make block! 8
-  look-first: function [
-      :look [any-value! <...>]
-    ][
-    if empty? macro [first look]
-    else [first macro]
-  ]
-  take-first: function [
-      :look [any-value! <...>]
-    ][
-    if empty? macro [take look]
-    else [take macro]
-  ]
-  take-eval: function [
-      args [any-value! <...>]
-    ][
-    either empty? macro [take args]
-    [do/next macro 'macro]
-  ]
-  macro-tail?: function [
-      :look [any-value! <...>]
-    ][
-    if empty? macro [tail? look]
-    else [false]
-  ]
   ;; 
   rem-element: function [
       ;; WARNING: if change here, check specializations!
@@ -61,40 +35,36 @@ rem: make object! [
     node: make-node
     attributes: class: id: style: _
     while [t: not tail? look] [
-      t: apply 'look-first [look: args]
+      t: first look
       case [
         all [word? t | #"." = first to-text t] [
-          apply 'take-first [look: args]
+          take look
           class: default [make block! 2]
           append class to-word next to-text t
         ]
         refinement? t [
-          apply 'take-first [look: args]
+          take look
           attributes: +pair ;\
             lock next to-text t
-            apply 'take-eval [args: args]
+          take args
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
         ]
         set-word? t [
-          apply 'take-first [look: args]
+          take look
           t: to-word t
-          style: +pair t apply 'take-eval [args: args]
+          style: +pair t take args
         ]
         issue? t [
-          apply 'take-first [look: args]
+          take look
           id: next to-text t
         ]
         any [url? t file? t] [
-          apply 'take-first [look: args]
+          take look
           attributes: +pair ;\
             if find [a link] name ["href"]
             else ["src"]
             :t
-        ]
-        get-word? t [
-          apply 'take-first [look: args]
-          attempt [append macro get to-word t]
         ]
         true [break]
       ]
@@ -104,13 +74,13 @@ rem: make object! [
     if class [attributes: +pair "class" class]
     case [
       block? t [
-        t: apply 'take-first [look: args]
+        t: take look
       ]
       text? t [
-        apply 'take-first [look: args]
+        take look
       ]
       any [word? t path? t] [
-        t: apply 'take-eval [args: args]
+        t: take args
       ]
     ]
     if text? t [
@@ -126,11 +96,11 @@ rem: make object! [
     node/value: attributes
     make-element/target name empty node
   ]
-  node: to-node: function [x [block!]] [
+  node: to-node: function [x] [
+    block? x or [x: to-block x]
     if maybe-node? x [return x]
     node: make-node
-    while [not tail? x] [
-      t: do/next x 'x
+    while [x: try evaluate/set x 't] [
       if text? :t [
         t: maybe-process-text t
       ]
@@ -166,12 +136,6 @@ rem: make object! [
       ]
     ]
   ]
-  viewport: func [content] [
-    if number? content [
-      content: unspaced ["initial-scale=" content]
-    ]
-    meta /name "viewport" /content content
-  ]
   def-empty-elements/bind [
     meta hr br img link
   ]
@@ -181,7 +145,14 @@ rem: make object! [
     span a b i sup sub
     table tr td
   ]
+  viewport: func [content] [
+    if any-number? content [
+      content: unspaced ["initial-scale=" content]
+    ]
+    meta /name "viewport" /content content
+  ]
   ;; smart-text
+  smart-text: :smt/smart-text
   process-text: false
   raw-text: function [x] [reduce [%.txt x]]
   maybe-process-text: func [x [text!]] [
