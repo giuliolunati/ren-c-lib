@@ -44,8 +44,13 @@ smart-text: function ["Convert SmartText to  DOM doc-tree."
   replace/all x "->" "^(2192)" ; right arrow
   replace/all x "=>" "^(21d2)" ; right double arrow
   bs: [pos: (pos: back pos) :pos]
+
   get-markdown: [
-    bs [spacer | newline] set c skip
+    pos: 
+    [ if (pos = start)
+    | bs [spacer | newline]
+    ]
+    set c skip
     copy v: [any [
       [to xchar | to end]
       [ remove "\" skip
@@ -56,7 +61,7 @@ smart-text: function ["Convert SmartText to  DOM doc-tree."
   ]
   spacer: charset " ^-"
   xchar: charset "*/^^_`\^/"
-  parse x [any [
+  parse x [start: any [
     copy v: [to xchar | to end]
     (if v > "" [append-existing node v])
     [; xchar
