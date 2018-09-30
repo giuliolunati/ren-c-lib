@@ -7,8 +7,8 @@ Rebol [
 ]
 
 text-mod: import 'text
-quote-string: :text-mod/quote-string
-unquote-string: :text-mod/unquote-string
+quote-text: :text-mod/quote-text
+unquote-text: :text-mod/unquote-text
 
 is-empty?: function [t [any-string!]] [
 	any [ find [
@@ -60,7 +60,7 @@ to-html: function [
 						if k = "style" [value: mold-style value]
 						if not text? value [value: form value] 
 						append ret unspaced [
-							" " k "=" quote-string value
+							" " k "=" quote-text value
 						]
 					]
 				]
