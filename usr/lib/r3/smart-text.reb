@@ -81,6 +81,13 @@ smart-text: function ["Convert SmartText to  DOM doc-tree."
         )
       | (append-existing node br)
       ]
+      opt [copy c: some spacer
+        (
+          replace/all c "\-" "    "
+          replace/all c " " "&nbsp;"
+          append-existing node c
+        )
+      ]
     | and "/" get-markdown
       (append-existing node i v)
     | copy c: [skip spacer]
