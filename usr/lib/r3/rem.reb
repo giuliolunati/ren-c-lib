@@ -168,6 +168,19 @@ rem: make object! [
     ]
   ]
   reset: func[] [process-text: false]
+  map-repeat: function [
+      'w [word!]
+      n [integer!]
+      body [block!]
+    ][
+    o: make object! compose [(to-set-word :w) _]
+    out: make block! 0
+    bind body o
+    repeat i n [
+      o/:w: i append/only out do body
+    ]
+    out
+  ]
 ]
 
 load-rem: function [
