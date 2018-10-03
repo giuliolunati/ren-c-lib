@@ -36,6 +36,7 @@ rem: make object! [
     attributes: class: id: style: _
     while [t: not tail? look] [
       t: first look
+      if group? t [t: do t]
       case [
         all [word? t | #"." = first to-text t] [
           take look
@@ -74,6 +75,9 @@ rem: make object! [
     if class [attributes: +pair "class" class]
     case [
       block? t [
+        t: take look
+      ]
+      group? t [
         t: take look
       ]
       text? t [
