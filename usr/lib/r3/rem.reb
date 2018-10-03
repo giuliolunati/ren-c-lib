@@ -19,7 +19,7 @@ smt: import 'smart-text
 rem: make object! [
   this: self
   ; declare some words, thus can use they later...
-  b: br: i: sup: sub: meta: _
+  b: br: i: sup: sub: meta: request: _
   ;; available with /SECURE:
   space: :lib/space
   func: :lib/func
@@ -137,13 +137,14 @@ rem: make object! [
     ]
   ]
   def-empty-elements/bind [
-    meta hr br img link
+    meta hr br img link input
   ]
   def-elements/bind [
     doc header title style script body
     div h1 h2 h3 h4 h5 h6 p
     span a b i sup sub
     table tr td
+    button
   ]
   viewport: func [content] [
     if any-number? content [

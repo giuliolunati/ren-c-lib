@@ -93,8 +93,8 @@ html-list-dir: function [
   </head>}
   for-each i list [
     append data unspaced [
-      {<a href="} i {?">}
-      if dir? i ["&gt; "]
+      {<a href="} i 
+      either dir? i [{?">&gt; }] [{">}]
       i </a> <br/>
     ]
   ]
@@ -155,6 +155,7 @@ handle-request: function [
         ]
       ]
     ][
+      rem/rem/request: request
       if error? data: trap [
         rem/rem/reset
         rem-to-html data
