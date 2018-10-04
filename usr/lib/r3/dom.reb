@@ -36,6 +36,7 @@ maybe-node?: func [
 		x
 	][
 	if not block? x [return false]
+  if length of x < 16 [return false]
 	if all [
 		x/1 = 'parent
 		x/3 = 'back
@@ -72,7 +73,7 @@ insert-before: func [
 
 insert-after: func [
 		"Insert a new empty node after ITEM and return it."
-		item [block! map!]
+		item [block!]
 		/local node
 	][
 	node: make-node
@@ -93,7 +94,7 @@ insert-after: func [
 
 insert: func [
 		"Insert a new empty node as LIST/FIRST and return it."
-		list [block! map!]
+		list [block!]
 	][
 	list/length: 1 + list/length
 	either list/first [
@@ -106,7 +107,7 @@ insert: func [
 
 append: func [
 		"Append a new empty node as LIST/LAST and return it."
-		list [block! map!]
+		list [block!]
 	][
 	list/length: 1 + list/length
 	either list/last [
@@ -118,8 +119,8 @@ append: func [
 
 append-existing: func [
 		"Append NODE as LIST/LAST and return it."
-		list [block! map!]
-		node [block! map! text! char!]
+		list [block!]
+		node [block! text! char!]
 	][
 	if any [text? node char? node] [node: make-text node]
 	node/parent: list
@@ -138,7 +139,7 @@ append-existing: func [
 
 remove: func [
 		"Removes ITEM from ITEM/PARENT or error."
-		item [block! map!]
+		item [block!]
 		/back "Returns ITEM/BACK instead of ITEM."
 		/next "Returns ITEM/NEXT instead of ITEM."
 	][
@@ -170,7 +171,7 @@ remove: func [
 
 clear: func [
 		"Removes all children from LIST."
-		list [block! map!]
+		list [block!]
 	][
 	list/length: 0
 	while [list/first] [remove list/first]
@@ -178,7 +179,7 @@ clear: func [
 
 fix-length: func [
     "Fixes NODE/LENGTH and returns it."
-		node [block! map!]
+		node [block!]
 		/local n item
 	][
 	n: 0
@@ -189,7 +190,7 @@ fix-length: func [
 
 clear-from: func [
 		"Removes ITEM and all subsequent siblings from ITEM/PARENT."
-		item [block! map!]
+		item [block!]
 		/local n p
 	][
 	p: item/parent
@@ -200,7 +201,7 @@ clear-from: func [
 
 walk: func [
 		"Execute CALLBACK code for every descendant of NODE."
-		node [block! map!]
+		node [block!]
 		callback [block!]
 		/into "TRUE when called recursively."
 		/only "Do not recursion (children only)."
@@ -227,7 +228,7 @@ walk: func [
 make-text: func [
 		"Makes a text node with value VALUE."
 		value [char! any-string! any-number!]
-		/target node [block! map!] "Use existing node"
+		/target node [block!] "Use existing node"
 	][
 	if not text? value [value: form value]
 	node: default [make-node]
@@ -240,7 +241,7 @@ make-element: func [
 		"Makes an element node an sets NAME and EMPTY."
 		name [word!]
 		empty [logic!]
-		/target node [block! map!] "Use existing node"
+		/target node [block!] "Use existing node"
 	][
 	node: default [make-node]
 	node/type: 'element
@@ -249,7 +250,7 @@ make-element: func [
 	node
 ]
 
-mold-node: function [node [map! block!]][
+mold-node: function [node [block!]][
 	new-line/all/skip collect [
 		switch node/type [
 			'element _ [
@@ -291,16 +292,18 @@ mold-node: function [node [map! block!]][
 		]
 	] true 2
 ]
-
-append-pair-to-map: function [
+ 
+append-pair-to-block: function [
     "If TARGET is blank, set it to MAP!, then set TARGET/KEY: VALUE."
     'target [word! set-word!]
     key
     value
   ][
   x: get target
-  x: default [make map! 2]
-  x/:key: value
+  if not x [x: make block! 2]
+  assert [block? x]
+  lib/append/only x key
+  lib/append/only x value
   set target x
 ]
 

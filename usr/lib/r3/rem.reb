@@ -7,7 +7,7 @@ REBOL [
 ]
 
 dot: import 'dom
-+pair: enfix :dot/append-pair-to-map
++pair: enfix :dot/append-pair-to-block
 append-existing: :dot/append-existing
 make-node: :dot/make-node
 make-element: :dot/make-element
@@ -47,7 +47,7 @@ rem: make object! [
           take look
           attributes: +pair ;\
             lock next to-text t
-          take args
+            take args
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
         ]

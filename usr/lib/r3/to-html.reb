@@ -18,9 +18,10 @@ is-empty?: function [t [any-string!]] [
 ]
 
 mold-style: function [
-		x [map! block! text!]
+		x [block! text!]
 	][
 	if map? x [x: to-block x]
+  x
 	if block? x [
 		x: delimit map-each [k v] x [
 			unspaced [k ":" space v]
@@ -53,9 +54,8 @@ to-html: function [
 				append ret name: to-text x/name
 				empty: x/empty
 				if attrib: x/value [
-					assert [map? attrib]
-					for-each k attrib [
-						value: attrib/:k
+					assert [block? attrib]
+					for-each [k value] attrib [
 						if text? value [value: copy value]
 						if k = "style" [value: mold-style value]
 						if not text? value [value: form value] 
