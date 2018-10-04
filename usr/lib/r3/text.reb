@@ -10,7 +10,9 @@ REBOL [
   Author: "giuliolunati@gmail.com"
   Version: 0.1.0
 ]
-;=== FUNCTIONS === 
+
+
+;=== FUNCTIONS ===
 smart-decode-text: function [ {convert binary! to text!"
     support utf8 and cp1252 (autodetect)}
     binary [binary!]
@@ -36,17 +38,32 @@ smart-decode-text: function [ {convert binary! to text!"
   append ret binary
   to text! ret
 ]
+
 quote-text: function [
     {Quote text s with " + escape with \}
     s [text!] "MODIFIED!"
     /single "use single quotes"
+    /html {<"'> as entities}
   ] [
-  q: charset either single [{\'}] [{\"}]
-  parse s [any [to q insert "\" skip]]
+  if html [
+    q: charset either single [{<'>}] [{<">}]
+    parse s [any [
+      to q set c: and skip (c: switch c [
+        #"^"" ["&quot;"]
+        #"'" ["&apos;"]
+        #"<" ["&lt;"]
+        #">" ["&gt;"]
+      ]) change skip c
+    ]]
+  ] else [
+    q: charset either single [{\'}] [{\"}]
+    parse s [any [to q insert "\" skip]]
+  ]
   unspaced either single ;\
     [[{'} s {'}]]
-    [[{"} s {"}]] 
+    [[{"} s {"}]]
 ]
+
 unquote-text: function [
     {Remove \ escape and  quotes}
     s [text!]
@@ -56,4 +73,5 @@ unquote-text: function [
   ] ]
   copy/part next s back tail s
 ]
+
 ; vim: set syn=rebol ts=2 sw=2 sts=2 expandtab:

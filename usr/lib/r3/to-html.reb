@@ -20,11 +20,11 @@ is-empty?: function [t [any-string!]] [
 mold-style: function [
 		x [block! text!]
 	][
-	if map? x [x: to-block x]
-  x
 	if block? x [
 		x: delimit map-each [k v] x [
-			unspaced [k ":" space v]
+			unspaced [k ":" space
+        either block? v [form v] [v]
+      ]
 		] "; "
 	]
 	x
@@ -60,7 +60,7 @@ to-html: function [
 						if k = "style" [value: mold-style value]
 						if not text? value [value: form value] 
 						append ret unspaced [
-							" " k "=" quote-text value
+							" " k "=" quote-text/html value
 						]
 					]
 				]

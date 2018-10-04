@@ -23,8 +23,15 @@ rem: make object! [
   ;; available with /SECURE:
   space: :lib/space
   func: :lib/func
-  ;; shortcuts
-  ;; 
+
+  unit: function [#x u] [unspaced [x u] ]
+  pt: enfix specialize :unit [u: 'pt]
+  px: enfix specialize :unit [u: 'px]
+  em: enfix specialize :unit [u: 'em]
+  ex: enfix specialize :unit [u: 'ex]
+  mm: enfix specialize :unit [u: 'mm]
+  cm: enfix specialize :unit [u: 'cm]
+
   rem-element: function [
       ;; WARNING: if change here, check specializations!
       name [word!]
@@ -54,7 +61,9 @@ rem: make object! [
         set-word? t [
           take look
           t: to-word t
-          style: +pair t take args
+          v: take args
+          if block? v [v: reduce v]
+          style: +pair t v
         ]
         issue? t [
           take look
@@ -148,7 +157,7 @@ rem: make object! [
     div h1 h2 h3 h4 h5 h6 p
     span a b i sup sub
     table tr td
-    button
+    button textarea
   ]
   viewport: func [content] [
     if any-number? content [
