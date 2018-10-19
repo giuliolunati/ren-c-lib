@@ -422,7 +422,9 @@ sys/make-scheme [
 
                 keep ["HTTP/1.1" response/status
                     <- select status-codes response/status]
-                keep [cr lf "Content-Type:" response/type]
+                if response/type [
+                    keep [cr lf "Content-Type:" response/type]
+                ]
                 keep [cr lf "Content-Length:" length-of response/content]
                 if response/compress? [
                     keep [cr lf "Content-Encoding:" "gzip"]

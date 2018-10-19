@@ -52,6 +52,7 @@ ext-map: [
   "reb" rebol
   "rem" rem
   "txt" text
+  "wasm" wasm
 ]
 
 mime: make map! [
@@ -62,6 +63,7 @@ mime: make map! [
   js "application/javascript"
   json "application/json"
   css "text/css"
+  wasm "application/wasm"
 ]
 
 status-codes: [
@@ -178,7 +180,7 @@ handle-request: function [
       ]
       data: form data
     ]
-    return reduce[200 any [select mime :mimetype 'text] data]
+    return reduce[200 try select mime :mimetype data]
   ]
   404
 ]
