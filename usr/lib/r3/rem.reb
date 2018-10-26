@@ -76,6 +76,13 @@ rem: make object! [
             else ["src"]
             :t
         ]
+        pair? t [
+          take look
+          if t/1 > 1
+          [attributes: +pair "rowspan" to-integer t/1]
+          if t/2 > 1
+          [attributes: +pair "colspan" to-integer t/2]
+        ]
         true [break]
       ]
     ]
