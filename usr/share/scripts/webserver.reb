@@ -147,6 +147,9 @@ handle-request: function [
     file-ext: (if pos [copy next pos] else [_])
     mimetype: try attempt [ext-map/:file-ext]
     if error? data: trap [read path] [return 403]
+    if mimetype = 'rebol [
+      parse last path-elements [ to ".cgi.reb" end ] else [mimetype: 'text]
+    ] 
     if all [
       action? :rem-to-html
       any [
