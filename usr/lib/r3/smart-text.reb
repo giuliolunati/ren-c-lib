@@ -106,7 +106,7 @@ smart-text: function ["Convert SmartText to  DOM doc-tree."
   ]]
   if inline [body: node]
   else [append-existing body node]
-  while [(body/length = 1) and (not body/type)] [body: body/first]
+  while [(body/length = 1) and [not body/type]] [body: body/first]
   body
 ]
 

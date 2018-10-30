@@ -74,7 +74,7 @@ deg-to-rad: pi / 180
 
 ;; CUSTOM OBJECT
 
-custom: append make object! [] [/ _ < _ <= _ > _ >= _] ;; dirty trick :-/
+custom: append make object! [] [< _ <= _ > _ >= _] ;; dirty trick :-/
 custom: make custom [
 
 make: enclose :lib/make function [f [frame!]] [
@@ -274,7 +274,7 @@ mold: enclose :lib/mold function [f] [
     ]
     default [do f]
   ] ; case
-  if limit and (limit < length of r) [
+  if limit and [limit < length of r] [
     head clear change r at r limit "..."
   ] else [r]
 ] ; mold
@@ -346,7 +346,7 @@ probe: function [
   fail-invalid-parameter 'multiply [value1 value2]
 ]]
 
-set/enfix quote / tighten divide: function [value1 value2] [any [
+divide: function [value1 value2] [any [
   attempt [lib/divide value1 value2]
   try-method-1 'divide value1 value2
   try-method-2 'divide value1 value2

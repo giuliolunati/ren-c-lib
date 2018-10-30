@@ -59,10 +59,10 @@ matrix!/form: function [value] [
 ]
 
 matrix!/add: function [a b] [
-  ((matrix? a) and (matrix? b))
-  or (fail ["Can't add matrix and non-matrix."])
-  ((a/nrows = b/nrows) and (a/ncols = b/ncols))
-  or (fail "Wrong dimensions.")
+  (matrix? a and [matrix? b])
+  or [fail ["Can't add matrix and non-matrix."]]
+  (a/nrows = b/nrows and [a/ncols = b/ncols])
+  or [fail "Wrong dimensions."]
   r: a/nrows c: a/ncols
   m: make-matrix reduce [r c]
   ia: a/data ib: b/data i: m/data
@@ -74,10 +74,10 @@ matrix!/add: function [a b] [
 ]
 
 matrix!/subtract: function [a b] [
-  ((matrix? a) and (matrix? b))
-  or (fail ["Can't add matrix and non-matrix."])
-  ((a/nrows = b/nrows) and (a/ncols = b/ncols))
-  or (fail "Wrong dimensions.")
+  (matrix? a and [matrix? b])
+  or [fail ["Can't add matrix and non-matrix."]]
+  (a/nrows = b/nrows and [a/ncols = b/ncols])
+  or [fail "Wrong dimensions."]
   r: a/nrows c: a/ncols
   m: make-matrix reduce [r c]
   ia: a/data ib: b/data i: m/data
@@ -89,10 +89,10 @@ matrix!/subtract: function [a b] [
 ]
 
 matrix!/multiply: function [a b] [
-  ((matrix? a) and (matrix? b))
-  or (fail ["Can't add matrix and non-matrix."])
+  (matrix? a and [matrix? b])
+  or [fail ["Can't add matrix and non-matrix."]]
   (a/ncols = b/nrows)
-  or (fail "Wrong dimensions.")
+  or [fail "Wrong dimensions."]
   r: a/nrows c: b/ncols
   l: a/ncols ; = b/nrows
   m: make-matrix reduce [r c]
@@ -113,7 +113,7 @@ matrix!/multiply: function [a b] [
 ]
 
 transpose: function [m] [
-  matrix? m or (fail "Transpose: arg isn't a matrix.")
+  matrix? m or [fail "Transpose: arg isn't a matrix."]
   r: m/ncols c: m/nrows
   t: make-matrix reduce [r c]
   pt: t/data

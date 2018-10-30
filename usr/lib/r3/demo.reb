@@ -20,7 +20,7 @@ demo: function [
   ][
     if empty? b [return true]
     if (2 = length of b) [
-      if b/1 = 'comment and (text? b/2) [
+      if b/1 = 'comment and [text? b/2] [
         s: replace/all copy b/2 "^/" "^/;; "
         if not empty? s [write-stdout ";; "]
         print s
@@ -33,7 +33,7 @@ demo: function [
     r
   ]
 
-  if not set? 'group or (not group) [group: help-dialect]
+  if not set? 'group or [not group] [group: help-dialect]
 
   if module? group [return demo group/demo]
 
@@ -57,7 +57,7 @@ demo: function [
     new-line b false
   ]
   if not empty? b [set* 'r demo1 b]
-  if (test) and (not try r) [return group]
+  if (test) and [not try r] [return group]
   _
 ]
 
