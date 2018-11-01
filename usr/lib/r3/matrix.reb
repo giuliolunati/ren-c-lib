@@ -4,7 +4,14 @@ REBOL [
   Version: 0.1.0
   Type: module
   Name: matrix
-  Exports: [matrix! matrix? to-matrix transpose]
+  Exports: [
+    id-matrix
+    matrix!
+    matrix?
+    to-matrix
+    transpose
+    tri-reduce
+  ]
 ]
 
 custom: import 'custom
@@ -22,6 +29,7 @@ matrix!/make: function [type def] [
   if matrix? def [return copy def]
   if block? def [
     if empty? def [fail "make matrix!: def can't be empty"]
+    def: reduce def
     h: def/1
     w: any [pick def 2 | h]
     return make map! reduce [
@@ -112,6 +120,90 @@ matrix!/multiply: function [a b] [
   m
 ]
 
+dilate: function [
+    "Apply dilatation to colums (rows) of m" 
+    return: <void>
+    m "matrix or vector (modified)"
+    v [vector!]
+      "dilatation vector"
+    k "dilatation factor, -1 for reflection"
+    /skip n "skip n columns"
+    /rows "apply to rows"
+    /both "apply to rows and columns"
+  ][
+  if not skip [n: 0]
+  if vector? m [
+    r: c: 1
+    data: m
+    if rows [c: length-of m]
+    else [r: length-of m]
+  ] else [
+    data: m/data
+    r: m/nrows
+    c: m/ncols
+  ]
+  l: length-of v
+  // normalize v
+  s: 0
+  for-each x v [s: x * x + s]
+  s: square-root s
+  assert [not zero? s]
+  for-next v [v/1: v/1 / s]
+  if rows or [both] [
+    for j 1 + n r 1 [
+      s: 0
+      p: at data j * c - l + 1
+      repeat i l [
+        s: p/1 * v/:i + s
+        p: next p
+      ]
+      s: k - 1 * s
+      p: at data j * c - l + 1
+      repeat i l [
+        p/1: me + (v/:i * s)
+        p: next p
+      ]
+    ]
+  ]
+  if both or [not rows] [
+    for i 1 + n c 1 [
+      s: 0
+      p: at data r - l * c + i
+      repeat j l [
+        s: p/1 * v/:j + s
+        p: lib/skip p c
+      ]
+      s: k - 1 * s
+      p: at data r - l * c + i
+      repeat j l [
+        p/1: me + (v/:j * s)
+        p: lib/skip p c
+      ]
+    ]
+  ]
+]
+
+id-matrix: function [
+    {Make identity matrix n x n}
+    n [integer!]
+  ][
+  m: make-matrix [n n]
+  p: m/data
+  loop n [
+    p/1: 1
+    p: skip p n + 1
+  ]
+  m
+]
+
+reflect-both: specialize :dilate [k: -1 both: true]
+
+reflect-columns: specialize :dilate [k: -1]
+
+reflect-rows: specialize :dilate [k: -1 rows: true]
+
+to-matrix: specialize :custom/to [type: matrix!]
+
 transpose: function [m] [
   matrix? m or [fail "Transpose: arg isn't a matrix."]
   r: m/ncols c: m/nrows
@@ -128,6 +220,36 @@ transpose: function [m] [
   t
 ]
 
-to-matrix: specialize :custom/to [type: matrix!]
-
+tri-reduce: function [
+    {Reduce matrix a to upper triangular form r = q * a, where q is orthogonal.}
+    return: <void>
+    a "matrix, modified to r = q * a"
+    /also b "matrix, modified to q * b"
+    /symm "a is symmetric, r = q * a * q' is tri-diagonal"
+  ][
+  r: a/nrows
+  c: a/ncols
+  l: min r - 1 c
+  v: make vector! reduce ['decimal! 64 r]
+  if symm [
+    l: l - 1
+    v: next v
+  ]
+  repeat i l [
+    p: at a/data (either symm [i] [i - 1]) * c + i
+    s: 0
+    repeat j length-of v [
+      v/:j: p/1
+      s: p/1 * p/1 + s
+      p: skip p c
+    ]
+    s: square-root s
+    v/1: v/1 - s
+    reflect-columns/skip a v i - 1
+    if symm [reflect-rows/skip a v i - 1]
+    if also [reflect-columns b v]
+    v: next v
+  ]
+]
+  
 ; vim: set sw=2 ts=2 sts=2 expandtab:
