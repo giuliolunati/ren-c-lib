@@ -302,7 +302,7 @@ print: adapt :lib/print [
   line: form reduce line
 ]
 
-probe: function [
+??: probe: function [
     value [<opt> any-value!]
     return: [<opt> any-value!]
     /form
@@ -310,6 +310,25 @@ probe: function [
   if form [print :value]
   else [print mold :value]
   :value
+]
+
+!!: dump: function [
+		:value [word! text! block! group!]
+	][
+	elide case [
+		word? value [print [
+				mold value "=>" mold reduce value
+		]]
+		group? value [print [
+				mold value "=>" mold do value
+		]]
+		text? value [
+			print ["---" mold value "---"]
+		]
+		block? value [for-next value [
+				do reduce ['dump value/1]
+		] ]
+	]
 ]
 
 at: function [series index /only] [any [
