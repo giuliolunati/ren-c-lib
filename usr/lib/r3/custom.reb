@@ -156,7 +156,7 @@ form: enclose :lib/form function [f] [
   if match [block! group!] :value [
     value: as block! :value
     r: copy "" begin: true
-    forall value [
+    for-next value [
       if not begin [append r space]
       begin: false
       append r form value/1
@@ -215,7 +215,7 @@ mold: enclose :lib/mold function [f] [
       if mold-recur? value [append r "..."]
       else [
         append/only mold-stack value
-        forall value [
+        for-next value [
           if new-line? value [
             lines: true
             if r > "" [append r line]
@@ -285,7 +285,7 @@ delimit: enclose :lib/delimit function [f] [
   if mold-recur? block [append r "..."]
   else [
     append/only mold-stack block
-    forall block [
+    for-next block [
       if not head? block [append r f/delimiter]
       append r form block/1
     ]
@@ -298,21 +298,8 @@ spaced: specialize :delimit [delimiter: space]
 
 unspaced: specialize :delimit [delimiter: ""]
 
-print: function [
-  :lookup [any-value! <...>]
-  value [any-value! <...>]
-  /eval
-  return: <void>
-  ] [
-  l: first lookup
-  v: take value
-
-  if block? v [
-    if not block? l [lib/print v return] ;fail
-    v: reduce v
-  ]
-
-  lib/print form v
+print: adapt :lib/print [
+  line: form reduce line
 ]
 
 probe: function [
@@ -324,6 +311,15 @@ probe: function [
   else [print mold :value]
   :value
 ]
+
+at: function [series index /only] [any [
+  attempt [apply :lib/at [series: series index: index only: only]]
+  all [
+    attempt [method: :series/custom-type/at]
+    attempt [apply :method [series: series index: index only: only]]
+  ]
+  fail-invalid-parameter 'at [series index]
+]]
 
 +: enfix tighten add: function [value1 value2] [any [
   attempt [lib/add value1 value2]
