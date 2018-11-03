@@ -6,6 +6,7 @@ REBOL [
   Name: matrix
   Exports: [
     id-matrix
+    make-vector
     matrix!
     matrix?
     to-matrix
@@ -47,6 +48,12 @@ matrix!/make: function [type def] [
 
 make-matrix: specialize :matrix!/make [type: matrix!]
 
+make-vector: function [def] [
+  make vector! reduce/opt [
+    'decimal! 64 def
+  ]
+]
+
 matrix!/mold: function [value /only /all /flat ] [
   lib/unspaced ["make matrix! ["
     value/nrows space value/ncols " ["
@@ -81,6 +88,14 @@ matrix!/add: function [a b] [
   m
 ]
 
+at: matrix!/at: function [series index /only] [
+  if block? index [index: reduce index]
+  if not any-number? index [
+    index: index/1 - 1 * series/ncols + index/2
+  ]
+  lib/at series/data index
+]
+
 matrix!/subtract: function [a b] [
   (matrix? a and [matrix? b])
   or [fail ["Can't add matrix and non-matrix."]]
@@ -98,7 +113,7 @@ matrix!/subtract: function [a b] [
 
 matrix!/multiply: function [a b] [
   (matrix? a and [matrix? b])
-  or [fail ["Can't add matrix and non-matrix."]]
+  or [fail ["Can't multiply matrix and non-matrix."]]
   (a/ncols = b/nrows)
   or [fail "Wrong dimensions."]
   r: a/nrows c: b/ncols
@@ -134,11 +149,9 @@ dilate: function [
   if not skip [n: 0]
   if vector? m [
     r: c: 1
-    data: m
     if rows [c: length-of m]
     else [r: length-of m]
   ] else [
-    data: m/data
     r: m/nrows
     c: m/ncols
   ]
@@ -152,13 +165,13 @@ dilate: function [
   if rows or [both] [
     for j 1 + n r 1 [
       s: 0
-      p: at data j * c - l + 1
+      p: at m j * c - l + 1
       repeat i l [
         s: p/1 * v/:i + s
         p: next p
       ]
       s: k - 1 * s
-      p: at data j * c - l + 1
+      p: at m j * c - l + 1
       repeat i l [
         p/1: me + (v/:i * s)
         p: next p
@@ -168,13 +181,13 @@ dilate: function [
   if both or [not rows] [
     for i 1 + n c 1 [
       s: 0
-      p: at data r - l * c + i
+      p: at m r - l * c + i
       repeat j l [
         s: p/1 * v/:j + s
         p: lib/skip p c
       ]
       s: k - 1 * s
-      p: at data r - l * c + i
+      p: at m r - l * c + i
       repeat j l [
         p/1: me + (v/:j * s)
         p: lib/skip p c
@@ -230,13 +243,13 @@ tri-reduce: function [
   r: a/nrows
   c: a/ncols
   l: min r - 1 c
-  v: make vector! reduce ['decimal! 64 r]
+  v: make-vector r
   if symm [
     l: l - 1
     v: next v
   ]
   repeat i l [
-    p: at a/data (either symm [i] [i - 1]) * c + i
+    p: at a [(either symm [i + 1] [i]) i]
     s: 0
     repeat j length-of v [
       v/:j: p/1
