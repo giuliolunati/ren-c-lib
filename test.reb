@@ -2,6 +2,7 @@ matrix: import 'matrix
 customize self
 
 m: make matrix! [2 3 [1 2 3 4 5 6]]
+print [pick m 2x2] quit 
 t: transpose m
 t: t * m
 print [t]

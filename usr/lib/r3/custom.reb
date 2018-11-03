@@ -340,6 +340,15 @@ at: function [series index /only] [any [
   fail-invalid-parameter 'at [series index]
 ]]
 
+pick: function [
+		location [any-value!]
+		picker [any-value!]
+	][any [
+  attempt [lib/pick location picker]
+  try-method-1 'pick location picker
+  fail-invalid-parameter 'pick [location picker]
+]]
+
 +: enfix tighten add: function [value1 value2] [any [
   attempt [lib/add value1 value2]
   try-method-1 'add value1 value2

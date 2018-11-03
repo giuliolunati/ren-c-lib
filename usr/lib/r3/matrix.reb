@@ -31,8 +31,8 @@ matrix!/make: function [type def] [
   if block? def [
     if empty? def [fail "make matrix!: def can't be empty"]
     def: reduce def
-    h: def/1
-    w: any [pick def 2 | h]
+    h: w: def/1
+    w: any [lib/pick def 2 | h]
     return make map! reduce [
       'custom-type matrix!
       'nrows h
@@ -94,6 +94,17 @@ at: matrix!/at: function [series index /only] [
     index: index/1 - 1 * series/ncols + index/2
   ]
   lib/at series/data index
+]
+
+pick: matrix!/pick: function [
+		matrix
+		index [block! pair! integer!]
+	][
+  if block? index [index: reduce index]
+  if not integer? index [
+    index: index/1 - 1 * matrix/ncols + index/2
+  ]
+  lib/pick matrix/data index
 ]
 
 matrix!/subtract: function [a b] [
@@ -264,5 +275,5 @@ tri-reduce: function [
     v: next v
   ]
 ]
-  
+ 
 ; vim: set sw=2 ts=2 sts=2 expandtab:
