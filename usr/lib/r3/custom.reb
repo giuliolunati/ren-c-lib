@@ -349,121 +349,70 @@ pick: function [
   fail-invalid-parameter 'pick [location picker]
 ]]
 
-+: enfix tighten add: function [value1 value2] [any [
-  attempt [lib/add value1 value2]
-  try-method-1 'add value1 value2
-  try-method-2 'add value1 value2
-  fail-invalid-parameter 'add [value1 value2]
-]]
+custom-func: enfix function [:name :arg] [
+	set-name: name
+	name: to-word name
+	set :name function compose [(arg)]
+	compose/deep [
+		// try not customized version
+		r: trap [lib/(name) (arg)]
+		if not error? r [return r]
+		// try arg method
+		if attempt [(set-name) (to-get-path reduce [arg 'custom-type name])]
+		[ r: trap [(name) (arg)] ]
+		// return or fail
+		if error? r [fail r]
+		r
+	]
+]
 
--: enfix tighten subtract: function [value1 value2] [any [
-  attempt [lib/subtract value1 value2]
-  try-method-1 'subtract value1 value2
-  try-method-2 'subtract value1 value2
-  fail-invalid-parameter 'subtract [value1 value2]
-]]
+custom-func2: enfix function [:name :arg1 :arg2] [
+	set-name: name
+	name: to-word name
+	set :name function compose [(arg1) (arg2)]
+	compose/deep [
+		// try not customized version
+		r: trap [lib/(name) (arg1) (arg2)]
+		if not error? r [return r]
+		// try arg1 method
+		if attempt [(set-name) (to-get-path reduce [arg1 'custom-type name])]
+		[ r: trap [(name) (arg1) (arg2)] ]
+		if not error? r [return r]
+		// try arg2 method
+		if attempt [(set-name) (to-get-path reduce [arg2 'custom-type name])]
+		[ r: trap [(name) (arg1) (arg2)] ]
+		// return or fail
+		if error? r [fail r]
+		r
+	]
+]
 
-*: enfix tighten multiply: function [value1 value2] [any [
-  attempt [lib/multiply value1 value2]
-  try-method-1 'multiply value1 value2
-  try-method-2 'multiply value1 value2
-  fail-invalid-parameter 'multiply [value1 value2]
-]]
-
-divide: function [value1 value2] [any [
-  attempt [lib/divide value1 value2]
-  try-method-1 'divide value1 value2
-  try-method-2 'divide value1 value2
-  fail-invalid-parameter 'divide [value1 value2]
-]]
-
-abs: absolute: function [value] [any [
-  attempt [lib/absolute value]
-  try-method 'absolute value
-  attempt [lib/absolute to decimal! value]
-  fail-invalid-parameter 'absolute 'value
-]]
-
-negate: function [number] [any [
-  attempt [lib/negate number]
-  try-method 'negate number
-  fail-invalid-parameter 'negate 'number
-]]
-
-zero?: function [value] [any [
-  attempt [lib/zero? value]
-  try-method 'zero? value
-  fail-invalid-parameter 'zero? 'value
-]]
-
-log-e: function [value] [any [
-  attempt [lib/log-e value]
-  try-method 'log-e value
-  attempt [lib/log-e to decimal! value]
-  fail-invalid-parameter 'log-e 'value
-]]
-
-exp: function [power] [any [
-  attempt [lib/exp power]
-  try-method 'exp power
-  attempt [lib/exp to decimal! power]
-  fail-invalid-parameter 'exp 'power
-]]
-
-**: enfix tighten power: function [number exponent] [any [
-  attempt [lib/power number exponent]
-  try-method-1 'power number exponent
-  try-method-2 'power number exponent
-  fail-invalid-parameter 'power [number exponent]
-]]
-
-square-root: function [value] [any [
-  attempt [lib/square-root value]
-  try-method 'square-root value
-  attempt [lib/square-root to decimal! value]
-  fail-invalid-parameter 'square-root 'value
-]]
-
-sin: function [angle] [any [
-  attempt [lib/sin :angle]
-  try-method 'sin angle
-  attempt [lib/sin to-decimal :angle]
-  fail-invalid-parameter 'sin 'angle
-]]
-
-cos: function [angle] [any [
-  attempt [lib/cos :angle]
-  try-method 'cos angle
-  attempt [lib/cos to-decimal :angle]
-  fail-invalid-parameter 'cos 'angle
-]]
+*: enfix tighten
+multiply: custom-func2 value1 value2
++: enfix tighten
+add: custom-func2 value1 value2
+-: enfix tighten
+subtract: custom-func2 value1 value2
+divide: custom-func2 value1 value2
+**: enfix tighten
+power: custom-func2 number exponent
+abs: custom-func value
+negate: custom-func number
+zero?: custom-func value
+log-e: custom-func value
+exp: custom-func power 
+square-root: custom-func value 
+sin: custom-func angle 
+cos: custom-func angle 
+asin: custom-func sine 
+acos: custom-func cosine 
+atan: custom-func tangent 
 
 tan: function [angle] [any [
   attempt [lib/tangent/radians :angle]
   try-method 'tan angle
   attempt [lib/tangent/radians to-decimal :angle]
   fail-invalid-parameter 'tan 'angle
-]]
-
-asin: function [sine] [any [
-  attempt [lib/asin :sine]
-  try-method 'asin sine
-  attempt [lib/asin to-decimal :sine]
-  fail-invalid-parameter 'asin 'sine
-]]
-
-acos: function [cosine] [any [
-  attempt [lib/acos :cosine]
-  try-method 'acos cosine
-  attempt [lib/acos to-decimal :cosine]
-  fail-invalid-parameter 'acos 'cosine
-]]
-
-atan: function [tangent] [any [
-  attempt [lib/atan :tangent]
-  try-method 'atan tangent
-  attempt [lib/atan to-decimal :tangent]
-  fail-invalid-parameter 'atan 'tangent
 ]]
 
 sine: function [angle /radians] [any [
