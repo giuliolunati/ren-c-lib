@@ -3,7 +3,12 @@ REBOL [
   Type: module
   Author: ["@draegtun" "Giulio Lunati"]
   Description: "read lines from pipe"
-  Exports: [input-line get-line]
+  Exports: [
+    input-line
+    input-lines
+    get-line
+    get-lines
+  ]
 ]
 
 get-line: function [
@@ -35,7 +40,15 @@ get-line: function [
   to-text take/part buffer f
 ]
 
+get-lines: function [
+    p [port! blank!]
+  ][
+  data: make block! 0
+  while [l: get-line p] [append data l]
+]
+
 input-line: specialize :get-line [p: _]
+input-lines: specialize :get-lines [p: _]
 
 ; vim: set sw=2 ts=2 sts=2 expandtab:
 
