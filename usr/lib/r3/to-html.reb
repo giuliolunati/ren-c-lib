@@ -21,11 +21,11 @@ mold-style: function [
 		x [block! text!]
 	][
 	if block? x [
-		x: delimit map-each [k v] x [
+		x: delimit "; " map-each [k v] x [
 			unspaced [k ":" space
         either block? v [form v] [v]
       ]
-		] "; "
+		]
 	]
 	x
 ]
