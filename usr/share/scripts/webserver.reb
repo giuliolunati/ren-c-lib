@@ -18,7 +18,7 @@ access-dir: false
 verbose: 1
 
 a: system/options/args
-for-next a [case [
+iterate a [case [
     "-a" = a/1 [access-dir: a/2 a: next a]
     find ["-h" "-help" "--help"] a/1 [-help quit]
     "-q" = a/1 [verbose: 0]
@@ -31,11 +31,9 @@ for-next a [case [
 
 import 'httpd
 
-if error? rem-to-html: trap [
-  rem: import 'rem
-  to-html: import 'to-html
-  chain [:rem/load-rem :to-html/to-html]
-] [fail rem-to-html]
+rem: import 'rem
+to-html: import 'to-html
+rem-to-html: chain [:rem/load-rem :to-html/to-html]
 
 ext-map: [
   "css" css
@@ -77,7 +75,7 @@ html-list-dir: function [
   "Output dir contents in HTML."
   dir [file!]
   ][
-  if error? trap [list: read dir] [return _]
+  if trap [list: read dir] [return _]
   ;;for-next list [if 'dir = exists? join-of dir list/1 [append list/1 %/]]
   ;; ^-- workaround for #838
   sort/compare list func [x y] [
@@ -146,7 +144,7 @@ handle-request: function [
       "."
     file-ext: (if pos [copy next pos] else [_])
     mimetype: try attempt [ext-map/:file-ext]
-    if error? data: trap [read path] [return 403]
+    if trap [data: read path] [return 403]
     if mimetype = 'rebol [
       parse last path-elements [ to ".cgi.reb" end ] else [mimetype: 'text]
     ] 
@@ -161,19 +159,19 @@ handle-request: function [
       ]
     ][
       rem/rem/request: request
-      if error? data: trap [
+      if trap [
         rem/rem/reset
-        rem-to-html data
+        data: rem-to-html data
       ] [ data: form data mimetype: 'text ]
       else [ mimetype: 'html ]
     ]
     if mimetype = 'rebol [
       mimetype: 'html
-      data: trap [
+      trap [
         data: do data
       ]
       if action? :data [
-        data: trap [data request]
+        trap [data: data request]
       ]
       if block? data [
         mimetype: first data
@@ -183,7 +181,7 @@ handle-request: function [
       ]
       data: form data
     ]
-    return reduce[200 try select mime :mimetype data]
+    return reduce [200 try select mime :mimetype data]
   ]
   404
 ]
