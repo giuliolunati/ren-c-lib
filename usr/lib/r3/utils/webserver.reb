@@ -12,8 +12,9 @@ EXAMPLE: 8080 /my/web/root -q -a index
 }]
 
 ;; INIT
+cd :system/options/path
 port: 8888
-root-dir: %""
+root-dir: %"./"
 access-dir: false
 verbose: 1
 
@@ -30,7 +31,6 @@ iterate a [case [
 ;; LIBS
 
 import 'httpd
-
 rem: import 'rem
 to-html: import 'to-html
 rem-to-html: chain [:rem/load-rem :to-html/to-html]
@@ -76,7 +76,7 @@ html-list-dir: function [
   dir [file!]
   ][
   if trap [list: read dir] [return _]
-  ;;for-next list [if 'dir = exists? join-of dir list/1 [append list/1 %/]]
+  ;;for-next list [if 'dir = exists? join dir list/1 [append list/1 %/]]
   ;; ^-- workaround for #838
   sort/compare list func [x y] [
     case [
@@ -122,7 +122,7 @@ handle-request: function [
     path: to-url next request/request-uri
     path-type: 'file
   ] else [
-    path: join-of root-dir request/target
+    path: join root-dir request/target
     path-type: try exists? path
   ]
   if path-type = 'dir [
@@ -133,11 +133,11 @@ handle-request: function [
       ] 
       return 500
     ]
-    dir-index: map-each x [%.reb %.rem %.html %.htm] [join-of to-file access-dir x]
+    dir-index: map-each x [%.reb %.rem %.html %.htm] [join to-file access-dir x]
     for-each x dir-index [
-      if 'file = try exists? join-of path x [dir-index: x break]
+      if 'file = try exists? join path x [dir-index: x break]
     ] then [dir-index: "?"]
-    return redirect-response join-of request/target dir-index
+    return redirect-response join request/target dir-index
   ]
   if path-type = 'file [
     pos: try find/last last path-elements
@@ -220,9 +220,9 @@ server: open compose [
     ]
   ]
 ]
-if verbose >= 1 [lib/print spaced ["Serving on port" port]]
-if verbose >= 2 [
-  lib/print spaced ["root-dir:" root-dir]
+if verbose >= 1 [
+  lib/print spaced ["Serving on port" port]
+  lib/print spaced ["root-dir:" clean-path root-dir]
   lib/print spaced ["access-dir:" access-dir]
 ]
 
