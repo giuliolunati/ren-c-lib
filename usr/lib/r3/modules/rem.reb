@@ -6,15 +6,9 @@ REBOL [
   Description: "REbol Markup format"
 ]
 
-dot: import 'dom
-+pair: enfix :dot/append-pair-to-block
-append-existing: :dot/append-existing
-make-node: :dot/make-node
-make-element: :dot/make-element
-make-text: :dot/make-text
-maybe-node?: :dot/maybe-node?
+dot: import 'dot
 
-smt: import 'smart-text
+;smt: import 'smart-text
 
 rem: make object! [
   this: self
@@ -24,7 +18,7 @@ rem: make object! [
   space: :lib/space
   func: :lib/func
 
-  unit: function [#x u] [unspaced [x u] ]
+  unit: function [x u] [unspaced [x u] ]
   pt: enfix specialize :unit [u: 'pt]
   px: enfix specialize :unit [u: 'px]
   em: enfix specialize :unit [u: 'em]
@@ -38,8 +32,8 @@ rem: make object! [
       empty [logic!]
       args [any-value! <...>]
       :look [any-value! <...>]
-    ][
-    node: make-node
+  ][
+    node: dot/make-element name
     attributes: class: id: style: _
     while [t: not tail? look] [
       t: first look
@@ -52,18 +46,18 @@ rem: make object! [
         ]
         refinement? t [
           take look
-          attributes: +pair ;\
-            lock next to-text t
+          dot/add-attribute node ;\
+            to-issue t
             take args
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
         ]
         set-word? t [
           take look
-          t: to-word t
           v: take args
           if block? v [v: reduce v]
-          style: +pair t v
+          style: default [dot/make-style]
+          dot/add-property style to-word t v
         ]
         issue? t [
           take look
@@ -71,7 +65,7 @@ rem: make object! [
         ]
         any [url? t file? t] [
           take look
-          attributes: +pair ;\
+          dot/add-attribute node ;\
             if find [a link] name ["href"]
             else ["src"]
             :t
@@ -79,59 +73,49 @@ rem: make object! [
         pair? t [
           take look
           if t/1 > 1
-          [attributes: +pair "rowspan" to-integer t/1]
+          [dot/add-attribute node "rowspan" to-integer t/1]
           if t/2 > 1
-          [attributes: +pair "colspan" to-integer t/2]
+          [dot/add-attribute node "colspan" to-integer t/2]
         ]
         true [break]
       ]
     ]
-    if id [attributes: +pair "id" id]
-    if style [attributes: +pair "style" style]
-    if class [attributes: +pair "class" class]
-    case [
-      block? t [
+    if id [dot/add-attribute node #id id]
+    if style [dot/add-attribute node #style style]
+    if class [dot/add-attribute node #class class]
+    if empty [return node]
+    switch type-of t [
+      block! group! text! blank! [
         t: take look
       ]
-      group? t [
-        t: take look
-      ]
-      text? t [
-        take look
-      ]
-      any [word? t path? t] [
+      word! path! [
         t: take args
       ]
     ]
     if text? t [
       t: maybe-process-text t
+    ] else [
+      t: to-node-list :t
     ]
-    if t [append-existing node to-node :t]
-    case [
-      empty? node [node: _]
-      all [2 = length of node | %.txt = node/1] [
-        node: node/2
-      ]
-    ]
-    node/value: attributes
-    make-element/target name empty node
+    dot/add-content node t
+    node
   ]
-  node: to-node: function [x] [
+
+  to-node-list: function [x] [
+    x: default [copy []]
     block? x or [x: to-block x]
-    if maybe-node? x [return x]
-    node: make-node
+    list: dot/make-list
     while [x: try evaluate/set x 't] [
       if text? :t [
         t: maybe-process-text t
       ]
       if any [char? :t any-string? :t any-number? :t]
-      [ t: make-text t ]
-      if block? :t [
-        append-existing node to-node t
-      ]
+      [ t: dot/make-text t ]
+      dot/add-list list t
     ]
-    node
+    list
   ]
+
   def-empty-elements: func [
       return: [action!]
       elements [block!]
@@ -144,6 +128,7 @@ rem: make object! [
       ]
     ]
   ]
+
   def-elements: func [
       return: [action!]
       elements [block!]
@@ -156,9 +141,11 @@ rem: make object! [
       ]
     ]
   ]
+
   def-empty-elements/bind [
     meta hr br img link input
   ]
+
   def-elements/bind [
     doc header title style script body
     div h1 h2 h3 h4 h5 h6 p
@@ -172,18 +159,21 @@ rem: make object! [
     ]
     meta /name "viewport" /content content
   ]
+
   ;; smart-text
-  smart-text: :smt/smart-text
+  smart-text: attempt[:smt/smart-text]
   process-text: false
   raw-text: function [x] [reduce [%.txt x]]
   maybe-process-text: func [x [text!]] [
     case [
       :process-text = true [smart-text/inline x]
       action? :process-text [process-text x]
-      true [make-text x]
+      true [dot/make-text x]
     ]
   ]
+
   reset: func[] [process-text: false]
+
   map-repeat: function [
       'w [word!]
       n [integer!]
@@ -250,7 +240,12 @@ load-rem: function [
     x: load x
   ]
   x: bind/(if secure ['new] else [_]) x rem
-  rem/to-node x
+  rem/to-node-list x
 ]
 
+test-me: function [] [
+  ?? load-rem [
+    p /class "my" bg: "pink" ["normal" br i _ b "bold"]
+  ]
+]
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
