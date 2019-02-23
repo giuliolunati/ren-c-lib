@@ -21,7 +21,7 @@ a: system/options/args
 iterate a [case [
     "-a" = a/1 [
       a: next a
-      ?? access-dir: case [
+      access-dir: case [
         tail? a [true]
         a/1 = "true" [true]
         a/1 = "false" [false]
@@ -38,11 +38,11 @@ iterate a [case [
 import 'httpd
 attempt [
   rem: import 'rem
-  to-html: import 'to-html
+  html: import 'html
 ]
-?? rem-to-html: attempt[chain [:rem/load-rem :to-html/to-html]]
+rem-to-html: attempt[chain [:rem/load-rem :html/to-html]]
 
-cd :system/options/path
+cd (:system/options/path)
 ext-map: [
   "css" css
   "gif" gif
@@ -169,10 +169,9 @@ handle-request: function [
       ]
     ][
       rem/rem/request: request
-      if trap [
-        rem/rem/reset
+      if error: trap [
         data: rem-to-html data
-      ] [ data: form data mimetype: 'text ]
+      ] [ data: form error mimetype: 'text ]
       else [ mimetype: 'html ]
     ]
     if mimetype = 'rebol [

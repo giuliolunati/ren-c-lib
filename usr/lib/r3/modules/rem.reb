@@ -5,10 +5,137 @@ REBOL [
   Email: giuliolunati@gmail.com
   Description: "REbol Markup format"
 ]
-
 dot: import 'dot
+text: import 'text
 
-;smt: import 'smart-text
+;;; GLOBALS ;;;
+t: w: x: pos: _
+
+;;; RULES ;;;
+
+empty-lines: [newline some [
+  any hspace newline
+]]
+
+ch-mark: charset "*_"
+
+marker: [set t ch-mark opt t]
+
+hspace: charset " ^-"
+
+xchar: union union ch-mark hspace charset "{\^/"
+
+tchar: complement xchar
+
+text-after: p: _
+text-before: false
+
+map-mark: make map! [
+  #"*" b #"_" i
+]
+
+stack: make block! 2
+
+push: function [x [word!]] [
+  either find stack x [false]
+  [append stack x true]
+]
+
+pop: function [x [word!]] [
+  either x = last stack
+  [take/last stack true]
+  [false]
+]
+
+open-mark: [p:] close-mark: [:p]
+
+wchar: charset [#"A" - #"Z" #"a" - #"z" "-_"]
+
+take-last-word: function [x [text!]] [
+  if empty? x [return false]
+  x: tail x
+  while [not head? x] [
+    x: back x
+    if find wchar x/1 [x continue]
+    x: next x
+    break
+  ]
+  if tail? x [x: head x return false]
+  to-word take/part x tail x
+  elide [x: head x]
+]
+
+tokenize: [(text-before: false) any 
+  [ p: empty-lines (emit lit --)
+    (text-before: false)
+  | newline (emit 'br)
+    (text-before: false)
+  | copy t [some hspace] 
+    (emit t) (text-before: false)
+  | p: some ch-mark
+    [ tchar (text-after: true)
+    | (text-after: false)
+    ] :p
+    [ :(text-after and [not text-before])
+      some [copy t marker
+        :(push t: map-mark/(t/1))
+        (emit to-set-word t)
+      ]
+    | :(text-before and [not text-after])
+      some [ copy t marker
+        :(pop t: map-mark/(t/1))
+        (emit to-get-word t)
+      ]
+    | :(text-before = text-after)
+      some [ copy t marker
+        :(if 1 < length-of t [
+          t: map-mark/(t/1)
+          did case [
+            push t [t: to-set-word t]
+            pop t [t: to-get-word t]
+          ]
+        ])
+        (emit t)
+      ]
+    ]
+  | "\" copy t [skip to xchar | to end]
+    (emit t)
+    (text-before: true)
+  | copy t [to xchar | to end]
+    [ "{"
+      [:(did w: take-last-word t)
+        (emit t)
+        copy t to "}" skip
+        (emit system/contexts/user/:w t)
+      | (emit join t "{")
+      ]
+    | (if not empty? t [emit t])
+      (text-before: true)
+    ]
+  ]
+]
+
+output: make block! 2
+append/only output make block! 2
+
+emit: func [x] [append last output x]
+
+process-text: function [
+    x [text! binary! file! url!]
+][
+  if any [file? x url? x] [x: read x]
+  if binary? x [x: text/smart-decode-text x]
+  append/only output make block! 2
+  p: parse x [tokenize]
+  (tail? p) or [
+  print [p] quit
+    insert p: mutable p " ~~ "
+    p: copy/part skip p -20 44
+    print unspaced ["** Parse error at: ..." p "..."]
+    quit
+  ]
+  uneval take/last output
+]
 
 rem: make object! [
   this: self
@@ -33,8 +160,8 @@ rem: make object! [
       args [any-value! <...>]
       :look [any-value! <...>]
   ][
-    node: dot/make-element name
-    attributes: class: id: style: _
+    node: reduce [either empty [name] [to-set-word name]]
+    class: id: _
     while [t: not tail? look] [
       t: first look
       if group? t [t: do t]
@@ -46,18 +173,16 @@ rem: make object! [
         ]
         refinement? t [
           take look
-          dot/add-attribute node ;\
-            to-issue t
-            take args
+          append node t append node take args
           ; ^--- for non-HTML applications:
           ; value of an attribute may be a node!
         ]
         set-word? t [
           take look
-          v: take args
-          if block? v [v: reduce v]
-          style: default [dot/make-style]
-          dot/add-property style to-word t v
+          v: take look
+          append node to-path reduce
+          [ _ t ]
+          append/only node v
         ]
         issue? t [
           take look
@@ -65,55 +190,60 @@ rem: make object! [
         ]
         any [url? t file? t] [
           take look
-          dot/add-attribute node ;\
-            if find [a link] name ["href"]
-            else ["src"]
-            :t
+          append node either find [a link] name
+          [/href] [/src]
+          append node :t
         ]
         pair? t [
           take look
-          if t/1 > 1
-          [dot/add-attribute node "rowspan" to-integer t/1]
-          if t/2 > 1
-          [dot/add-attribute node "colspan" to-integer t/2]
+          if t/1 > 1 [
+            append node /rowspan
+            append node to-integer t/1
+          ]
+          if t/2 > 1 [
+            append node /colspan
+            append node to-integer t/2
+          ]
         ]
-        true [break]
+        default [break]
       ]
     ]
-    if id [dot/add-attribute node #id id]
-    if style [dot/add-attribute node #style style]
-    if class [dot/add-attribute node #class class]
-    if empty [return node]
-    switch type-of t [
-      block! group! text! blank! [
-        t: take look
+    if id [append node /id append node :id]
+    if class [append node /class append node :class]
+
+    if not empty [
+      switch type-of t [
+        block! group! text! blank! [
+          t: take look
+        ]
+        word! path! [
+          t: take args
+        ]
       ]
-      word! path! [
-        t: take args
+      if text? t [
+        t: process-text t
+      ] else [
+        t: process-block :t
       ]
+      append node t
+      append node to-get-word name
     ]
-    if text? t [
-      t: maybe-process-text t
-    ] else [
-      t: to-node-list :t
-    ]
-    dot/add-content node t
-    node
+    uneval node
   ]
 
-  to-node-list: function [x] [
-    x: default [copy []]
-    block? x or [x: to-block x]
-    list: dot/make-list
+  process-block: function [x [quoted! block!]] [
+    if quoted? x [return eval x]
+    list: make block! 2
     while [x: try evaluate/set x 't] [
+      if block? :t [t: process-block t]
       if text? :t [
-        t: maybe-process-text t
+        t: process-text t
       ]
       if any [char? :t any-string? :t any-number? :t]
-      [ t: dot/make-text t ]
-      dot/add-list list t
+      [ t: to-text t ]
+      if any [text? t quoted? t] [append list t]
     ]
-    list
+    uneval list
   ]
 
   def-empty-elements: func [
@@ -161,18 +291,7 @@ rem: make object! [
   ]
 
   ;; smart-text
-  smart-text: attempt[:smt/smart-text]
-  process-text: false
   raw-text: function [x] [reduce [%.txt x]]
-  maybe-process-text: func [x [text!]] [
-    case [
-      :process-text = true [smart-text/inline x]
-      action? :process-text [process-text x]
-      true [dot/make-text x]
-    ]
-  ]
-
-  reset: func[] [process-text: false]
 
   map-repeat: function [
       'w [word!]
@@ -224,7 +343,7 @@ load-rem: function [
           ]
         ] skip 
       | "{" (n: 1) any [ ; }
-          if (n > 0)
+          :(n > 0)
           [to bra-spec | to end]
           [ {^^} insert {^^}
           | "{" (n: me + 1)
@@ -240,12 +359,8 @@ load-rem: function [
     x: load x
   ]
   x: bind/(if secure ['new] else [_]) x rem
-  rem/to-node-list x
+  x: eval rem/process-block x
+  dot/post-process x
 ]
 
-test-me: function [] [
-  ?? load-rem [
-    p /class "my" bg: "pink" ["normal" br i _ b "bold"]
-  ]
-]
-;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
+; vim: set et sw=2 :q
