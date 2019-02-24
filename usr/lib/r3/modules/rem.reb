@@ -315,41 +315,32 @@ load-rem: function [
   ]
   if binary? x [x: to-text x]
   if text? x [
-    ;; preprocess strings:
-    ;; ^ -> ^^
-    ;; \\ -> \
-    ;; \(..) -> ^(..)
-    ;; \" -> ^"
-    ;; \{ -> ^{ 
-    ;; \} -> ^} 
+    ; ""-strings:
+    ;   "" -> "
+    ;   newline -> ^newline
+    ; all strings:
+    ;   ^ -> ^^
     x: copy x
     string-begin: charset {"^{} ;}
-    dquo-spec: charset {^^"\}
-    bra-spec: charset {^^{}\}
-    escapable: charset {{"}(} ;)
+    dquo-spec: charset {^^"^/}
+    bra-spec: charset {^^{}}
     n: 0
     parse x [any [
       to string-begin
       [ {"} any [
           [to dquo-spec | to end]
-          [ {^^} insert {^^}
+          [ change {^/} {^^/}
+          | and {""} change skip {^^} skip
           | and {"} break
-          | and ["\" escapable]
-            change skip "^^" skip
-          | "\" remove "\"
-          | skip
+          | {^^} insert {^^}
           ]
         ] skip 
       | "{" (n: 1) any [ ; }
           :(n > 0)
           [to bra-spec | to end]
           [ {^^} insert {^^}
-          | "{" (n: me + 1)
-          | "}" (n: me - 1)
-          | and ["\" escapable]
-            change skip "^^" skip
-          | "\" remove "\"
-          | skip
+          | "{" (n: n + 1)
+          | "}" (n: n - 1)
           ]
         ]
       ]
