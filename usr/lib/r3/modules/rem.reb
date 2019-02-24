@@ -65,7 +65,16 @@ take-last-word: function [x [text!]] [
   elide [x: head x]
 ]
 
-tokenize: [(text-before: false) any 
+output: make block! 2
+append/only output make block! 2
+
+emit: func [x] [
+  if (text? x) and [text? last last output]
+  [ append last last output x ]
+  else [append last output x]
+]
+
+rules: [(text-before: false) any 
   [ p: empty-lines (emit lit --)
     (text-before: false)
   | newline (emit 'br)
@@ -106,7 +115,7 @@ tokenize: [(text-before: false) any
       [:(did w: take-last-word t)
         (emit t)
         copy t to "}" skip
-        (emit system/contexts/user/:w t)
+        (emit tokenize system/contexts/user/:w t)
       | (emit join t "{")
       ]
     | (if not empty? t [emit t])
@@ -115,24 +124,32 @@ tokenize: [(text-before: false) any
   ]
 ]
 
-output: make block! 2
-append/only output make block! 2
-
-emit: func [x] [append last output x]
-
-process-text: function [
-    x [text! binary! file! url!]
+tokenize: function [
+    x [text! block! quoted!]
 ][
-  if any [file? x url? x] [x: read x]
-  if binary? x [x: text/smart-decode-text x]
+  if quoted? x [return eval x]
   append/only output make block! 2
-  p: parse x [tokenize]
-  (tail? p) or [
-  print [p] quit
-    insert p: mutable p " ~~ "
-    p: copy/part skip p -20 44
-    print unspaced ["** Parse error at: ..." p "..."]
-    quit
+  if text? x [
+    p: parse x [rules]
+    (tail? p) or [
+    print [p] quit
+      insert p: mutable p " ~~ "
+      p: copy/part skip p -20 44
+      print unspaced ["** Parse error at: ..." p "..."]
+      quit
+    ]
+  ]
+  if block? x [
+    while [x: try evaluate/set x 't] [
+      if block? :t [t: tokenize t]
+      if text? :t [
+        t: tokenize t
+      ]
+      if any [char? :t any-string? :t any-number? :t]
+      [ t: to-text t ]
+      if any [text? t quoted? t]
+      [ append last output t ]
+    ]
   ]
   uneval take/last output
 ]
@@ -220,30 +237,11 @@ rem: make object! [
           t: take args
         ]
       ]
-      if text? t [
-        t: process-text t
-      ] else [
-        t: process-block :t
-      ]
+      t: tokenize t
       append node t
       append node to-get-word name
     ]
     uneval node
-  ]
-
-  process-block: function [x [quoted! block!]] [
-    if quoted? x [return eval x]
-    list: make block! 2
-    while [x: try evaluate/set x 't] [
-      if block? :t [t: process-block t]
-      if text? :t [
-        t: process-text t
-      ]
-      if any [char? :t any-string? :t any-number? :t]
-      [ t: to-text t ]
-      if any [text? t quoted? t] [append list t]
-    ]
-    uneval list
   ]
 
   def-empty-elements: func [
@@ -359,8 +357,8 @@ load-rem: function [
     x: load x
   ]
   x: bind/(if secure ['new] else [_]) x rem
-  x: eval rem/process-block x
+  x: eval tokenize x
   dot/post-process x
 ]
 
-; vim: set et sw=2 :q
+; vim: set et sw=2 :
