@@ -22,8 +22,9 @@ ch-mark: charset "*_"
 marker: [set t ch-mark opt t]
 
 hspace: charset " ^-"
+wspace: union hspace charset "^J^L^M"
 
-xchar: union union ch-mark hspace charset "{\^/"
+xchar: union ch-mark union wspace charset "{\"
 
 tchar: complement xchar
 
@@ -107,9 +108,9 @@ rules: [(text-before: false) any
         (emit t)
       ]
     ]
-  | "\" copy t [skip to xchar | to end]
-    (emit t)
-    (text-before: true)
+  | "\" set t skip
+    (emit to-text t) 
+    (text-before: not did find wspace t)
   | copy t [to xchar | to end]
     [ "{"
       [:(did w: take-last-word t)
