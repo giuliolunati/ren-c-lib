@@ -8,7 +8,7 @@ Rebol [
     Purpose: "An elementary Web Server scheme for creating fast prototypes"
     Rights: http://opensource.org/licenses/Apache-2.0
     Type: module
-    Name: rgchris.httpd
+    Name: httpd
     History: [
         02-Feb-2019 0.3.5 "File argument for REDIRECT permits relative redirections"
         14-Dec-2018 0.3.4 "Add REFLECT handler (supports OPEN?); Redirect defaults to 303"
@@ -148,7 +148,7 @@ sys/make-scheme [
             redirect: get in response 'redirect
             print: get in response 'print
 
-            (match block! server/spec/actions else [default-response])
+            ((match block! server/spec/actions else [default-response]))
         ]
 
         server/locals/subport: make port! [scheme: 'tcp]

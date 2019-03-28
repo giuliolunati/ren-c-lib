@@ -1,3 +1,4 @@
+#!/usr/bin/r3
 REBOL [Name: "webserver"]
 -help: does [lib/print {
 USAGE: r3 webserver.reb [OPTIONS]
@@ -150,7 +151,7 @@ handle-request: function [
     return redirect-response join request/target dir-index
   ]
   if path-type = 'file [
-    pos: try find/last last path-elements
+    pos: try find-last last path-elements
       "."
     file-ext: (if pos [copy next pos] else [_])
     mimetype: try attempt [ext-map/:file-ext]
@@ -205,6 +206,13 @@ redirect-response: function [target] [
 ;; MAIN
 server: open compose [
   scheme: 'httpd (port) [
+    if verbose >= 2 [lib/print mold request]
+    if verbose >= 1 [
+      lib/print spaced [
+        request/method
+        request/request-uri
+      ]
+    ]
     res: handle-request request
     if integer? res [
       response/status: res
@@ -219,12 +227,7 @@ server: open compose [
       response/type: res/2
       response/content: to-binary res/3
     ]
-    if verbose >= 2 [lib/print mold request]
     if verbose >= 1 [
-      lib/print spaced [
-        request/method
-        request/request-uri
-      ]
       lib/print spaced ["=>" response/status]
     ]
   ]
