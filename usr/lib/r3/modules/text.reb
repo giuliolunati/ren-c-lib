@@ -41,10 +41,11 @@ smart-decode-text: function [ {convert binary! to text!"
 
 quote-text: function [
     {Quote text s with " + escape with \}
-    s [text!] "MODIFIED!"
+    s [text!]
     /single "use single quotes"
     /html {<"'> as entities}
   ] [
+  s: copy s
   if html [
     q: charset either single [{<'>}] [{<">}]
     parse s [any [

@@ -5,95 +5,77 @@ REBOL [
   Email: giuliolunati@gmail.com
   Description: "DOcument Tree"
   Exports: [
-    dot-clean
-    for-each-attribute
-    get-content
-    get-tag-name
-    make-tag-node
-    get-attribute
-    set-attribute
-    set-content
   ]
 ]
 
-for-each-attribute: func [
-  'name [word!]
-  'value [word!]
-  node [block!]
-  code [block!]
-  n: v:
-  ][
-  n: attempt [get :name]
-  v: attempt [get :value]
-  for-each [n v] node [
-    if any [n = 'tag n = '.] [continue]
-    set :name n
-    set :value v
-    do code
+add-attribute: func [
+  target key value
+] [
+  target: default [make block! 2]
+  if 2 = length-of target [
+    new-line head target true
+    new-line tail target true
   ]
-  set :name n
-  set :value v
+  append/only target key
+  append/only target value
+  if 2 < length-of target [
+    new-line tail target true
+  ]
+  target
 ]
 
-get-attribute: func [x name [word!]] [
-  x: all [block? x 'tag = x/1 x/:name]
-  if all [x name = 'tag] [x: to word! x]
-  x
+add-content: adapt ;\
+  specialize :add-attribute [key: 'content]
+  [value: blockify value]
+
+add-list: func [list node] [
+  if 1 = length-of list [
+    new-line head list true
+    new-line tail list true
+  ]
+  append/only list node
+  if 1 < length-of list [new-line tail list true]
+  list
 ]
 
-get-content: specialize :get-attribute [name: '.]
+add-property: :add-attribute
 
-get-tag-name: specialize :get-attribute [name: 'tag]
-
-make-tag-node: func [name [word!] node:] [
-  node: make block! 8
-  set-attribute node 'tag to string! name
+make-element: function [
+		"Makes an element node"
+		name [word!]
+	][
+	to-group reduce ['element name]
 ]
 
-set-attribute: func [
-    node [block!]
-    name [word!]
-    value
-  ][
-  if any-word? value [value: form value]
-  append node name append/only node value
+make-list: func [] [
+  make block! 2
 ]
 
-set-content: specialize :set-attribute [name: '.]
+make-style: :make-list
 
-spacer: charset " ^-^/"
+make-text: func [
+		"Makes a text node with value VALUE."
+		value [char! any-string! any-number!]
+	][
+  to-group reduce ['text to-text value]
+]
 
-dot-clean: func [
-  x [string! tag! block!]
-  /trim
-  t: tag:
-  ][
-  case [
-    string? x [
-      if trim [lib/trim/lines x]
-      else [
-        parse x [any [
-          to spacer change [some spacer] space
-        ] ]
-      ]
-    ]
-    tag: get-tag-name x [
-      if t: get-content x [
-        if find [doc header body div p h1 h2 h3 h4 h5 h6] tag [dot-clean/trim t]
-        else [dot-clean t]
-      ]
-    ]
-    block? x [
-      forall x [dot-clean x/1]
-      if trim [
-        while [" " = x/1] [take x]
-        if string? x/1 [lib/trim/head x/1]
-        while [" " = last x] [take/last x]
-        if string? last x [lib/trim/tail last x]
-      ]
+post-process: function [
+  "Expand '--"
+  tok [quoted! block!]
+][
+  a: e: _
+  stack: make block! 2
+
+  parse tok [any
+    [ set e set-word! copy a [any [path! skip]]
+      (append/only stack flatten/deep reduce [to-get-word e e a])
+    | get-word! (take/last stack)
+    | remove '-- (t: last stack) insert t
+    | skip
     ]
   ]
-  x
+  tok
 ]
-  
+    
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
