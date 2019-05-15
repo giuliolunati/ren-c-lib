@@ -44,6 +44,7 @@ attempt [
 rem-to-html: attempt[chain [:rem/load-rem :html/to-html]]
 
 cd (:system/options/path)
+
 ext-map: [
   "css" css
   "gif" gif
@@ -98,13 +99,35 @@ html-list-dir: function [
   if dir != %/ [insert list %../]
   data: copy {<head>
     <meta name="viewport" content="initial-scale=1.0" />
-    <style> a {text-decoration: none} </style>
-  </head>}
+    <style> a {text-decoration: none}
+    body {font-family: monospace}
+    .b {font-weight: bold}
+    </style>
+  </head>
+  [>]: Navigate [V]: View [E]: Exec <hr/>
+  }
   for-each i list [
+    is-rebol-file: did all [
+      not dir? i
+      parse i [thru ".reb" end]
+    ]
     append data unspaced [
-      {<a href="} i 
-      either dir? i [{?">&gt; }] [{">}]
-      i </a> <br/>
+      {<a }
+      if dir? i [{class="b" }]
+      {href="} i
+      {?">[}
+      case [
+        is-rebol-file [{E}]
+        dir? i [{>}]
+        default [{V}]
+      ]
+      {]</a> }
+      {<a }
+      if dir? i [{class="b" }]
+      {href="} i
+      {">}
+      i
+      </a> <br/>
     ]
   ]
   data
