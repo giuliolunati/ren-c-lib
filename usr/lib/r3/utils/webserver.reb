@@ -110,12 +110,17 @@ html-list-dir: function [
   data
 ]
 
+parse-query: function [query] [
+  query: to-text query
+  r: split query "&"
+]
+
 handle-request: function [
     request [object!]
   ][
   path-elements: next split request/target #"/"
+  ; 'extern' url /http://ser.ver/...
   if parse request/request-uri ["/http" opt "s" "://" to end] [
-    ; 'extern' url /http://ser.ver/...
     if all [
       3 = length path-elements
       #"/" != last path-elements/3
@@ -134,6 +139,7 @@ handle-request: function [
     path: join root-dir request/target
     path-type: try exists? path
   ]
+  append request reduce ['real-path clean-path path]
   if path-type = 'dir [
     if not access-dir [return 403]
     if request/query-string [
