@@ -167,7 +167,7 @@ dilate: function [
     c: m/ncols
   ]
   l: length-of v
-  // normalize v
+  ;; normalize v
   s: 0
   for-each x v [s: x * x + s]
   s: square-root s

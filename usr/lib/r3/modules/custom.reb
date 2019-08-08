@@ -354,13 +354,13 @@ custom-func: enfix function [:name :arg] [
 	name: to-word name
 	set :name function compose [(arg)]
 	compose/deep [
-		// try not customized version
+		;; try not customized version
 		r: trap [lib/(name) (arg)]
 		if not error? r [return r]
-		// try arg method
+		;; try arg method
 		if attempt [(set-name) (to-get-path reduce [arg 'custom-type name])]
 		[ r: trap [(name) (arg)] ]
-		// return or fail
+		;; return or fail
 		if error? r [fail r]
 		r
 	]
@@ -371,17 +371,17 @@ custom-func2: enfix function [:name :arg1 :arg2] [
 	name: to-word name
 	set :name function compose [(arg1) (arg2)]
 	compose/deep [
-		// try not customized version
+		;; try not customized version
 		r: trap [lib/(name) (arg1) (arg2)]
 		if not error? r [return r]
-		// try arg1 method
+		;; try arg1 method
 		if attempt [(set-name) (to-get-path reduce [arg1 'custom-type name])]
 		[ r: trap [(name) (arg1) (arg2)] ]
 		if not error? r [return r]
-		// try arg2 method
+		;; try arg2 method
 		if attempt [(set-name) (to-get-path reduce [arg2 'custom-type name])]
 		[ r: trap [(name) (arg1) (arg2)] ]
-		// return or fail
+		;; return or fail
 		if error? r [fail r]
 		r
 	]
