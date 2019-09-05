@@ -27,15 +27,16 @@ fix-date: function [d t [time!]] [
 ]
 
 load-desk: function [
-    desk [file! string! block!]
+    desk [file! text! block! blank!]
 	][
+  if not desk [fail "Missing desk!"]
   text: make block! 0 x: _
   if all [file? desk not exists? desk] [
     desk: make block! 16
   ]
-  unless block? desk [desk: load/all/type desk _]
+  if not block? desk [desk: load/all/type desk _]
   parse desk [while
-    [ set x remove string! (append text x)
+    [ set x remove text! (append text x)
     | skip ]
   ]
   if empty? text [text: _]
@@ -58,7 +59,7 @@ load-desk: function [
 	reduce [desk text]
 ]
 
-save-desk: proc [
+save-desk: func [
     desk [block!]
     text [block! blank!]
     out [file!]
@@ -73,20 +74,20 @@ save-desk: proc [
 
 add-cards: function [
     desk [block!]
-    src [file! string!]
+    src [file! text!]
     /two
     /txt
   ][
   spc: charset " ^-"
   if txt [
     src: read/lines src
-    forall src [
+    for-next src src [
       if parse src/1 [any spc] [
         remove src src: back src
       ]
     ]
     d: desk
-    forall desk
+    for-next desk desk
     [ if block? desk/1 [d: desk break] ]
     insert d src
     d: (index-of d) - 1 
@@ -152,7 +153,7 @@ stats: function [
   repend s ['rate r 'older t0 'delay w]
 ]
 
-print-stats: procedure [
+print-stats: function [
     desk [block!]
   ][
   s: stats desk
@@ -183,16 +184,16 @@ arg: system/options/args
 cmd: src: desk-file: last-q: _
 t0: now
 
-forall arg [
+for-next arg arg [
   case [
     "-auto" = arg/1 [
       arg: next arg
       b: make block! 16
       r: 0
       t: x: _
-      forall arg [
+      for-next arg arg [
         desk: first load-desk to-file arg/1
-        if try[desk/1/5 > t0] [continue]
+        if not trap [desk/1/5 > t0] [continue]
         s: stats desk
         repend/only b [
           s/delay
@@ -214,7 +215,7 @@ forall arg [
       b: last b
       desk-file: to-file b/3
       print ["^/Opening" desk-file]
-      print/only ["Hit ENTER when ready.^/"]
+      write-stdout "Hit ENTER when ready.^/"
       input
       break
     ]
@@ -224,7 +225,7 @@ forall arg [
         b: make block! 16
         r: 0
         t: x: _
-        forall arg [
+        for-next arg arg [
           desk: first load-desk to-file arg/1
           s: stats desk
           r: r + s/rate
@@ -324,7 +325,7 @@ forever [
     d: x
     break
   ]
-  print/only ["  (" round/to rate 0.1 " queries/day)^/"] 
+  print ["  (" round/to rate 0.1 " queries/day)"] 
 	if not d [
     print ["retry at" d0/5]
     print ["[" to-time subtract-date d0/5 now "]"]
@@ -337,19 +338,19 @@ forever [
     if any [not last-q | last-q + 1 != i] [
 	    print "  ================="
       p: skip at text i 1 - context-length
-      forall p [
+      for-next p p [
         print p/1
         if i = index-of p [break]
       ]
     ]
-	  print/only if d/5 ["  ............... ? "]
+	  write-stdout if d/5 ["  ............... ? "]
     else ["  ............... [NEW] ? "]
     last-q: i
   ]
   else [
 	  print "  ================="
     print form reduce d/1
-	  print/only case [
+	  write-stdout case [
       d/5 ["? "]
       d/2 ["[NEW] ? "]
     ] else ["  >>>>>>>>>>>>>>>>> "]
@@ -362,15 +363,16 @@ forever [
     else ["=== END ==="]
   )]
   else [
-    print form q: try [reduce d/2]
+    trap [q: reduce d/2]
+    print form q
     if error? q [continue]
   ]
   print "  -----------------"
-  print/only "  quality? [0-5] > "
+  write-stdout "  quality? [0-5] > "
   while [not attempt [q: to-integer do-command]] []
   if q < 0 [q: 0]
   if q > 5 [q: 5]
-  d/3: default 0
+  d/3: default [0]
   if d/4 [set 'rate (-86400 / d/4 + rate)]
   d/4: default [tmin / t-factor 0 0]
   ;if d/5 [d/4: d/4 + subtract-date t d/5]
