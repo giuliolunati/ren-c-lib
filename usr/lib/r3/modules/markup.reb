@@ -20,8 +20,6 @@ markup-parser: make object! [
   
   ;; LOCALS
   x: y: _
-
-  ;; STACK & BUFFER
   buf: make block! 0
 
   ;; CHARSETS
@@ -37,7 +35,7 @@ markup-parser: make object! [
   !wspaces: [some !wspace]
   !text: [copy x [
     !not-lt [to "<" | to end]
-  ] (text x)]
+  ] (text as text! x)]
   !name: [!name-char to !not-name-char]
   !quoted-value: [{"} thru {"} | {'} thru {'}]
   !attribute: [
@@ -46,19 +44,19 @@ markup-parser: make object! [
     [ opt !spaces"="
       opt !spaces copy y !quoted-value
     | (y: _)
-    ] (repend buf [x (take/last y next y)])
+    ] (repend buf [as text! x (take/last y as text! next y)])
   ]
   !tag: ["<"
     [ "/" copy x to ">" skip
-      (close-tag x)
+      (close-tag as text! x)
     | "!--" copy x to "-->" 3 skip
-      (comment x)
+      (comment as text! x)
     | "!" copy x to ">" skip
-      (declaration x)
+      (declaration as text! x)
     | "?" copy x to "?>" 2 skip
-      (processing-instruction x)
+      (processing-instruction as text! x)
     | [copy x !name | !error]
-      (clear buf append buf x)
+      (clear buf append buf as text! x)
       any [!spaces opt !attribute]
       [ "/>" (empty-tag buf)
       | ">" (open-tag buf)
@@ -69,10 +67,7 @@ markup-parser: make object! [
   !error: [x: (error x quit)] 
 
   !content: [
-    any
-    [ !tag | !text | !comment
-    | !processing-instruction | declaration
-    ]
+    any [ !tag | !text]
     [end | !error]
   ]
 
