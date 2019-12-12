@@ -8,7 +8,9 @@ REBOL [
 args: system/script/args
 
 markup-parser: make object! [
-  ;; HOOKS TO CUSTOMIZE
+  html: true ; -> parse as HTML
+  ; html: false -> parse as XML
+  ;; HOOKS TO BE CUSTOMIZED
   error: function [x] [
     write-stdout "ERROR @ "
     print [copy/part x 80 "...."]
@@ -60,6 +62,12 @@ markup-parser: make object! [
       any [!spaces opt !attribute]
       [ "/>" (empty-tag buf)
       | ">" (open-tag buf)
+      ]
+      opt
+      [ ; TODO: manage inner <!--comments-->
+        html :(x = "script")
+        copy y [to "</script>" | !error]
+        (text as text! y)
       ]
     ]
   ]
