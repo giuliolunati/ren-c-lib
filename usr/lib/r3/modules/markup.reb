@@ -5,7 +5,27 @@ REBOL [
   Description: {}
 ]
 
-args: system/script/args
+show: enfix function ['n] [
+   set n function [x] compose/deep [print [(to-text to-word n) mold x]]
+]
+
+letter: charset [#"a" - #"z" #"A" - #"Z" ]
+number: charset "0123456789"
+ent-name: [some letter opt ";" | "#" some number opt ";"]
+
+deamp: function [txt [text!]] [
+  t: n: _
+  if not parse txt [any [
+    to #"&"
+    [ change copy t [
+        "&#" copy n some number opt ";"
+        ;:(256 > n: to-integer n)
+      ] (to-char to-integer n)
+    | skip
+    ]
+   ]] [fail txt]
+  txt
+]
 
 markup-parser: make object! [
   html: true ; -> parse as HTML
@@ -15,11 +35,14 @@ markup-parser: make object! [
     write-stdout "ERROR @ "
     print [copy/part x 80 "...."]
   ]
-  declaration: processing-instruction: comment:
-  empty-tag: open-tag:
-  close-tag:
-  text: _
-  
+  D: show ; declaration <!...>
+  P: show ; processing instruction <?...>
+  !: show ; comment <!--...-->
+  E: show ; empty tag <...[/]>
+  O: show ; open tag <...>
+  C: show ; close tag </...>
+  T: show ; text
+ 
   ;; LOCALS
   x: y: _
   buf: make block! 0
@@ -37,37 +60,37 @@ markup-parser: make object! [
   !wspaces: [some !wspace]
   !text: [copy x [
     !not-lt [to "<" | to end]
-  ] (text as text! x)]
+  ] (T deamp as text! x)]
   !name: [!name-char to !not-name-char]
   !quoted-value: [{"} thru {"} | {'} thru {'}]
   !attribute: [
     (y: _)
     copy x !name
-    [ opt !spaces"="
+    [ opt !spaces "="
       opt !spaces copy y !quoted-value
     | (y: _)
     ] (repend buf [as text! x (take/last y as text! next y)])
   ]
   !tag: ["<"
     [ "/" copy x to ">" skip
-      (close-tag as text! x)
+      (C as text! x)
     | "!--" copy x to "-->" 3 skip
-      (comment as text! x)
+      (! as text! x)
     | "!" copy x to ">" skip
-      (declaration as text! x)
+      (D as text! x)
     | "?" copy x to "?>" 2 skip
-      (processing-instruction as text! x)
+      (P as text! x)
     | [copy x !name | !error]
       (clear buf append buf as text! x)
       any [!spaces opt !attribute]
-      [ "/>" (empty-tag buf)
-      | ">" (open-tag buf)
+      [ "/>" (E buf)
+      | ">" (O buf)
       ]
       opt
       [ ; TODO: manage inner <!--comments-->
         html :(x = "script")
         copy y [to "</script>" | !error]
-        (text as text! y)
+        (C as text! y)
       ]
     ]
   ]
@@ -79,7 +102,7 @@ markup-parser: make object! [
     [end | !error]
   ]
 
-  parse: method [x] [lib/parse x !content]
+  run: method [x] [parse x !content]
 ]
 
 ;; vim: set et sw=2:
