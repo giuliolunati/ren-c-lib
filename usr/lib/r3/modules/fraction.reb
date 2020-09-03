@@ -42,6 +42,7 @@ gcd: func [a [integer!] b [integer!] r:] [
 ]
 
 fraction!: make map! 8
+fraction!/custom-type: fraction!
 
 fraction?: func [x] [
   either attempt [same? x/custom-type fraction!]

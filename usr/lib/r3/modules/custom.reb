@@ -23,7 +23,7 @@ mold-recur?: function [x] [
 ]
 
 is-custom-type?: function [x] [
-  all [map? x action? :x/make]
+  all [map? x same? x :x/custom-type]
 ]
 
 has-custom-type?: function [x] [

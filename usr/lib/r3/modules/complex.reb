@@ -11,10 +11,11 @@ custom: import 'custom
 custom: custom/custom
 
 complex!: make map! 8
+complex!/custom-type: complex!
 
 complex?: function [x] [
-  if attempt [same? x/custom-type complex!]
-  [true] else [false]
+  either all [map? x same? complex! :x/custom-type]
+  [true] [false]
 ]
 
 complex!/make: function [type def] [
