@@ -33,7 +33,7 @@ complex!/make: function [type def] [
         insert t/2 take/last t/1
         o/r: to-decimal t/1
         o/i: to-decimal t/2
-      ] return o
+      ] [return o]
     ]
   ]
   fail/where unspaced [
@@ -41,7 +41,7 @@ complex!/make: function [type def] [
   ] backtrace 4
 ]
 
-make-complex: specialize complex!/make [type: complex!]
+make-complex: specialize :complex!/make [type: complex!]
 
 complex!/to: function [
     type [datatype! map!]
@@ -63,14 +63,14 @@ to-complex: specialize :custom/to [type: complex!]
 
 i: make-complex [0 1]
 
-+i: enfix tighten function [
++i: enfix function [
   v1 [any-number!]
   v2 [any-number!]
 ] [
   make-complex reduce [v1 v2]
 ]
 
--i: enfix tighten function [
+-i: enfix function [
   v1 [any-number!]
   v2 [any-number!]
 ] [

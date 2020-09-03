@@ -37,7 +37,7 @@ approximate: func [
 
 gcd: func [a [integer!] b [integer!] r:] [
   while [b != 0] [
-    r: a // b  a: b  b: r
+    r: a mod b  a: b  b: r
   ] abs a
 ]
 
@@ -71,16 +71,19 @@ to-fraction: func [def o: t:] [
       def: reduce def
       o/n: def/1  o/d: def/2
     ]
-    string? def [
+    text? def [
       t: split def #"/"
       o/n: to-integer t/1
       o/d: to-integer t/2
     ]
-    true [fail/where ajoin [
-      "Cannot make fraction! from " mold def
-    ] backtrace 5]
+    default [
+      fail/where unspaced [
+        "Cannot make fraction! from " mold def
+      ]
+      backtrace 5
+    ]
   ]
-  if zero? o/d [fail/where ajoin [
+  if zero? o/d [fail/where unspaced [
       "Cannot make fraction! from " mold def
   ] backtrace 5]
   t: gcd o/n o/d
@@ -99,20 +102,18 @@ fraction!/make: f-make: func [type def] [
   switch type [
     :decimal! [return def/n / def/d]
     :block! [return reduce [def/n def/d]]
-    :string! [return c-form def]
+    :text! [return c-form def]
   ]
-  fail/where ajoin ["Cannot convert fraction! to " type] backtrace 3
+  fail/where unspaced ["Cannot convert fraction! to " type] backtrace 3
 ]
 
 fraction!/form: c-form: func [
   value [<opt> any-value!]
-  /delimit delimiter [blank! any-scalar! any-string! block!]
-  /quote /new
   r: frame:
-] [ajoin [value/n "/" value/d]]
+] [unspaced [value/n "/" value/d]]
 
-fraction!/mold: func [value /only /all /flat r:] [
-  lib/ajoin ["make fraction! [" value/n space value/d "]"]
+fraction!/mold: func [value /only /all /flat /limit [integer!] /truncated [<output>]] [
+  lib/unspaced ["make fraction! [" value/n space value/d "]"]
 ]
 
 fraction!/add: func [x y n: d:] [
