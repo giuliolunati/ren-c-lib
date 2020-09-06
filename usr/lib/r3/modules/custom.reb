@@ -394,9 +394,9 @@ multiply: custom-func2 value1 value2
 add: custom-func2 value1 value2
 -: enfix
 subtract: custom-func2 value1 value2
-div: enfix
+-slash-1-: enfix
 divide: custom-func2 value1 value2
-**: enfix
+pow: enfix
 power: custom-func2 number exponent
 abs: custom-func value
 negate: custom-func number
@@ -549,4 +549,4 @@ customize: function [
   :code
 ] 
 
-; vim: set syn=rebol ts=2 sw=2 sts=2:
+; vim: set et sw=2:

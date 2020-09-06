@@ -49,19 +49,15 @@ fraction?: func [x] [
   [true] [false]
 ]
 
-custom-divide-bak: :custom/divide
-custom/divide: func [value1 value2] [
+custom/-slash-1-: enfix func [value1 value2] [
   if all [integer? value1 integer? value2] [
     return to-fraction [value1 value2]
   ]
-  custom-divide-bak value1 value2
+  custom/divide value1 value2
 ]
 
 to-fraction: func [def o: t:] [
   if fraction? def [return def]
-  if decimal? def [
-    return approximate def 0
-  ]
   o: make map! reduce [
     'custom-type fraction!
     'n 0 'd 1
@@ -125,7 +121,7 @@ fraction!/add: func [x y n: d:] [
   to-fraction [n d]
 ]
 
-fraction!/subtract: func [x y n: d:] [
+fraction!/subtract: func [x y] [
   x: to-fraction x  y: to-fraction y
   d: gcd x/d y/d
   n: (y/d / d * x/n) - (x/d / d * y/n)
@@ -162,15 +158,15 @@ fraction!/negate: func [x] [
 ]
 
 fraction!/power: func [x y n: d:] [
-  n: x/n ** y
-  d: x/d ** y
+  n: x/n pow y
+  d: x/d pow y
   any [
     attempt [all [
-      zero? n // 1
-      zero? d // 1
+      zero? n mod 1
+      zero? d mod 1
       to-fraction [to-integer n  to-integer d]
     ]]
-    (x/n / x/d) ** y
+    (x/n / x/d) pow y
   ]
 ]
 
@@ -179,8 +175,8 @@ fraction!/square-root: func [x n: d:] [
   d: square-root x/d
   any [
     all[
-      zero? n // 1
-      zero? d // 1
+      zero? n mod 1
+      zero? d mod 1
       to-fraction [to-integer n  to-integer d]
     ]
     n / d
@@ -219,4 +215,4 @@ fraction!/lesser-or-equal?: func [x y r:] [
   (f-make decimal! x) < (f-make decimal! y)
 ]
 
-; vim: set syn=rebol ts=2 sw=2 sts=2:
+; vim: set et sw=2:
