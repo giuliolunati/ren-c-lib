@@ -16,7 +16,8 @@ rate: 0
 
 t-factor: func[
   q1 [any-number!] q2 [any-number!]
-  ][ 2 ** ((3 * q2) - q1 - 8 / 2)
+  ][
+  power 2 3 * q2 - q1 - 8 / 2
 ]
 
 fix-date: function [d t [time!]] [
@@ -28,13 +29,13 @@ fix-date: function [d t [time!]] [
 
 load-desk: function [
     desk [file! text! block! blank!]
-	][
+  ][
   if not desk [fail "Missing desk!"]
   text: make block! 0 x: _
   if all [file? desk not exists? desk] [
     desk: make block! 16
   ]
-  if not block? desk [desk: load/all/type desk _]
+  if not block? desk [desk: load/all desk]
   parse desk [while
     [ set x remove text! (append text x)
     | skip ]
@@ -47,7 +48,7 @@ load-desk: function [
     ]
   ]
   set 'rate 0
-	repeat i length of desk [
+  repeat i length of desk [
     d: desk/:i
     new-line/all d false
     while [6 > length of d] [append d _]
@@ -55,8 +56,8 @@ load-desk: function [
     if d/4
     [ set 'rate (86400 / d/4 + rate) ] ; queries/day
     d/5: fix-date d/5 zone ; next date
-	]
-	reduce [desk text]
+  ]
+  reduce [desk text]
 ]
 
 save-desk: func [
@@ -169,7 +170,7 @@ print-stats: function [
   print ["  delay:" s/delay]
   older: s/older
   if older [
-    print ["  wait:" to-time subtract-date older now]
+    print ["  wait for:" to-time subtract-date older now]
     print ["  " older]
   ]
 ]
@@ -179,21 +180,25 @@ subtract-date: function [a [date!] b [date!]] [
 ]
 
 ;; MAIN
+random/seed now/precise
 cd :system/options/path
 arg: system/options/args
 cmd: src: desk-file: last-q: _
 t0: now
+new: false
 
 for-next arg arg [
   case [
     "-auto" = arg/1 [
       arg: next arg
       b: make block! 16
-      r: 0
-      t: x: _
+      t1: t: _
       for-next arg arg [
         desk: first load-desk to-file arg/1
-        if not trap [desk/1/5 > t0] [continue]
+        desk/1/5 or [continue]
+        t: desk/1/5
+        if any [not t1 t < t1] [t1: t]
+        if t > t0 [continue]
         s: stats desk
         repend/only b [
           s/delay
@@ -201,7 +206,10 @@ for-next arg arg [
           arg/1
         ]
       ]
-      if empty? b [quit]
+      if empty? b [
+        print ["Wait for" to-time subtract-date t1 now]
+        quit
+      ]
       sort/all b
       for-each b b [
         print format [-6 -8 " "] reduce [
@@ -259,9 +267,14 @@ for-next arg arg [
         quit
       ]
     ]
-    find ["+" "+2" "+txt"] arg/1
-    [ cmd: arg/1 | src: to-file arg/2 | arg: next arg ]
-    true [desk-file: to-file arg/1]
+    "-new" = arg/1 [
+      arg: next arg
+      new: true
+    ]
+    find ["+" "+2" "+txt"] arg/1 [
+      cmd: arg/1 | src: to-file arg/2 | arg: next arg
+    ]
+    default [desk-file: to-file arg/1]
   ]
 ]
 set [desk text] load-desk desk-file
@@ -317,40 +330,43 @@ do-command: function [] [
 ]
 
 forever [
+  if text [sort desk]
+  else [sort/compare desk :cmp45]
   t: now
   d: d0: _
   for-each x desk [
     if all [x/5 | any [not d0 | x/5 < d0/5]] [d0: x ]
     if all [x/5 | x/5 > t] [continue]
+    if all [x/5 | new] [continue]
     d: x
     break
   ]
   print ["  (" round/to rate 0.1 " queries/day)"] 
-	if not d [
+  if not d [
     print ["retry at" d0/5]
     print ["[" to-time subtract-date d0/5 now "]"]
     do-command
     continue
   ]
   assert [any [not d/5 | d/5 <= t]]
-	if text [
+  if text [
     i: d/1
     if any [not last-q | last-q + 1 != i] [
-	    print "  ================="
+      print "  ================="
       p: skip at text i 1 - context-length
       for-next p p [
         print p/1
         if i = index-of p [break]
       ]
     ]
-	  write-stdout if d/5 ["  ............... ? "]
+    write-stdout if d/5 ["  ............... ? "]
     else ["  ............... [NEW] ? "]
     last-q: i
   ]
   else [
-	  print "  ================="
+    print "  ================="
     print form reduce d/1
-	  write-stdout case [
+    write-stdout case [
       d/5 ["? "]
       d/2 ["[NEW] ? "]
     ] else ["  >>>>>>>>>>>>>>>>> "]
@@ -363,14 +379,22 @@ forever [
     else ["=== END ==="]
   )]
   else [
-    trap [q: reduce d/2]
+    q: reduce d/2
     print form q
-    if error? q [continue]
   ]
   print "  -----------------"
   write-stdout "  quality? [0-5] > "
-  while [not attempt [q: to-integer do-command]] []
-  if q < 0 [q: 0]
+  forever [
+    if not q: do-command [continue]
+    if q/1 = #">" [
+      d/2: next q
+      continue
+    ]
+    if attempt [q: to-integer q] [break]
+  ]
+  if q < 0 [
+    d/3: d/4: d/5: _ continue
+  ]
   if q > 5 [q: 5]
   d/3: default [0]
   if d/4 [set 'rate (-86400 / d/4 + rate)]
@@ -391,8 +415,6 @@ forever [
   d/3: q
   d/5: now + (d/4 / 86400)
   d/5: fix-date d/5 zone
-	if text [sort desk]
-  else [sort/compare desk :cmp45]
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
