@@ -30,6 +30,11 @@ deamp: function [txt [text!]] [
 markup-parser: make object! [
   html: true ; -> parse as HTML
   ; html: false -> parse as XML
+  html-empty-tags: [
+    "area" "base" "br" "col" "embed"
+    "hr" "img" "input" "keygen" "link"
+    "meta" "param" "source" "track" "wbr"
+  ]
   ;; HOOKS TO BE CUSTOMIZED
   error: function [x] [
     write-stdout "ERROR @ "
@@ -84,6 +89,8 @@ markup-parser: make object! [
       (clear buf append buf as text! x)
       any [!spaces opt !attribute]
       [ "/>" (E buf)
+      | html :(not null? find html-empty-tags buf/1)
+        (E buf)
       | ">" (O buf)
       ]
       opt
