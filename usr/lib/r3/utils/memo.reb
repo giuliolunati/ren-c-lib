@@ -35,10 +35,13 @@ load-desk: function [
   if all [file? desk not exists? desk] [
     desk: make block! 16
   ]
+  code: make group! 0
   if not block? desk [desk: load/all desk]
   parse desk [while
     [ set x remove text! (append text x)
-    | skip ]
+    | set x remove group! (append code x)
+    | skip
+    ]
   ]
   if empty? text [text: _]
   else [
@@ -47,6 +50,7 @@ load-desk: function [
       repend/only desk [1 + length of desk _ _ _ _]
     ]
   ]
+  if empty? code [code: _]
   set 'rate 0
   repeat i length of desk [
     d: desk/:i
@@ -57,56 +61,31 @@ load-desk: function [
     [ set 'rate (86400 / d/4 + rate) ] ; queries/day
     d/5: fix-date d/5 zone ; next date
   ]
-  reduce [desk text]
+  reduce [desk text code]
 ]
 
 save-desk: func [
     desk [block!]
     text [block! blank!]
+    code [group! blank!]
     out [file!]
   ][
   sort/compare desk :cmp5
-  new-line/all desk true 
-  write out mold/only desk
-  if text [
-    write/append out reduce [newline mold/only text]
+  new-line/all desk true
+  write out ""
+  if code [
+    write/append out reduce ["; code^/" mold code "^/^/" ]
   ]
+  write/append out reduce ["; cards^/" mold/only desk]
+  if text [
+    write/append out reduce ["^/^/; text^/" mold/only text]
+  ]
+  write/append out "^/^/; vim: set syn=rebol:"
 ]
 
-add-cards: function [
-    desk [block!]
-    src [file! text!]
-    /two
-    /txt
-  ][
-  spc: charset " ^-"
-  if txt [
-    src: read/lines src
-    for-next src src [
-      if parse src/1 [any spc] [
-        remove src src: back src
-      ]
-    ]
-    d: desk
-    for-next desk desk
-    [ if block? desk/1 [d: desk break] ]
-    insert d src
-    d: (index-of d) - 1 
-    repeat i length of src [
-      repend/only desk [i + d _ _ _ _]
-    ]
-  ] else [
-    src: load/type src _
-    new-line/all src false
-    forskip src 2 [
-      if tail? next src [break]
-      repend/only desk [src/1 src/2 _ _ _]
-      if two [
-        repend/only desk [src/2 src/1 _ _ _]
-      ]
-    ]
-  ]
-  desk
+reset-desk: func [desk [block!]] [
+  for-each x desk [x/3: x/4: x/5: _]
+  probe desk
 ]
 
 cmp45: func [a [block!] b [block!]] [
@@ -163,7 +142,7 @@ print-stats: function [
     x: x + s/:i
     print ["  "
       i - 1
-      to-percent round/to/ceiling (x / length of desk) .01
+      to-percent round/to/ceiling (x / length of desk) 0.01
     ]
   ]
   print ["  q/day:" to-integer s/rate]
@@ -189,13 +168,17 @@ new: false
 
 for-next arg arg [
   case [
-    "-auto" = arg/1 [
+    find arg/1 "-auto" [
       arg: next arg
       b: make block! 16
       t1: t: _
       for-next arg arg [
         desk: first load-desk to-file arg/1
-        desk/1/5 or [continue]
+        if any [
+          not desk
+          not desk/1
+          not desk/1/5
+        ] [continue]
         t: desk/1/5
         if any [not t1 t < t1] [t1: t]
         if t > t0 [continue]
@@ -274,31 +257,31 @@ for-next arg arg [
     find ["+" "+2" "+txt"] arg/1 [
       cmd: arg/1 | src: to-file arg/2 | arg: next arg
     ]
-    default [desk-file: to-file arg/1]
-  ]
+  ] else [desk-file: to-file arg/1]
 ]
-set [desk text] load-desk desk-file
+set [desk text code] load-desk desk-file
+if code [do code]
 if text [sort desk]
 else [sort/compare desk :cmp45]
 if cmd [ case [
   cmd = "+" [
     save-desk
       add-cards desk src
-      _
+      _ _
       desk-file
     quit
   ]
   cmd = "+2" [
     save-desk
       add-cards/two desk src
-      _
+      _ _
       desk-file
     quit
   ]
   cmd = "+txt" [
     save-desk
       add-cards/txt desk src
-      _
+      _ _
       desk-file
     quit
   ]
@@ -310,20 +293,23 @@ do-command: function [] [
   case [
     c = "q" [quit]
     c = "x" [
-      save-desk desk text desk-file
+      save-desk desk text code desk-file
       print-stats desk
       quit
     ]
     c = "w" [
-      save-desk desk text desk-file
+      save-desk desk text code desk-file
     ]
     c = "?" [
       print-stats desk
     ]
     c/1 = #"%" [
-      save-desk desk text to-file next c
+      save-desk desk text code to-file next c
       print-stats desk
       quit
+    ]
+    c = "reset" [
+      reset-desk desk
     ]
   ]
   c
