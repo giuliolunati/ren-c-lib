@@ -21,7 +21,7 @@ t-factor: func[
 ]
 
 fix-date: function [d t [time!]] [
-  if any [not date? d | set? 'd/zone] [return d]
+  if any [not date? d, set? 'd/zone] [return d]
   d: d + t
   d/zone: t
   d
@@ -90,20 +90,20 @@ reset-desk: func [desk [block!]] [
 
 cmp45: func [a [block!] b [block!]] [
   case [
-    all [a/4 | not b/4] [true]
-    all [b/4 | not a/4] [false]
-    all [not a/4 | not b/4] [a/6 < b/6]
+    all [a/4, not b/4] [true]
+    all [b/4, not a/4] [false]
+    all [not a/4, not b/4] [a/6 < b/6]
     a/4 < b/4 [true]
     a/4 > b/4 [false]
-    all [a/5 | b/5 ] [a/5 < b/5]
+    all [a/5, b/5 ] [a/5 < b/5]
   ] else [a/6 < b/6]
 ]
 
 cmp5: func [a [block!] b [block!]] [
   case [
-    all [a/5 | not b/5] [true]
-    all [b/5 | not a/5] [false]
-    all [not a/5 | not b/5] [a/6 < b/6]
+    all [a/5, not b/5] [true]
+    all [b/5, not a/5] [false]
+    all [not a/5, not b/5] [a/6 < b/6]
   ] else [a/5 < b/5]
 ]
 
@@ -125,7 +125,7 @@ stats: function [
       if x/5 < t [
         w: (subtract-date t x/5) / x/4 + w
       ]
-      if any [not t0 | x/5 < t0] [t0: x/5]
+      if any [not t0, x/5 < t0] [t0: x/5]
     ]
   ]
   r: r * 86400
@@ -221,7 +221,7 @@ for-next arg arg [
           s: stats desk
           r: r + s/rate
           o: s/older
-          if any [not t | all [o o < t]] [t: o]
+          if any [not t, all [o o < t]] [t: o]
           repend/only b [
             s/delay
             s/rate
@@ -255,7 +255,7 @@ for-next arg arg [
       new: true
     ]
     find ["+" "+2" "+txt"] arg/1 [
-      cmd: arg/1 | src: to-file arg/2 | arg: next arg
+      cmd: arg/1, src: to-file arg/2, arg: next arg
     ]
   ] else [desk-file: to-file arg/1]
 ]
@@ -321,9 +321,9 @@ forever [
   t: now
   d: d0: _
   for-each x desk [
-    if all [x/5 | any [not d0 | x/5 < d0/5]] [d0: x ]
-    if all [x/5 | x/5 > t] [continue]
-    if all [x/5 | new] [continue]
+    if all [x/5, any [not d0, x/5 < d0/5]] [d0: x ]
+    if all [x/5, x/5 > t] [continue]
+    if all [x/5, new] [continue]
     d: x
     break
   ]
@@ -334,10 +334,10 @@ forever [
     do-command
     continue
   ]
-  assert [any [not d/5 | d/5 <= t]]
+  assert [any [not d/5, d/5 <= t]]
   if text [
     i: d/1
-    if any [not last-q | last-q + 1 != i] [
+    if any [not last-q, last-q + 1 != i] [
       print "  ================="
       p: skip at text i 1 - context-length
       for-next p p [
