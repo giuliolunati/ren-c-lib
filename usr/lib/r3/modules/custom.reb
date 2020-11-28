@@ -22,12 +22,12 @@ mold-recur?: function [x] [
   false
 ]
 
-is-custom-type?: function [x] [
+is-custom-type?: function [x [<opt>]] [
   all [map? x same? x :x/custom-type]
 ]
 
 has-custom-type?: function [x] [
-  all [map? x is-custom-type? :x/custom-type]
+  all [map? x is-custom-type? pick x 'custom-type]
 ]
 
 fail-invalid-parameter: function [
@@ -78,16 +78,17 @@ custom: append make object! [] [< _ <= _ > _ >= _] ;; dirty trick :-/
 custom: make custom [
 
 make: enclose :lib/make function [f [frame!]] [
-  if is-custom-type? f/type [
+  if has-custom-type? f/type [
     return f/type/make f/type f/def
   ]
   else [do f]
 ]
 
 to: function [
-    type [datatype! map!]
-    value [any-value!]
-  ][
+  'type [<blank> quoted! word! path! datatype! map!]
+  value [<blank> <dequote> any-value!]
+  returns: [<opt> any-value!]
+][
   if has-custom-type? :value [
     value/custom-type/to type value
   ]
@@ -147,7 +148,8 @@ to-string: specialize :to [type: text!]
 to-paren: specialize :to [type: group!]
 
 form: enclose :lib/form function [f] [
-  value: f/value
+  if void? value: select f 'value
+  [ return "#[void]" ]
   if all [
     has-custom-type? value
     r: try attempt [value/custom-type/form value]
@@ -159,7 +161,7 @@ form: enclose :lib/form function [f] [
     for-next value value [
       if not begin [append r space]
       begin: false
-      append r form value/1
+      append r form first value
     ]
     return r
   ]
