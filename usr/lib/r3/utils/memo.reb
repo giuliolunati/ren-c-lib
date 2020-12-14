@@ -39,7 +39,7 @@ load-desk: function [
   if not block? desk [desk: load/all desk]
   parse desk [while
     [ set x remove text! (append text x)
-    | set x remove group! (append code x)
+    | set x remove group! (append code as block! x)
     | skip
     ]
   ]
@@ -80,7 +80,7 @@ save-desk: func [
   if text [
     write/append out reduce ["^/^/; text^/" mold/only text]
   ]
-  write/append out "^/^/; vim: set syn=rebol:"
+  write/append out "^/^/; vim: set et sw=4 syn=rebol:"
 ]
 
 reset-desk: func [desk [block!]] [
@@ -180,7 +180,7 @@ for-next arg arg [
           not desk/1/5
         ] [continue]
         t: desk/1/5
-        if any [not t1 t < t1] [t1: t]
+        if any [not t1, t < t1] [t1: t]
         if t > t0 [continue]
         s: stats desk
         repend/only b [
@@ -190,7 +190,7 @@ for-next arg arg [
         ]
       ]
       if empty? b [
-        print ["Wait for" to-time subtract-date t1 now]
+        if t1 [print ["Wait for" to-time subtract-date t1 now]]
         quit
       ]
       sort/all b
@@ -260,7 +260,7 @@ for-next arg arg [
   ] else [desk-file: to-file arg/1]
 ]
 set [desk text code] load-desk desk-file
-if code [do code]
+if code [code-obj: make object! as block! code]
 if text [sort desk]
 else [sort/compare desk :cmp45]
 if cmd [ case [
@@ -315,6 +315,11 @@ do-command: function [] [
   c
 ]
 
+do-in-code: func [x] [
+  either group? x
+    [ do bind x code-obj ] [ x ]
+]
+
 forever [
   if text [sort desk]
   else [sort/compare desk :cmp45]
@@ -339,7 +344,11 @@ forever [
     i: d/1
     if any [not last-q, last-q + 1 != i] [
       print "  ================="
-      p: skip at text i 1 - context-length
+      p: at text i
+      p: any [
+        skip p 1 - context-length
+        head p
+      ]
       for-next p p [
         print p/1
         if i = index-of p [break]
@@ -351,7 +360,7 @@ forever [
   ]
   else [
     print "  ================="
-    print form reduce d/1
+    print form do-in-code d/1
     write-stdout case [
       d/5 ["? "]
       d/2 ["[NEW] ? "]
@@ -365,7 +374,7 @@ forever [
     else ["=== END ==="]
   )]
   else [
-    q: reduce d/2
+    q: do-in-code d/2
     print form q
   ]
   print "  -----------------"
