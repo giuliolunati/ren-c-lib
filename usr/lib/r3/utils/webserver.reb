@@ -55,7 +55,7 @@ attempt [
 ]
 rem-to-html: attempt[chain [:rem/load-rem :html/to-html]]
 
-cd (:system/options/path)
+change-dir system/options/path
 
 ext-map: [
   "css" css

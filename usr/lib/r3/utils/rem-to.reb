@@ -3,7 +3,7 @@ REBOL[]
 rem: import 'rem
 html: import 'html
 args: system/options/args
-cd :system/options/path
+change-dir system/options/path
 
 dot: rem/load-rem to-file args/1
 print html/mold-html dot

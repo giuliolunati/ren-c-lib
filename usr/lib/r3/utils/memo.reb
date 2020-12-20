@@ -36,7 +36,7 @@ load-desk: function [
     desk: make block! 16
   ]
   code: make group! 0
-  if not block? desk [desk: load/all desk]
+  if not block? desk [desk: load desk]
   parse desk [while
     [ set x remove text! (append text x)
     | set x remove group! (append code as block! x)
@@ -160,7 +160,7 @@ subtract-date: function [a [date!] b [date!]] [
 
 ;; MAIN
 random/seed now/precise
-cd :system/options/path
+change-dir system/options/path
 arg: system/options/args
 cmd: src: desk-file: last-q: _
 t0: now

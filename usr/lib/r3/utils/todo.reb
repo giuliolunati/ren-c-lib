@@ -163,7 +163,7 @@ parse help-me: {
   N    : select Nth item
 } [any [thru #"^/" opt remove ["^-" | "  "]]]
 
-cd :system/options/path
+change-dir system/options/path
 arg: system/options/args
 xchar: charset {@!}
 index: 1

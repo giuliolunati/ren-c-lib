@@ -19,7 +19,7 @@ cleaner: make markup-parser [
   T: [x] -> [emit x]
 ]
 
-cd :system/options/path
+change-dir system/options/path
 infile: outfile: _
 
 for-next a system/options/args [
