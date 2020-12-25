@@ -25,8 +25,8 @@ mold-text: function [txt /quot /apos t:] [
 	xchar: case [
 	  quot [mchar+quot]
 		apos [mchar+apos]
-		default [mchar]
-	]
+		
+	] else [mchar]
 	parse txt [any
 		[ set t xchar (r ++ entities/:t)
 		| copy t [to xchar | to end]
@@ -36,8 +36,8 @@ mold-text: function [txt /quot /apos t:] [
 	case [
 		quot [unspaced [{"} r {"}]]
 		apos [unspaced [{'} r {'}]]
-		default [r]
-	]
+		
+	] else [r]
 ]
 		
 mold-attribute: function [a v] [

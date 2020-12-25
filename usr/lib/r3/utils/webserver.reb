@@ -131,8 +131,7 @@ html-list-dir: function [
       case [
         is-rebol-file [{E}]
         dir? i [{>}]
-        default [{V}]
-      ]
+      ] else [{V}]
       {]</a> }
       {<a }
       if dir? i [{class="b" }]

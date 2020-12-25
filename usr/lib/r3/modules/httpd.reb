@@ -75,8 +75,8 @@ sys/make-scheme [
                         dispatch client
                     ]
 
-                    default [read client]
                 ]
+                else [read client]
 
                 client
             ]
@@ -99,20 +99,20 @@ sys/make-scheme [
                         close client
                     ]
 
-                    default [client]
                 ]
+                else [client]
             ]
 
             'close [
                 close client
             ]
 
-            default [
-                net-utils/net-log [
-                    "Unexpected Client Event:" uppercase form event/type
-                ]
-                client
+        ]
+        else [
+            net-utils/net-log [
+                "Unexpected Client Event:" uppercase form event/type
             ]
+            client
         ]
     ]
 
@@ -129,8 +129,8 @@ sys/make-scheme [
                 spec/port-id: spec/ref/3
                 spec/actions: spec/ref/4
             ]
-            default [fail "Server lacking core features."]
         ]
+        else [fail "Server lacking core features."]
 
         server/locals: make object! [
             handler: _
@@ -172,8 +172,8 @@ sys/make-scheme [
                     event
                 ]
 
-                default [false]
             ]
+            else [false]
         ]
 
         server/awake: function [event [event!]] [
@@ -183,8 +183,8 @@ sys/make-scheme [
                     true
                 ]
 
-                default [event/port]
             ]
+            else [event/port]
         ]
 
         server
@@ -204,9 +204,9 @@ sys/make-scheme [
                     server/locals/open?
                 ]
 
-                default [
-                    fail ["HTTPd port does not reflect this property:" uppercase mold property]
-                ]
+            ]
+            else [
+                fail ["HTTPd port does not reflect this property:" uppercase mold property]
             ]
         ]
 
@@ -520,7 +520,7 @@ sys/make-scheme [
                 ]
             ]
 
-            default [:outcome] ; is port
         ]
+        else [:outcome] ; is port
     ]
 ]

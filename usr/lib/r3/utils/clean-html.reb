@@ -28,8 +28,8 @@ for-next a system/options/args [
     [ help-me QUIT 0 ]
     not infile [infile: to-file a/1]
     not outfile [outfile: to-file a/1]
-    default [print help-me QUIT 1]
-  ]
+    
+  ] else [print help-me QUIT 1]
 ]
 
 emit: either outfile

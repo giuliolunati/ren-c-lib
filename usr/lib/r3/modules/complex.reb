@@ -52,12 +52,11 @@ complex!/to: function [
     block! [reduce [value/r value/i]]
     pair! [to-pair reduce [value/r value/i]]
     text! [complex!/form value]
-    default [
+  ] else [
       fail/where [
         "Cannot convert complex! to" mold type
       ] 'type
     ]
-  ]
 ]
 
 to-complex: specialize :custom/to [type: complex!]
@@ -94,8 +93,7 @@ complex!/form: c-form: function [
       if i != 1 [i]
     ]]
     r != 0 [form r]
-    default ["0"]
-  ]
+  ] else  ["0" else
 ]
 
 complex!/mold: function [value /only /all /flat ] [

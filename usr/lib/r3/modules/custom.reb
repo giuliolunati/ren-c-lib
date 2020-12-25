@@ -274,8 +274,8 @@ mold: enclose :lib/mold function [f] [
       ]
       repend r [line either all ["]]"] ["]"]]
     ]
-    default [do f]
-  ] ; case
+    
+  ] else [do f] ; case
   if limit and [limit < length of r] [
     r: head clear change r at r limit "..."
   ]

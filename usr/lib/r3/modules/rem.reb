@@ -223,8 +223,8 @@ rem: make object! [
             append node to-integer t/2
           ]
         ]
-        default [break]
-      ]
+        
+      ] else [break]
     ]
     if id [append node /id append node :id]
     if class [append node /class append node :class]

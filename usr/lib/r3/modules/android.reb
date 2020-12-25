@@ -24,7 +24,7 @@ make-sl4a-error: func [
 awake-handler: func [event /local tcp-port] [
 	;print ["=== Client event:" event/type]
 	tcp-port: event/port
-	switch/default event/type [
+	switch event/type [
 		error [
 			;print "error event received"
 			tcp-port/spec/port-state: 'error
@@ -56,7 +56,7 @@ awake-handler: func [event /local tcp-port] [
 			tcp-port/spec/port-state: 'ready
 			true
 		]
-	] [true]
+	] else [true]
 ]
 
 sync-write: proc [sl4a-port [port!] JSON-string
