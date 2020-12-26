@@ -71,18 +71,22 @@ ext-map: [
   "r3" rebol
   "reb" rebol
   "rem" rem
+  "svg" svg
   "txt" text
   "wasm" wasm
 ]
 
 mime: make map! [
+  css "text/css"
+  gif "image/gif"
   html "text/html"
   jpeg "image/jpeg"
-  r "text/plain"
-  text "text/plain"
   js "application/javascript"
   json "application/json"
-  css "text/css"
+  png "image/png"
+  r "text/plain"
+  svg "image/svg+xml"
+  text "text/plain"
   wasm "application/wasm"
 ]
 
@@ -170,23 +174,12 @@ handle-request: function [
     req [object!]
   ][
   set 'request req  ; global 
+  req/target: my dehex
   path-elements: next split req/target #"/"
   ; 'extern' url /http://ser.ver/...
-  if parse req/request-uri ["/http" opt "s" "://" to end] [
-    if all [
-      3 = length path-elements
-      #"/" != last path-elements/3
-    ] [; /http://ser.ver w/out final slash
-      path: unspaced [
-        req/target "/"
-        if req/query-string unspaced [
-          "?" to-text req/query-string
-        ]
-      ]
-      return redirect-response path
-    ]
-    path: to-url next req/request-uri
-    path-type: 'file
+  if parse req/request-uri ["//"] [
+    lib/print req/request-uri
+    return reduce [200 mime/html "req/request-uri"]
   ] else [
     path: join root-dir req/target
     path-type: try exists? path

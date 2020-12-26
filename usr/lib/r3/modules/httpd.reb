@@ -1,7 +1,7 @@
 Rebol [
     Title: "Web Server Scheme for Ren-C"
     Author: "Christopher Ross-Gill"
-    Date: 14-Dec-2018
+    Date: 13-Sep-2019
     File: %httpd.reb
     Home: https://github.com/rgchris/Scripts
     Version: 0.3.5
@@ -21,7 +21,7 @@ Rebol [
     ]
     Usage: {
         For a simple server that just returns HTTP envelope with "Hello":
- 
+
             wait srv: open [scheme: 'httpd 8000 [render "Hello"]]
 
         Then point a browser at http://127.0.0.1:8000
@@ -55,7 +55,10 @@ sys/make-scheme [
 
     spec: make system/standard/port-spec-head [port-id: actions: _]
 
-    wake-client: function [event [event!]] [
+    wake-client: function [
+        return: [port!]
+        event [event!]
+    ][
         client: event/port
 
         switch event/type [
@@ -74,46 +77,25 @@ sys/make-scheme [
                         transcribe client
                         dispatch client
                     ]
-
+                ] else [
+                    read client
                 ]
-                else [read client]
-
-                client
             ]
 
             'wrote [
-                case [
-                    send-chunk client [
-                        client
-                    ]
-
-                    client/locals/response/kill? [
-                        close client
-                        wake-up client/locals/parent make event! [
-                            type: 'close
-                            port: client/locals/parent
-                        ]
-                    ]
-
-                    client/locals/response/close? [
-                        close client
-                    ]
-
-                ]
-                else [client]
+                ; !!! WROTE event used to be used for manual chunking
             ]
 
             'close [
                 close client
             ]
 
-        ]
-        else [
-            net-utils/net-log [
+            (elide net-utils/net-log [
                 "Unexpected Client Event:" uppercase form event/type
-            ]
-            client
+            ])
         ]
+
+        return client
     ]
 
     init: function [server [port!]] [
@@ -129,8 +111,8 @@ sys/make-scheme [
                 spec/port-id: spec/ref/3
                 spec/actions: spec/ref/4
             ]
+            fail "Server lacking core features."
         ]
-        else [fail "Server lacking core features."]
 
         server/locals: make object! [
             handler: _
@@ -159,7 +141,6 @@ sys/make-scheme [
             instance: 0
             request: _
             response: _
-            wire: make binary! 4096
             parent: :server
         ]
 
@@ -171,20 +152,44 @@ sys/make-scheme [
                     read client
                     event
                 ]
-
-            ]
-            else [false]
+            ] else [false]
         ]
 
-        server/awake: function [event [event!]] [
-            switch event/type [
+        server/awake: function [e [event!]] [
+            switch e/type [
                 'close [
-                    close event/port
+                    close e/port
                     true
                 ]
 
-            ]
-            else [event/port]
+                ; Since WRITE is asynchronous we can't catch errors via TRAP
+                ; https://github.com/metaeducation/rebol-httpd/issues/4
+                ;
+                'error [
+                    print ["Now we're in the SERVER/AWAKE with an error"]
+                    -- err: ensure error! e/port/error
+
+                    ; !!! No way to tell at the moment whether it was the
+                    ; async WRITE of the header or the async WRITE of the
+                    ; content that failed.  Better identity mechanism would
+                    ; be needed for that.
+                    ;
+                    net-utils/net-log [
+                        "Response header/content not sent to client."
+                            "Reason:" err/message
+                    ]
+
+                    if not find [  ; !!! Should use ID codes, not strings!
+                        "Connection reset by peer"
+                        "Broken pipe"
+                    ] err/message [
+                        e/port/error: _
+                        return true  ; Suppress these to keep server running
+                    ]
+
+                    return false  ; let default AWAKE handler do the FAIL
+                ]
+            ] else [false]
         ]
 
         server
@@ -204,9 +209,10 @@ sys/make-scheme [
                     server/locals/open?
                 ]
 
-            ]
-            else [
-                fail ["HTTPd port does not reflect this property:" uppercase mold property]
+                fail [
+                    "HTTPd port does not reflect this property:"
+                        uppercase mold property
+                ]
             ]
         ]
 
@@ -237,8 +243,7 @@ sys/make-scheme [
         timeout: _
         type: 'application/x-www-form-urlencoded
         server-software: unspaced [
-;          system/script/header/title " v" system/script/header/version " "
-            "Rebol/" system/product " v" system/version
+            "Rebol/" system/product space "v" system/version
         ]
         server-name: _
         gateway-interface: _
@@ -247,7 +252,7 @@ sys/make-scheme [
         request-method: _
         request-uri: _
         path-info: _
-        path-translated:
+        path-translated: _
         script-name: _
         query-string: _
         remote-host: _
@@ -289,7 +294,8 @@ sys/make-scheme [
         ]
     ]
 
-    transcribe: function [ 
+    transcribe: function [
+        return: <void>
         client [port!]
 
       <static>
@@ -303,7 +309,7 @@ sys/make-scheme [
 
         request-query (use [chars] [
             chars: complement charset [#"^@" - #" "]
-            [any chars] ;; I need empty request .../? [@giuliolunati]
+            [any chars]  ; ANY instead of SOME (empty requests are legal)
         ])
 
         header-feed ([newline | cr lf])
@@ -364,17 +370,8 @@ sys/make-scheme [
                     content: does [content: as-text binary]
                 )
             ] else [
-                comment [ ;-- !!! was commented out, why?
-                    action: _
-                    target: _
-                    request-method: _
-                    query-string: _
-                    binary: _
-                    content: _
-                    request-uri: _
-                ]
                 net-utils/net-log error: "Could Not Parse Request"
-                return _
+                return
             ]
 
             version: to text! :version
@@ -388,10 +385,10 @@ sys/make-scheme [
             headers: make header-prototype
                 http-headers: new-line/skip headers true 2
 
-            type: try all [
+            type: all [
                 text? type: headers/Content-Type
-                copy/part type (opt find type ";")
-            ]
+                copy/part type find type ";"   ; FIND revokes /PART when null
+            ] else ["text/html"]
 
             length: content-length: attempt [to integer! length] else [0]
 
@@ -400,6 +397,7 @@ sys/make-scheme [
     ]
 
     dispatch: function [
+        return: <void>
         client [port!]
 
       <static>
@@ -408,12 +406,12 @@ sys/make-scheme [
             200 "OK"
             201 "Created"
             204 "No Content"
-            
+
             301 "Moved Permanently"
             302 "Moved temporarily"
             303 "See Other"
             307 "Temporary Redirect"
-            
+
             400 "Bad Request"
             401 "No Authorization"
             403 "Forbidden"
@@ -439,7 +437,9 @@ sys/make-scheme [
                 keep ["HTTP/1.1" response/status
                     select status-codes response/status]
                 keep [cr lf "Content-Type:" response/type]
-                keep [cr lf "Content-Length:" length-of response/content]
+                keep [cr lf "Content-Length:"
+                    length of as binary! response/content  ; bytes (not chars)
+                ]
                 if response/compress? [
                     keep [cr lf "Content-Encoding:" "gzip"]
                 ]
@@ -450,6 +450,7 @@ sys/make-scheme [
                     keep [cr lf "Connection:" "close"]
                 ]
                 keep [cr lf "Cache-Control:" "no-cache"]
+                keep [cr lf "Access-Control-Allow-Origin: *"]
                 keep [cr lf cr lf]
             ]
         ])
@@ -458,7 +459,7 @@ sys/make-scheme [
 
         if object? client/locals/request [
             client/locals/parent/locals/handler client/locals/request response
-        ] else [ ;; don't crash on bad request
+        ] else [  ; don't crash on bad request
             response/status: 500
             response/type: "text/html"
             response/content: "Bad request."
@@ -468,59 +469,10 @@ sys/make-scheme [
             response/content: gzip response/content
         ]
 
-        if error? error: trap [
-            write client hdr: build-header response
-        ] [
-            ?? error
-            net-utils/net-log [
-                "Response headers not sent to client:"
-                    "reason: " error/message
-            ]
-            if not find [
-                "Connection reset by peer"
-                "Broken pipe"
-            ] error/message [
-                fail :error
-            ]
-        ]
-
-        insert client/locals/wire response/content
-    ]
-
-    send-chunk: function [
-        port [port!]
-    ][
+        ; Since WRITE is asynchronous we can't catch errors via TRAP
+        ; https://github.com/metaeducation/rebol-httpd/issues/4
         ;
-        ; !!! Trying to send data > 32'000 bytes at once would trigger R3's
-        ; internal chunking (which was buggy, see above).  Chunks > 32'000
-        ; bytes were thus manually chunked for some time, but it should be
-        ; increased to see if that bug still exists.
-        ;
-        case [
-            empty? port/locals/wire [_]
-
-            error? error: trap [
-                outcome: write port take/part port/locals/wire 32'000 ; 2'000'000
-            ][
-                ?? error
-                net-utils/net-log [
-                    "Part or whole of response not sent to client:"
-                        "reason: " error/message
-                ]
-                ;; only mask some errors:
-                if find [
-                    "Connection reset by peer"
-                    "Broken pipe"
-                ] error/message [
-                    clear port/locals/wire
-                    _
-                ]
-                else [
-                    fail :error
-                ]
-            ]
-
-        ]
-        else [:outcome] ; is port
+        write client hdr: build-header response  ; !!! is HDR var necessary?
+        write client response/content
     ]
 ]
