@@ -1,7 +1,7 @@
 REBOL [ 
   Title: "ASCII plot tools"
-  Type: 'module
-  Name: 'aplot
+  Type: module
+  Name: aplot
   Author: "giuliolunati@gmail.com"
 ]
 
@@ -123,7 +123,7 @@ scale: function [width n /f [action!]] [
 			if x * i >= d [d: x * i break]
 		]
     a: round/ceiling/to left d
-		f: x => [x]
+		f: x -> [x]
 	]
   b: width * step + left
   for x a b d [

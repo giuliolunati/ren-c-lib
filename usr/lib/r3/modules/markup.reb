@@ -15,7 +15,7 @@ ent-name: [some letter opt ";" | "#" some number opt ";"]
 
 deamp: function [txt [text!]] [
   t: n: _
-  if not parse txt [any [
+  if not parse? txt [while [
     to #"&"
     [ change copy t [
         "&#" copy n some number opt ";"
@@ -23,7 +23,7 @@ deamp: function [txt [text!]] [
       ] (to-char to-integer n)
     | skip
     ]
-   ]] [fail txt]
+   ] to end ] [fail txt]
   txt
 ]
 
@@ -53,12 +53,12 @@ markup-parser: make object! [
   buf: make block! 0
 
   ;; CHARSETS
-  !not-lt: negate charset "<"
+  !not-lt: complement charset "<"
   !space: charset { ^-}
   !wspace: union !space charset newline
-  !not-space: negate !space
+  !not-space: complement !space
   !not-name-char: union !space charset {/>'"=}
-  !name-char: negate !not-name-char
+  !name-char: complement !not-name-char
 
   ;; RULES
   !spaces: [some !space]
@@ -87,9 +87,9 @@ markup-parser: make object! [
       (P as text! x)
     | [copy x !name | !error]
       (clear buf append buf as text! x)
-      any [!spaces opt !attribute]
+      while [!spaces opt !attribute]
       [ "/>" (E buf)
-      | html :(not null? find html-empty-tags buf/1)
+      | html :(not null? find html-empty-tags pick buf 1)
         (E buf)
       | ">" (O buf)
       ]
@@ -105,11 +105,11 @@ markup-parser: make object! [
   !error: [x: (error x quit)] 
 
   !content: [
-    any [ !tag | !text]
+    while [ !tag | !text]
     [end | !error]
   ]
 
-  run: method [x] [parse x !content]
+  run: meth [x] [parse x !content]
 ]
 
 ;; vim: set et sw=2:

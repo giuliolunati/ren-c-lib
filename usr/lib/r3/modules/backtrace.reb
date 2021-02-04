@@ -1,8 +1,8 @@
 REBOL [
 	Title: "BackTrace"
 	Purpose: ""
-	Name: 'bt
-	Type: 'module
+	Name: bt
+	Type: module
 	Exports: [ bt ]
 	Author: "giuliolunati@gmail.com"
 	Version: 0.1.0

@@ -13,7 +13,7 @@ clear: func [] [
 
 put: func [
     x y
-    /weight w
+    /w "weight"
   ][
   w: default [1]
   sx: me + (w * x)

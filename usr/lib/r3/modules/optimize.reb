@@ -1,7 +1,8 @@
 REBOL [ 
-  Title: "Optimization tools"
   Type: module
   Name: optimize
+  Exports: [optimize golden-search]
+  Title: "Optimization tools"
   Author: "giuliolunati@gmail.com"
 ]
 
@@ -17,7 +18,7 @@ optimize: function [
   v0: _
   forever [
     v: score x
-    if any [not v0 | v < v0] [
+    if any [not v0, v < v0] [
       v0: v x0: copy x
       r: me * 2
     ] else [
@@ -38,9 +39,9 @@ golden-search: function [
     b [any-number!]
     precision [any-number!]
     f [action!]
-    /params data
+    /params
   ][
-  if params [f: specialize :f data]
+  if params [f: specialize :f params]
   d: b - a
   d: d * phi * phi
   a: a + d
