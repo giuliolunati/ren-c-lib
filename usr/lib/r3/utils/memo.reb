@@ -47,16 +47,16 @@ load-desk: function [
   if empty? text [text: _]
   else [
     assert [(length of desk) <= (length of text)]
-    while [(length of desk) < (length of text)] [
-      repend/only desk [1 + length of desk _ _ _ _]
+    loop [(length of desk) < (length of text)] [
+      append desk ^ reduce [1 + length of desk _ _ _ _]
     ]
   ]
   if empty? code [code: _]
   set 'rate 0
-  repeat i length of desk [
+  for i length of desk [
     d: desk/:i
     new-line/all d false
-    while [6 > length of d] [append d _]
+    loop [6 > length of d] [append d _]
     d/6: i
     if d/4
     [ set 'rate (86400 / d/4 + rate) ] ; queries/day
@@ -139,7 +139,7 @@ print-stats: function [
   ][
   s: stats desk
   x: 0
-  for i 6 1 -1 [
+  cfor i 6 1 -1 [
     x: x + s/:i
     print ["  "
       i - 1
@@ -184,7 +184,7 @@ for-next arg arg [
         if any [not t1, t < t1] [t1: t]
         if t > t0 [continue]
         s: stats desk
-        repend/only b [
+        append b ^ reduce [
           s/delay
           s/rate
           arg/1
@@ -192,7 +192,7 @@ for-next arg arg [
       ]
       if empty? b [
         if t1 [print ["Wait for" to-time subtract-date t1 now]]
-        quit
+        quit 0
       ]
       sort/all b
       for-each b b [
@@ -223,7 +223,7 @@ for-next arg arg [
           r: r + s/rate
           o: s/older
           if any [not t, all [o o < t]] [t: o]
-          repend/only b [
+          append b ^ reduce [
             s/delay
             s/rate
             arg/1
@@ -244,11 +244,11 @@ for-next arg arg [
         t: subtract-date t now
         if t > 0 [print format 14 reduce
         [ " wait for:" space to-time t ]]
-        quit
+        quit 0
       ]
       else [
         print-stats first load-desk to-file arg/1
-        quit
+        quit 0
       ]
     ]
     "-new" = arg/1 [
@@ -270,21 +270,21 @@ if cmd [ case [
       add-cards desk src
       _ _
       desk-file
-    quit
+    quit 0
   ]
   cmd = "+2" [
     save-desk
       add-cards/two desk src
       _ _
       desk-file
-    quit
+    quit 0
   ]
   cmd = "+txt" [
     save-desk
       add-cards/txt desk src
       _ _
       desk-file
-    quit
+    quit 0
   ]
 ]]
 
@@ -292,11 +292,11 @@ do-command: function [] [
   c: input
   if c = "" [return _]
   case [
-    c = "q" [quit]
+    c = "q" [quit 0]
     c = "x" [
       save-desk desk text code desk-file
       print-stats desk
-      quit
+      quit 0
     ]
     c = "w" [
       save-desk desk text code desk-file
@@ -307,7 +307,7 @@ do-command: function [] [
     c/1 = #"%" [
       save-desk desk text code to-file next c
       print-stats desk
-      quit
+      quit 0
     ]
     c = "reset" [
       reset-desk desk

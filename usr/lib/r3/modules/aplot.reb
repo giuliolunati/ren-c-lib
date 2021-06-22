@@ -126,7 +126,7 @@ scale: function [width n /f [action!]] [
 		f: x -> [x]
 	]
   b: width * step + left
-  for x a b d [
+  cfor x a b d [
     i: to-integer round x - left / step + 1
     change at s i "^^"
     change at s i + 1 format n - 1 f x
