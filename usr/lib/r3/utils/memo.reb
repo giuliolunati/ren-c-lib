@@ -1,5 +1,6 @@
 #!/usr/bin/r3
 REBOL []
+
 ; card:
 ; [
 ;  1: Question
@@ -153,7 +154,7 @@ print-stats: function [
     print ["  " older]
   ]
 ]
-  
+
 subtract-date: function [a [date!] b [date!]] [
   a/date - b/date * 86400 + to-integer (a/time - b/time)
 ]
@@ -325,14 +326,15 @@ forever [
   else [sort/compare desk :cmp45]
   t: now
   d: d0: _
-  for-each x desk [
-    if all [x/5, any [not d0, x/5 < d0/5]] [d0: x ]
-    if all [x/5, x/5 > t] [continue]
-    if all [x/5, new] [continue]
-    d: x
+  for-next x desk [
+    if not x/1/1 [remove x continue]
+    if all [x/1/5, any [not d0, x/1/5 < d0/5]] [d0: x/1 ]
+    if all [x/1/5, x/1/5 > t] [continue]
+    if all [x/1/5, new] [continue]
+    d: x/1
     break
   ]
-  print ["  (" round/to rate 0.1 " queries/day)"] 
+  print ["  (" round/to rate 0.1 " queries/day)"]
   if not d [
     print ["retry at" d0/5]
     print ["[" to-time subtract-date d0/5 now "]"]
@@ -385,8 +387,10 @@ forever [
       d/2: next q
       continue
     ]
+    if q = "d" [break]
     if attempt [q: to-integer q] [break]
   ]
+  if q = "d" [d/1: _ continue]
   if q < 0 [
     d/3: d/4: d/5: _ continue
   ]
