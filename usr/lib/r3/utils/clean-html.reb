@@ -34,27 +34,26 @@ either infile [html: to-text/relax read infile] [
   [ append html t ]
 ]
 
-filter-tag: function [a x b] [
-  if block? x [x: x/1]
+filter-tag: function [a name attr b] [
   case [
-    find ["font" "span"] x [
+    find ["font" "span"] name [
       return ""
     ]
   ]
-  return a & x & b
+  return a & name & b
 ]
 
 cleaner: either dump
   [markup-parser]
   [
     make markup-parser [
-      D: [x] -> [emit "<!" & x & ">"]
-      P: [x] -> [emit "<?" & x & "?>"]
-      !: [x] -> [emit "<!--" & x & "-->"]
-      O: [x] -> [emit filter-tag "<" x ">"]
-      E: [x] -> [emit filter-tag "<" x "/>"]
-      C: [x] -> [emit filter-tag "</" x ">"]
-      T: [x] -> [emit x]
+      DECL: [x] -> [emit "<!" & x & ">"]
+      PROC: [x] -> [emit "<?" & x & "?>"]
+      COMM: [x] -> [emit "<!--" & x & "-->"]
+      OTAG: [n a] -> [emit filter-tag "<" n a ">"]
+      ETAG: [n a] -> [emit filter-tag "<" n a "/>"]
+      CTAG: [n] -> [emit filter-tag "</" n _ ">"]
+      TEXT: [x] -> [emit x]
     ]
   ]
 

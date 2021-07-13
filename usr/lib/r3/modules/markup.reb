@@ -5,8 +5,18 @@ REBOL [
   Description: {}
 ]
 
-show: enfix function ['n] [
+show1: enfix function ['n] [
    set n function [x] compose/deep [print [(to-text to-word n) mold x]]
+]
+
+show2: enfix function ['n] [
+  set n function [x y] compose/deep [
+    print [
+      (to-text to-word n)
+      mold x
+      mold y
+    ]
+  ]
 ]
 
 letter: charset [#"a" - #"z" #"A" - #"Z" ]
@@ -40,13 +50,13 @@ markup-parser: make object! [
     write-stdout "ERROR @ "
     print [copy/part x 80 "...."]
   ]
-  D: show ; declaration <!...>
-  P: show ; processing instruction <?...>
-  !: show ; comment <!--...-->
-  E: show ; empty tag <...[/]>
-  O: show ; open tag <...>
-  C: show ; close tag </...>
-  T: show ; text
+  DECL: show1 ; declaration <!...>
+  PROC: show1 ; processing instruction <?...>
+  COMM: show1 ; comment <!--...-->
+  ETAG: show2 ; empty tag <...[/]>
+  OTAG: show2 ; open tag <...>
+  CTAG: show1 ; close tag </...>
+  TEXT: show1 ; text
  
   ;; LOCALS
   x: y: _
@@ -65,7 +75,7 @@ markup-parser: make object! [
   !wspaces: [some !wspace]
   !text: [copy x [
     !not-lt [to "<" | to end]
-  ] (T deamp as text! x)]
+  ] (TEXT deamp as text! x)]
   !name: [!name-char to !not-name-char]
   !quoted-value: [{"} thru {"} | {'} thru {'}]
   !attribute: [
@@ -78,26 +88,27 @@ markup-parser: make object! [
   ]
   !tag: ["<"
     [ "/" copy x to ">" skip
-      (C as text! x)
+      (CTAG as text! x)
     | "!--" copy x to "-->" 3 skip
-      (! as text! x)
+      (COMM as text! x)
     | "!" copy x to ">" skip
-      (D as text! x)
+      (DECL as text! x)
     | "?" copy x to "?>" 2 skip
-      (P as text! x)
+      (PROC as text! x)
     | [copy x !name | !error]
       (clear buf append buf as text! x)
       while [!spaces opt !attribute]
-      [ "/>" (E buf)
+      ; MUST use "first buf", NOT "buf/1"
+      [ "/>" (ETAG first buf next buf)
       | html :(not null? find html-empty-tags pick buf 1)
-        (E buf)
-      | ">" (O buf)
+        (ETAG first buf next buf)
+      | ">" (OTAG first buf next buf)
       ]
       opt
       [ ; TODO: manage inner <!--comments-->
         html :(x = "script")
         copy y [to "</script>" | !error]
-        (C as text! y)
+        (CTAG as text! y)
       ]
     ]
   ]
