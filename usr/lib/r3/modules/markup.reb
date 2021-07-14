@@ -5,20 +5,6 @@ REBOL [
   Description: {}
 ]
 
-show1: enfix function ['n] [
-   set n function [x] compose/deep [print [(to-text to-word n) mold x]]
-]
-
-show2: enfix function ['n] [
-  set n function [x y] compose/deep [
-    print [
-      (to-text to-word n)
-      mold x
-      mold y
-    ]
-  ]
-]
-
 letter: charset [#"a" - #"z" #"A" - #"Z" ]
 number: charset "0123456789"
 ent-name: [some letter opt ";" | "#" some number opt ";"]
@@ -40,23 +26,59 @@ deamp: function [txt [text!]] [
 markup-parser: make object! [
   html: true ; -> parse as HTML
   ; html: false -> parse as XML
+  indent: _
+  indent-text: ""
   html-empty-tags: [
     "area" "base" "br" "col" "embed"
     "hr" "img" "input" "keygen" "link"
     "meta" "param" "source" "track" "wbr"
   ]
   ;; HOOKS TO BE CUSTOMIZED
-  error: function [x] [
+  error: meth [x] [
     write-stdout "ERROR @ "
     print [copy/part x 80 "...."]
   ]
-  DECL: show1 ; declaration <!...>
-  PROC: show1 ; processing instruction <?...>
-  COMM: show1 ; comment <!--...-->
-  ETAG: show2 ; empty tag <...[/]>
-  OTAG: show2 ; open tag <...>
-  CTAG: show1 ; close tag </...>
-  TEXT: show1 ; text
+  ; declaration <!...>
+  DECL: meth [t] [
+    if indent [write-stdout indent-text]
+    print ["DECL" mold t]
+  ]
+  ; processing instruction <?...>
+  PROC: meth [t] [
+    if indent [write-stdout indent-text]
+    print ["PROC" mold t]
+  ]
+  ; comment <!--...-->
+  COMM: meth [t] [
+    if indent [write-stdout indent-text]
+    print ["COMM" mold t]
+  ]
+  ; empty tag <...[/]>
+  ETAG: meth [n a] [
+    if indent [write-stdout indent-text]
+    print ["ETAG" mold n mold a]
+  ]
+  ; open tag <...>
+  OTAG: meth [n a] [
+    if indent [
+      write-stdout indent-text
+      append/dup indent-text space indent
+    ]
+    print ["OTAG" mold n mold a]
+  ]
+  ; close tag </...>
+  CTAG: meth [n] [
+    if indent [
+      repeat indent [take/last indent-text]
+      write-stdout indent-text
+    ]
+    print ["CTAG" mold n]
+  ]
+  ; text
+  TEXT: meth [t] [
+    if indent [write-stdout indent-text]
+    print ["TEXT" mold t]
+  ]
  
   ;; LOCALS
   x: y: _
