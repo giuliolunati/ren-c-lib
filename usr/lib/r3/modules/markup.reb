@@ -1,7 +1,7 @@
 REBOL [
   Type: module
   Name: markup
-  Exports: [markup-parser]
+  Exports: [xml-parser html-parser]
   Description: {}
 ]
 
@@ -23,20 +23,17 @@ deamp: function [txt [text!]] [
   txt
 ]
 
-markup-parser: make object! [
-  html: true ; -> parse as HTML
-  ; html: false -> parse as XML
+xml-parser: make object! [
   indent: _
   indent-text: ""
-  html-empty-tags: [
-    "area" "base" "br" "col" "embed"
-    "hr" "img" "input" "keygen" "link"
-    "meta" "param" "source" "track" "wbr"
-  ]
+  void-tags: false
+  text-only-tags: false
+
   ;; HOOKS TO BE CUSTOMIZED
   error: meth [x] [
-    write-stdout "ERROR @ "
-    print [copy/part x 80 "...."]
+    write-stdout "ERROR @ {"
+    print [copy/part x 80 "...}"]
+    quit 1
   ]
   ; declaration <!...>
   DECL: meth [t] [
@@ -79,22 +76,19 @@ markup-parser: make object! [
     if indent [write-stdout indent-text]
     print ["TEXT" mold t]
   ]
- 
+
   ;; LOCALS
-  x: y: _
+  x: y: z: _
   buf: make block! 0
 
   ;; CHARSETS
   !not-lt: complement charset "<"
-  !space: charset { ^-}
-  !wspace: union !space charset newline
-  !not-space: complement !space
+  !space: charset { ^-^/}
   !not-name-char: union !space charset {/>'"=}
   !name-char: complement !not-name-char
 
   ;; RULES
   !spaces: [some !space]
-  !wspaces: [some !wspace]
   !text: [copy x [
     !not-lt [to "<" | to end]
   ] (TEXT deamp as text! x)]
@@ -118,24 +112,16 @@ markup-parser: make object! [
     | "?" copy x to "?>" 2 skip
       (PROC as text! x)
     | [copy x !name | !error]
-      (clear buf append buf as text! x)
+      (clear buf, append buf as text! x)
       while [!spaces opt !attribute]
-      ; MUST use "first buf", NOT "buf/1"
-      [ "/>" (ETAG first buf next buf)
-      | html :(not null? find html-empty-tags pick buf 1)
-        (ETAG first buf next buf)
-      | ">" (OTAG first buf next buf)
-      ]
-      opt
-      [ ; TODO: manage inner <!--comments-->
-        html :(x = "script")
-        copy y [to "</script>" | !error]
-        (CTAG as text! y)
+      (x: first buf)
+      [ "/>" (ETAG x next buf)
+      | ">" (OTAG x next buf)
       ]
     ]
   ]
 
-  !error: [x: (error x quit)] 
+  !error: [x: here (error x)] 
 
   !content: [
     while [ !tag | !text]
@@ -144,5 +130,72 @@ markup-parser: make object! [
 
   run: meth [x] [parse x !content]
 ]
+
+html-parser: make xml-parser [
+  void-tags: [
+    "area" "base" "br" "col" "embed"
+    "hr" "img" "input" "keygen" "link"
+    "meta" "param" "source" "track" "wbr"
+  ]
+  text-tags: ["script" "style" "textarea" "title"]
+
+  !tag: ["<"
+    [ "/" copy x to ">" skip
+      (CTAG as text! x)
+    | "!--" copy x to "-->" 3 skip
+      (COMM as text! x)
+    | "!" copy x to ">" skip
+      (DECL as text! x)
+    | "?" copy x to "?>" 2 skip
+      (PROC as text! x)
+    | [copy x !name | !error]
+      (clear buf, append buf as text! x)
+      while [!spaces opt !attribute]
+      (x: first buf)
+      [ opt "/" ">"
+        :(not null? find void-tags x)
+        (ETAG x next buf)
+      | ">" :(not null? find text-tags x)
+        (OTAG x next buf)
+        (x: unspaced ["</" x ">"])
+        copy y [to x | !error]
+        (TEXT as text! y)
+      | ">" (OTAG x next buf)
+      | !error
+      ]
+    ]
+  ]
+]
+
+; testing
+p: t: _
+if all [
+  not system/script/parent/path
+  system/script/header/type = 'module
+  system/script/header/name = 'markup
+] [
+  t: {
+    <!DOCTYPE html>
+    <head>
+      <title> Title <br/> </title>
+      <link href="" rel="stylesheet">
+      <meta name=
+        "viewport"
+      />
+      <script>"<br>"</script>
+
+    </head>
+
+    <!-- vim: set et sw=2: -->
+  }
+  print "=== PARSE AS HTML: ==="
+  p: make html-parser [indent: 2]
+  p/run t
+  print "=== PARSE AS XML: ==="
+  p: make xml-parser [indent: 2]
+  p/run t
+]
+
+
 
 ;; vim: set et sw=2:

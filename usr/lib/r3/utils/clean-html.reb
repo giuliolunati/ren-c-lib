@@ -44,9 +44,9 @@ filter-tag: function [a name attr b] [
 ]
 
 cleaner: either dump
-  [markup-parser]
+  [html-parser]
   [
-    make markup-parser [
+    make html-parser [
       DECL: [x] -> [emit "<!" & x & ">"]
       PROC: [x] -> [emit "<?" & x & "?>"]
       COMM: [x] -> [emit "<!--" & x & "-->"]
