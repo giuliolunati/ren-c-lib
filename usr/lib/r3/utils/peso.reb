@@ -101,6 +101,8 @@ load-data: function [lines] [
     ]
     peso: try attempt [to-decimal trim rest]
     if not date? date [date: my to-date]
+    if not date/time [date/time: 8:00:00]
+    date/zone: zero/zone
     rest: trim rest
     t: date - zero
     p0: peso

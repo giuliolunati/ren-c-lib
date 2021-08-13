@@ -84,8 +84,8 @@ xml: make object! [
         | {'} copy y to {'} skip
         | copy y some !value-char
       ]
-      (repend buf [as issue! x as text! y])
-    | (repend buf [as issue! x true])
+      (repend buf [as issue! as text! x as text! y])
+    | (repend buf [as issue! as text! x true])
     ]
   ]
   !tag: ["<"
