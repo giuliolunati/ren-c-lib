@@ -111,14 +111,14 @@ load-data: function [lines] [
         if t0 and (1 < n: t - t0) [
           dp: (peso - last d) / n
           for i n - 1 [
-            repend d head mutable [
+            append d reduce head mutable [
               t0 + i
               peso - (n - i * dp)
             ]
           ]
         ]
         t0: t
-        repend d [t peso]
+        append d :[t peso]
       ]
       rest = "-" [tot: me + 1]
       ;rest = "+" [t+: t]
@@ -207,6 +207,19 @@ smooth-1: function [data k] [
   head d
 ]
 
+smooth-2: function [data k] [
+  if k = 0 [return copy data]
+  k: 1 / (k + 1)
+  d: copy data
+  for-skip d d 2 [
+    if 6 > length-of d [break]
+    d/6: me * k + (
+      (1 - k) * (d/4 * 2 - d/2)
+    )
+  ]
+  head d
+]
+
 score: function [d data] [
   stat/clear
   x: d/2 - data/2
@@ -243,7 +256,6 @@ if not empty? args [
   data: make block! 0
   for-each l read-lines _ [append data l]
 ]
-k: either argc >= 3 [to-decimal args/3] [0.8]
 data: load-data data
 d: data
 ;print mold/only d quit 0
@@ -256,7 +268,7 @@ for-next days days [
     print unspaced [
       "   " aplot/scale 36 6]
   ]
-  set [p t] trend fit days/1
+  [p t]: unpack trend fit days/1
   print [
     format ["giorni " -3 -8 -5 -7] reduce [
       to-integer days/1
@@ -265,11 +277,6 @@ for-next days days [
       to-integer round t * 1000 * days/1
     ]
   ]
-]
-if k [
-  data: last-days d days/1 + 1
-  print [k "->" second score fit data]
-  quit 0
 ]
 
 ; vim: set sw=2 rs=2 sts=2:
