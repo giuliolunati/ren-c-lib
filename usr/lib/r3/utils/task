@@ -1,0 +1,149 @@
+#!/usr/bin/r3
+
+REBOL[]
+
+
+; GENERAL PURPOSE
+
+fail: func [msg] [
+  if block? msg [msg: spaced msg]
+  print ["Failed:" msg]
+  quit 1
+]
+
+diff-date: func [d1 d2] [
+  (d1/time - d2/time) / 24:0:0
+  + (d1/date - d2/date)
+]
+
+prompt: func [msg] [
+  write-stdout msg
+  input
+]
+
+
+; SPECIFIC
+
+load-task: func [
+  l "text line"
+  <local> desc period date score tasks amount
+][
+  ; score amount period date description
+  if empty? trim l [return _]
+  score: transcode/next l 'l
+  amount: transcode/next l 'l
+  period: transcode/next l 'l
+  (date? date: transcode/next l 'l) or
+    (fail [mold date "is not a date ;-)"])
+  date/zone: null
+  date/time: default [0:0]
+  l: trim l
+  if score [
+    score: amount * (diff-date t0 date) / period + score 
+  ]
+  make map! :[
+    'score score
+    'amount amount
+    'period period
+    'date t0
+    'desc l
+  ]
+]
+
+load-all-tasks: func [
+  file [file!]
+] [
+  tasks: make block! 8
+  let l: read/lines file
+
+  for-each l l [
+    append tasks load-task l
+  ]
+  return tasks
+]
+
+update-task: func [t d] [case[
+  date? d [
+    d/time: default [23:59]
+    t/score: (diff-date t0 d) / t/period + t/amount
+  ]
+  d = 0 [t/score: 0]
+  any-number? t/score [t/score: me - d]
+]]
+
+form-task: func [t] [
+  let score: t/score
+  if score [score: to-integer score]
+  format [-4 " " -3 "/" 3 " "]
+    :[score t/amount t/period t/desc]
+]
+
+write-tasks: func [file tasks] [
+  let text: make text! 8
+  for-each t tasks [
+    append text spaced [
+      either t/score
+      [ round/to t/score 0.01 ]
+      [ "_" ]
+      t/amount
+      t/period
+      t/date
+      t/desc "^/"
+    ]
+  ]
+  write file text
+]
+
+; MAIN
+
+t0: now, t0/zone: null
+
+file: to-file any [
+  pick system/script/args 1
+  %tasks.txt
+]
+
+tasks: load-all-tasks file
+
+forever [
+  sort/compare tasks
+    [a b] -> [case [
+      not a/score [false]
+      not b/score [true]
+      true [a/score > b/score]
+    ]]
+  n: length-of tasks
+  count-down n length-of tasks [
+    
+    print [format -2 n form-task tasks/:n]
+  ]
+  forever [
+    trap [cmd: load prompt "task>"] else [break]
+    print "??"
+  ]
+  parse  cmd [
+    end (break)
+    | 'x (write-tasks file tasks, quit 0)
+    | '+ (
+        desc: trim prompt "desc? "
+        period: transcode/next prompt "period? " #
+        amount: transcode/next prompt "amount? " #
+        append tasks make map! :[
+          'score 0
+          'period period
+          'amount amount
+          'date t0
+          'desc desc
+        ]
+      )
+    | set n integer!
+      (t: tasks/:n)
+      [ 'x (remove at tasks n)
+      | '- (t/score: _)
+      | set d [integer! | date!]
+        (update-task t d)
+      ]
+    | (print "??")
+  ] 
+]
+; vim: set syn=rebol et sw=2:
