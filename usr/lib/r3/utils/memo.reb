@@ -56,7 +56,9 @@ load-desk: function [
   for i length of desk [
     d: desk/:i
     new-line/all d false
-    loop [6 > length of d] [append d _]
+    loop [6 > length of d] [
+      append d [_]
+    ]
     d/6: i
     if d/4
     [ set 'rate (86400 / d/4 + rate) ] ; queries/day
@@ -131,7 +133,7 @@ stats: function [
   ]
   r: r * 86400
   if only [return r]
-  repend s ['rate r 'older t0 'delay w]
+  append s :['rate r 'older t0 'delay w]
 ]
 
 print-stats: function [
@@ -260,7 +262,13 @@ for-next arg arg [
     ]
   ] else [desk-file: to-file arg/1]
 ]
-set [desk text code] load-desk desk-file
+
+desk: load-desk desk-file
+code: desk/3
+text: desk/2
+desk: desk/1
+assert [mutable? desk]
+
 if code [code-obj: make object! as block! code]
 if text [sort desk]
 else [sort/compare desk :cmp45]
