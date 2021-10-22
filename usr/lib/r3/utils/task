@@ -11,11 +11,6 @@ fail: func [msg] [
   quit 1
 ]
 
-diff-date: func [d1 d2] [
-  (d1/time - d2/time) / 24:0:0
-  + (d1/date - d2/date)
-]
-
 prompt: func [msg] [
   write-stdout msg
   input
@@ -24,7 +19,23 @@ prompt: func [msg] [
 
 ; SPECIFIC
 
-load-task: func [
+profile: func [time] [
+  ; 9:30-12:30, 14:30-19:30, 22:00-24:00
+  (case [
+    time < 9:30 [0:0]
+    time < 12:30 [time - 9:30]
+    time < 14:30 [3:00]
+    time < 19:30 [time - 11:30]
+    time < 22:00 [8:00] 
+    true [time - 14:00]
+  ]) / 10:00
+]
+
+diff-date: func [d1 d2] [
+  d1/date - d2/date + (profile d1/time) - (profile d2/time)
+]
+
+load-task-line: func [
   l "text line"
   <local> desc period date score tasks amount
 ][
@@ -34,7 +45,7 @@ load-task: func [
   amount: transcode/next l 'l
   period: transcode/next l 'l
   (date? date: transcode/next l 'l) or
-    (fail [mold date "is not a date ;-)"])
+    (return null)
   date/zone: null
   date/time: default [0:0]
   l: trim l
@@ -50,26 +61,62 @@ load-task: func [
   ]
 ]
 
-load-all-tasks: func [
+load-stat-line: func [l] [
+  load l
+]
+
+load-task-file: func [
   file [file!]
+  return: [block!]
+  stats: [map!]
 ] [
   tasks: make block! 8
+  days: make block! 8
   let l: read/lines file
+  let x
 
   for-each l l [
-    append tasks load-task l
+    case [
+      x: load-task-line l [append tasks x]
+      x: load-stat-line l [append days x]
+    ]
   ]
+  sort/skip days 2
+  if stats [set stats make map! days]
   return tasks
 ]
 
-update-task: func [t d] [case[
-  date? d [
-    d/time: default [23:59]
-    t/score: (diff-date t0 d) / t/period + t/amount
+days: make map! [
+  lun 1
+  mar 2
+  mer 3
+  gio 4
+  ven 5
+  sab 6
+  dom 7
+]
+
+smart-date: func [d] [
+  if date? d [return d]
+  let i
+  case [
+    all [word? d, i: days/:d] [
+      (i - t0/weekday) mod 7 + t0
+    ]
   ]
-  d = 0 [t/score: 0]
-  any-number? t/score [t/score: me - d]
-]]
+]
+
+set-due-date: func [t d] [
+  d: smart-date d
+  d/time: 23:59
+  t/score: (diff-date t0 d) / t/period + 1 * t/amount
+]
+
+set-start-date: func [t d] [
+  d: smart-date d
+  d/time: 0:0
+  t/score: (diff-date t0 d) / t/period * t/amount
+]
 
 form-task: func [t] [
   let score: t/score
@@ -78,7 +125,7 @@ form-task: func [t] [
     :[score t/amount t/period t/desc]
 ]
 
-write-tasks: func [file tasks] [
+write-tasks: func [file tasks stats] [
   let text: make text! 8
   for-each t tasks [
     append text spaced [
@@ -88,8 +135,13 @@ write-tasks: func [file tasks] [
       t/amount
       t/period
       t/date
-      t/desc "^/"
+      t/desc newline
     ]
+  ]
+  append text newline
+  for-each k stats [
+    append text spaced [k stats/:k]
+    append text newline
   ]
   write file text
 ]
@@ -103,7 +155,7 @@ file: to-file any [
   %tasks.txt
 ]
 
-tasks: load-all-tasks file
+[tasks stats]: load-task-file file
 
 forever [
   sort/compare tasks
@@ -123,11 +175,12 @@ forever [
   ]
   parse  cmd [
     end (break)
-    | 'x (write-tasks file tasks, quit 0)
+    | 'x (write-tasks file tasks stats, quit 0)
     | '+ (
         desc: trim prompt "desc? "
         period: transcode/next prompt "period? " #
         amount: transcode/next prompt "amount? " #
+        if time? period [period: me / 24:00]
         append tasks make map! :[
           'score 0
           'period period
@@ -140,8 +193,16 @@ forever [
       (t: tasks/:n)
       [ 'x (remove at tasks n)
       | '- (t/score: _)
-      | set d [integer! | date!]
-        (update-task t d)
+      | set d [integer!]
+        ( if d = 0 [t/score: 0]
+          else [
+            t/score: me - d
+            t: any [stats/(t0/date) 0]
+            stats/(t0/date): t + d
+          ]
+        )
+      | '< set d skip (set-due-date t d)
+      | '> set d skip (set-start-date t d)
       ]
     | (print "??")
   ] 
