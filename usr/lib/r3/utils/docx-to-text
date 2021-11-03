@@ -1,0 +1,55 @@
+#!/usr/bin/r3
+#
+Rebol [
+  example: "r3 path/to/docx-to-text document.docx"
+]
+
+import 'markup ; maybe change to your location
+
+load-docx: function [
+  docx [file!]
+] [
+  t: make block! 24
+  unzip/quiet t docx
+  ; xml is defined in %markup.reb
+  xml/load select t %"word/document.xml"
+]
+; ^-- look at result to understand format
+; example:
+comment [
+  xml/load unspaced [
+    <!xml>
+    <p style="color: red">
+    <br class="dummy" />
+    "Lorem ipsum"
+    </p>
+    <!-- comment -->
+  ] = [
+    ; processing instruction:
+    proc "xml"
+    ; opening tag:
+    ;    [<tagname> #attr "value"]
+    otag [<p> #style "color: red"]
+    ; void tag:
+    ;    [<tagname> #attr "value"]
+    vtag [<br> #class "dummy"]
+    ; text
+    text "Lorem ipsum"
+    ; closing tag:
+    ;    <tagname>
+    ctag <p>
+    ; comment
+    comm " comment "
+  ]
+]
+
+t: to-file system/script/args/1
+t: load-docx t
+
+; extract text
+for-each [k v] t [
+  if k = 'text [write-stdout v]
+  if all [k = 'ctag, v = <w:p>] [print ""]
+]
+
+; vim: set syn=rebol et sw=2:
