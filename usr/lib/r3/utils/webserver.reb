@@ -1,5 +1,5 @@
 #!/usr/bin/r3
-REBOL [Name: "webserver"]
+REBOL [Name: webserver]
 -help: does [lib/print {
 USAGE: r3 webserver.reb [OPTIONS]
 OPTIONS:
@@ -18,21 +18,25 @@ root-dir: %"./"
 access-dir: false
 verbose: 1
 
-a: system/options/args
-iterate a [case [
-    "-a" = a/1 [
-      a: next a
-      access-dir: case [
-        tail? a [true]
-        a/1 = "true" [true]
-        a/1 = "false" [false]
-      ] else [to-file a/1]
-    ]
-    find ["-h" "-help" "--help"] a/1 [-help quit]
-    "-q" = a/1 [verbose: 0]
-    "-v" = a/1 [verbose: 2]
-    integer? load a/1 [port: load a/1]
-    true [root-dir: to-file a/1]
+uparse system.options.args [while [
+  "-a", access-dir: [
+      <end> (true)
+    | "true" (true)
+    | "false" (false)
+    | to-file/ <any>
+  ]
+  |
+  ["-h" | "-help" | "--help" || (-help, quit)]
+  |
+  verbose: ["-q" (0) | "-v" (2)]
+  |
+  bad: into text! ["-" across to <end>] (
+    fail ["Unknown command line switch:" bad]
+  )
+  |
+  port: into text! [integer!]
+  | 
+  root-dir: to-file/ <any>
 ]]
 
 ;; LIBS
@@ -41,14 +45,15 @@ delete-recur: adapt :lib/delete [
   if file? port [
     if not exists? port [return null]
     if 'dir = exists? port [
-      for-each x read dirize port [
-          delete-recur join port [/ x]
+      port: dirize port
+      for-each x read port [
+          delete-recur %% (port)/(x)
       ]
     ]
   ]
 ]
 
-import 'httpd
+import %httpd.reb
 attempt [
   rem: import 'rem
   html: import 'html
@@ -125,7 +130,7 @@ html-list-dir: function [
   for-each i list [
     is-rebol-file: did all [
       not dir? i
-      parse i [thru ".reb" end]
+      parse? i [thru ".reb"]
     ]
     append data unspaced [
       {<a }
@@ -160,8 +165,8 @@ parse-query: function [query] [
     | (v: k k: i: i + 1)
     ]
     (
-      append r (attempt [dehex k]) or [k]
-      append r (attempt [dehex v]) or [v]
+      append r (attempt [dehex k] else [k])
+      append r (attempt [dehex v] else [v])
     )
     opt skip
   ]]
@@ -177,7 +182,7 @@ handle-request: function [
   req/target: my dehex
   path-elements: next split req/target #"/"
   ; 'extern' url /http://ser.ver/...
-  if parse req/request-uri ["//"] [
+  parse req/request-uri ["//"] then [
     lib/print req/request-uri
     return reduce [200 mime/html "req/request-uri"]
   ] else [
@@ -236,7 +241,7 @@ handle-request: function [
         e: try trap [
           data: do data
         ]
-        if all [not error? e | action? :data] [
+        if all [not error? e, action? :data] [
           e: try trap [
             data: data req
           ]
@@ -278,7 +283,35 @@ server: open compose [
         request/request-uri
       ]
     ]
-    res: handle-request request
+
+    ; !!! This is a hook inserted for purposes of being
+    ; able to know if a screenless emulator is running
+    ; the console correctly.  /data/local/tmp is a special
+    ; writable folder in Android.
+    ;
+    ; https://github.com/metaeducation/rebol-server/issues/9
+    ; 
+    trap [
+      uparse request.target [
+        "/testwrite" across thru end
+      ] then testfile -> [
+        write as file! testfile "TESTWRITE!"
+        res: reduce [
+          200
+          "text/html"
+          unspaced [<pre> testfile _ "written" </pre>]
+        ]
+      ] else [
+        res: handle-request request
+      ]
+    ] then err -> [  ; handling (or testwrite) failed
+      res: reduce [
+        200
+        "text/html"
+        unspaced [<pre> mold err </pre>]
+      ]
+    ]
+
     if integer? res [
       response/status: res
       response/type: "text/html"

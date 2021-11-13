@@ -26,15 +26,54 @@ Rebol [
 
         Then point a browser at http://127.0.0.1:8000
     }
+    Notes: {
+        This has been transitionally changed to synchronous processing, as
+        a step toward moving to a model more like goroutines:
+
+        https://forum.rebol.info/t/1733
+    }
 ]
 
 net-utils: reduce [
-    comment [
-        'net-log proc [message [block! text!]] [
-            print either block? message [spaced message] [message]
+;    comment [
+        'net-log func [return: <none> message [block! text!]] [
+            print message
+        ]
+;    ]
+;    'net-log :elide
+]
+
+; Previously WRITE was asynchronous and we can't catch errors via TRAP:
+;
+;   https://github.com/metaeducation/rebol-httpd/issues/4
+;
+; The new idea is that you can program -as if- things are synchronous...which
+; is easy enough since currently they actually are.  But the idea is that the
+; errors would be delivered to callsites as if they were as well.  Despite this
+; being a relief to not have a different model for errors from everything else,
+; there are still questions everything else has to answer:
+;
+;   https://forum.rebol.info/t/the-need-to-rethink-error/1371
+;
+trap-httpd: func [block [block!]] [
+    trap block then err -> [
+        ;
+        ; !!! We can now discern if it was the WRITE of the header or the WRITE
+        ; of the content that failed...should errors be different?
+        ;
+        net-utils.net-log [
+            "Response not sent to client.  Reason:" err.message
+        ]
+
+        ; Don't take down the server process on typical client disconnections.
+        ;
+        if not find [  ; !!! Should use ID codes, not strings!
+            "Connection reset by peer"
+            "Broken pipe"
+        ] err.message [
+            fail err
         ]
     ]
-    'net-log _
 ]
 
 as-text: function [
@@ -43,86 +82,44 @@ as-text: function [
     <local> mark
 ][
     mark: binary
-    while [mark: try invalid-utf8? mark] [
+    loop [mark: try invalid-utf8? mark] [
         mark: change/part mark #{EFBFBD} 1
     ]
     to text! binary
 ]
 
-sys/make-scheme [
+sys.make-scheme [
     title: "HTTP Server"
     name: 'httpd
 
-    spec: make system/standard/port-spec-head [port-id: actions: _]
-
-    wake-client: function [
-        return: [port!]
-        event [event!]
-    ][
-        client: event/port
-
-        switch event/type [
-            'read [
-                net-utils/net-log unspaced [
-                    "Instance [" client/locals/instance: me + 1 "]"
-                ]
-
-                case [
-                    not client/locals/parent/locals/open? [
-                        close client
-                        client/locals/parent
-                    ]
-
-                    find client/data #{0D0A0D0A} [
-                        transcribe client
-                        dispatch client
-                    ]
-                ] else [
-                    read client
-                ]
-            ]
-
-            'wrote [
-                ; !!! WROTE event used to be used for manual chunking
-            ]
-
-            'close [
-                close client
-            ]
-
-            (elide net-utils/net-log [
-                "Unexpected Client Event:" uppercase form event/type
-            ])
-        ]
-
-        return client
-    ]
+    spec: make system.standard.port-spec-head [port-id: actions: _]
 
     init: function [server [port!]] [
-        spec: server/spec
+        spec: server.spec
+        probe mold spec
 
         case [
-            url? spec/ref []
-            block? spec/actions []
-            parse spec/ref [
+            url? spec.ref []
+            block? spec.actions []
+            parse? spec.ref [
                 set-word! lit-word!
                 integer! block!
             ][
-                spec/port-id: spec/ref/3
-                spec/actions: spec/ref/4
+                spec.port-id: spec.ref.3
+                spec.actions: spec.ref.4
             ]
             fail "Server lacking core features."
         ]
 
-        server/locals: make object! [
-            handler: _
-            subport: _
-            open?: _
+        server.locals: make object! [
+            handler: '
+            subport: '
+            open?: '
             clients: make block! 1024
         ]
 
-        server/locals/handler: function [
-            return: <void>
+        server.locals.handler: function [
+            return: <none>
             request [object!]
             response [object!]
         ] compose [
@@ -130,66 +127,41 @@ sys/make-scheme [
             redirect: get in response 'redirect
             print: get in response 'print
 
-            ((match block! server/spec/actions else [default-response]))
+            ((match block! server.spec.actions else [default-response]))
         ]
 
-        server/locals/subport: make port! [scheme: 'tcp]
+        server.locals.subport: make port! [scheme: 'tcp]
 
-        server/locals/subport/spec/port-id: spec/port-id
+        server.locals.subport.spec.port-id: spec.port-id
 
-        server/locals/subport/locals: make object! [
+        server.locals.subport.locals: make object! [
             instance: 0
-            request: _
-            response: _
+            request: '
+            response: '
             parent: :server
         ]
 
-        server/locals/subport/awake: function [event [event!]] [
-            switch event/type [
-                'accept [
-                    client: take event/port
-                    client/awake: :wake-client
-                    read client
-                    event
-                ]
-            ] else [false]
-        ]
+        server.locals.subport.spec.accept: function [client [port!]] [
+            net-utils.net-log unspaced [
+                "Instance [" client.locals.instance: me + 1 "]"
+            ]
 
-        server/awake: function [e [event!]] [
-            switch e/type [
-                'close [
-                    close e/port
-                    true
-                ]
-
-                ; Since WRITE is asynchronous we can't catch errors via TRAP
-                ; https://github.com/metaeducation/rebol-httpd/issues/4
-                ;
-                'error [
-                    print ["Now we're in the SERVER/AWAKE with an error"]
-                    -- err: ensure error! e/port/error
-
-                    ; !!! No way to tell at the moment whether it was the
-                    ; async WRITE of the header or the async WRITE of the
-                    ; content that failed.  Better identity mechanism would
-                    ; be needed for that.
-                    ;
-                    net-utils/net-log [
-                        "Response header/content not sent to client."
-                            "Reason:" err/message
+            cycle [
+                read client
+                case [
+                    not client.locals.parent.locals.open? [
+                        close client
+                        client.locals.parent
                     ]
 
-                    if not find [  ; !!! Should use ID codes, not strings!
-                        "Connection reset by peer"
-                        "Broken pipe"
-                    ] err/message [
-                        e/port/error: _
-                        return true  ; Suppress these to keep server running
+                    find client.data #{0D0A0D0A} [
+                        transcribe client
+                        dispatch client
                     ]
-
-                    return false  ; let default AWAKE handler do the FAIL
+                ] then [
+                    stop
                 ]
-            ] else [false]
+            ]
         ]
 
         server
@@ -197,16 +169,16 @@ sys/make-scheme [
 
     actor: [
         open: func [server [port!]] [
-            net-utils/net-log ["Server running on port id" server/spec/port-id]
-            open server/locals/subport
-            server/locals/open?: yes
+            net-utils.net-log ["Server running on port id" server.spec.port-id]
+            open server.locals.subport
+            server.locals.open?: yes
             server
         ]
 
         reflect: func [server [port!] property [word!]][
             switch property [
                 'open? [
-                    server/locals/open?
+                    server.locals.open?
                 ]
 
                 fail [
@@ -217,76 +189,73 @@ sys/make-scheme [
         ]
 
         close: func [server [port!]] [
-            server/awake: server/locals/subport/awake: _
-            server/locals/open?: no
-            close server/locals/subport
-            insert system/ports/system/data server
-            ; ^^^ would like to know why...
+            server.locals.open?: no
+            close server.locals.subport
             server
         ]
     ]
 
-    default-response: [probe request/action]
+    default-response: [probe request.action]
 
     request-prototype: make object! [
-        raw: _
+        raw: '
         version: 1.1
         method: "GET"
-        action: _
-        headers: _
-        http-headers: _
-        oauth: _
-        target: _
-        binary: _
-        content: _
-        length: _
-        timeout: _
+        action: '
+        headers: '
+        http-headers: '
+        oauth: '
+        target: '
+        binary: '
+        content: '
+        length: '
+        timeout: '
         type: 'application/x-www-form-urlencoded
         server-software: unspaced [
-            "Rebol/" system/product space "v" system/version
+            "Rebol/" system.product space "v" system.version
         ]
-        server-name: _
-        gateway-interface: _
+        server-name: '
+        gateway-interface: '
         server-protocol: "http"
-        server-port: _
-        request-method: _
-        request-uri: _
-        path-info: _
-        path-translated: _
-        script-name: _
-        query-string: _
-        remote-host: _
-        remote-addr:
-        auth-type: _
-        remote-user: _
-        remote-ident: _
-        content-type: _
-        content-length: _
-        error: _
+        server-port: '
+        request-method: '
+        request-uri: '
+        path-info: '
+        path-translated: '
+        script-name: '
+        query-string: '
+        remote-host: '
+        remote-addr: '
+        auth-type: '
+        remote-user: '
+        remote-ident: '
+        content-type: '
+        content-length: '
+        error: '
     ]
 
     response-prototype: make object! [
         status: 404
         content: "Not Found"
-        location: _
+        location: '
         type: "text/html"
         length: 0
         kill?: false
         close?: true
         compress?: false
 
-        render: method [response [text! binary!]] [
+        render: meth [response [text! binary!]] [
             status: 200
             content: response
         ]
 
-        print: method [response [text!]] [
+        print: meth [response [text!]] [
             status: 200
             content: response
             type: "text/plain"
         ]
 
-        redirect: method [target [url! file!] /code [integer!]] [
+        redirect: meth [target [url! file!] /code [integer!]] [
             status: code: default [303]
             content: "Redirecting..."
             type: "text/plain"
@@ -295,7 +264,7 @@ sys/make-scheme [
     ]
 
     transcribe: function [
-        return: <void>
+        return: <none>
         client [port!]
 
       <static>
@@ -309,14 +278,14 @@ sys/make-scheme [
 
         request-query (use [chars] [
             chars: complement charset [#"^@" - #" "]
-            [any chars]  ; ANY instead of SOME (empty requests are legal)
+            [while chars]  ; WHILE instead of SOME (empty requests are legal)
         ])
 
         header-feed ([newline | cr lf])
 
         header-part (use [chars] [
             chars: complement charset [#"^(00)" - #"^(1F)"]
-            [some chars any [header-feed some " " some chars]]
+            [some chars while [header-feed some " " some chars]]
         ])
 
         header-name (use [chars] [
@@ -332,20 +301,20 @@ sys/make-scheme [
         header-prototype (make object! [
             Accept: "*/*"
             Connection: "close"
-            User-Agent: _
-            Content-Length: _
-            Content-Type: _
-            Authorization: _
-            Range: _
-            Referer: _
+            User-Agent: '
+            Content-Length: '
+            Content-Type: '
+            Authorization: '
+            Range: '
+            Referer: '
         ])
     ][
-        client/locals/request: make request-prototype [
-            parse raw: client/data [
-                copy method request-action space
-                copy request-uri [
-                    copy target request-path opt [
-                        "?" copy query-string request-query
+        client.locals.request: make request-prototype [
+            parse raw: client.data [
+                method: across request-action, space
+                request-uri: across [
+                    target: across request-path, opt [
+                        "?", query-string: across request-query
                     ]
                 ]
                 spaces-or-tabs
@@ -353,8 +322,8 @@ sys/make-scheme [
                 header-feed
                 (headers: make block! 10)
                 some [
-                    copy name header-name ":" any " "
-                    copy value header-part header-feed
+                    name: across header-name, ":", while " "
+                    value: across header-part, header-feed
                     (
                         name: as-text name
                         value: as-text value
@@ -365,12 +334,12 @@ sys/make-scheme [
                         ]
                     )
                 ]
-                header-feed content: to end (
+                header-feed, content: here, to end (
                     binary: copy :content
                     content: does [content: as-text binary]
                 )
             ] else [
-                net-utils/net-log error: "Could Not Parse Request"
+                net-utils.net-log error: "Could Not Parse Request"
                 return
             ]
 
@@ -379,25 +348,25 @@ sys/make-scheme [
             path-info: target: as-text :target
             action: spaced [method target]
             request-uri: as-text request-uri
-            server-port: query/mode client 'local-port
-            remote-addr: query/mode client 'remote-ip
+            server-port: (try query client).local-port
+            remote-addr: (try query client).remote-ip
 
             headers: make header-prototype
                 http-headers: new-line/skip headers true 2
 
             type: all [
-                text? type: headers/Content-Type
+                text? type: headers.Content-Type
                 copy/part type find type ";"   ; FIND revokes /PART when null
             ] else ["text/html"]
 
             length: content-length: attempt [to integer! length] else [0]
 
-            net-utils/net-log action
+            net-utils.net-log action
         ]
     ]
 
     dispatch: function [
-        return: <void>
+        return: <none>
         client [port!]
 
       <static>
@@ -424,29 +393,29 @@ sys/make-scheme [
 
         build-header (function [response [object!]] [
             append make binary! 1024 spaced collect [
-                if not find status-codes response/status [
-                    response/status: 500
+                if not find status-codes response.status [
+                    response.status: 500
                 ]
                 any [
-                    not match [binary! text!] response/content
-                    empty? response/content
+                    not match [binary! text!] response.content
+                    empty? response.content
                 ] then [
-                    response/content: " "
+                    response.content: " "
                 ]
 
-                keep ["HTTP/1.1" response/status
-                    select status-codes response/status]
-                keep [cr lf "Content-Type:" response/type]
+                keep ["HTTP/1.1" response.status
+                    select status-codes response.status]
+                keep [cr lf "Content-Type:" response.type]
                 keep [cr lf "Content-Length:"
-                    length of as binary! response/content  ; bytes (not chars)
+                    length of as binary! response.content  ; bytes (not chars)
                 ]
-                if response/compress? [
+                if response.compress? [
                     keep [cr lf "Content-Encoding:" "gzip"]
                 ]
-                if response/location [
+                if response.location [
                     keep [cr lf "Location:" response/location]
                 ]
-                if response/close? [
+                if response.close? [
                     keep [cr lf "Connection:" "close"]
                 ]
                 keep [cr lf "Cache-Control:" "no-cache"]
@@ -455,24 +424,23 @@ sys/make-scheme [
             ]
         ])
     ][
-        client/locals/response: response: make response-prototype []
+        client.locals.response: response: make response-prototype []
 
-        if object? client/locals/request [
-            client/locals/parent/locals/handler client/locals/request response
+        if object? client.locals.request [
+            client.locals.parent.locals.handler client.locals.request response
         ] else [  ; don't crash on bad request
-            response/status: 500
-            response/type: "text/html"
-            response/content: "Bad request."
+            response.status: 500
+            response.type: "text/html"
+            response.content: "Bad request."
         ]
 
-        if response/compress? [
-            response/content: gzip response/content
+        if response.compress? [
+            response.content: gzip response.content
         ]
 
-        ; Since WRITE is asynchronous we can't catch errors via TRAP
-        ; https://github.com/metaeducation/rebol-httpd/issues/4
-        ;
-        write client hdr: build-header response  ; !!! is HDR var necessary?
-        write client response/content
+        trap-httpd [  ; don't crash server if client disconnects while we write
+            write client hdr: build-header response
+            write client response.content
+        ]
     ]
 ]
