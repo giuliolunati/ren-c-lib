@@ -2,6 +2,8 @@
 
 REBOL[]
 
+WIDTH: 42
+
 
 ; GENERAL PURPOSE
 
@@ -19,74 +21,12 @@ prompt: func [msg] [
 
 ; SPECIFIC
 
-profile: func [time] [
-  ; 9:30-12:30, 14:30-19:30, 22:00-24:00
-  (case [
-    time < 9:30 [0:0]
-    time < 12:30 [time - 9:30]
-    time < 14:30 [3:00]
-    time < 19:30 [time - 11:30]
-    time < 22:00 [8:00] 
-    true [time - 14:00]
-  ]) / 10:00
-]
-
 diff-date: func [d1 d2] [
-  d1/date - d2/date + (profile d1/time) - (profile d2/time)
+  (d1.time - d2.time) / 24:0
+  + (d1.date - d2.date)
 ]
 
-load-task-line: func [
-  l "text line"
-  <local> desc period date score tasks amount
-][
-  ; score amount period date description
-  if empty? trim l [return _]
-  score: transcode/next l 'l
-  amount: transcode/next l 'l
-  period: transcode/next l 'l
-  (date? date: transcode/next l 'l) or
-    (return null)
-  date/zone: null
-  date/time: default [0:0]
-  l: trim l
-  if score [
-    score: amount * (diff-date t0 date) / period + score 
-  ]
-  make map! :[
-    'score score
-    'amount amount
-    'period period
-    'date t0
-    'desc l
-  ]
-]
-
-load-stat-line: func [l] [
-  load l
-]
-
-load-task-file: func [
-  file [file!]
-  return: [block!]
-  stats: [map!]
-] [
-  tasks: make block! 8
-  days: make block! 8
-  let l: read/lines file
-  let x
-
-  for-each l l [
-    case [
-      x: load-task-line l [append tasks x]
-      x: load-stat-line l [append days x]
-    ]
-  ]
-  sort/skip days 2
-  if stats [set stats make map! days]
-  return tasks
-]
-
-days: make map! [
+wdays: make map! [
   lun 1
   mar 2
   mer 3
@@ -100,111 +40,238 @@ smart-date: func [d] [
   if date? d [return d]
   let i
   case [
-    all [word? d, i: days/:d] [
-      (i - t0/weekday) mod 7 + t0
+    all [word? d, i: wdays.:d] [
+      (i - T0.weekday) mod 7 + T0
     ]
   ]
 ]
 
-set-due-date: func [t d] [
-  d: smart-date d
-  d/time: 23:59
-  t/score: (diff-date t0 d) / t/period + 1 * t/amount
+parse-task: func [
+  data [block!]
+  <local> d t
+] [
+  t: make map! 6
+
+  for-each x data [
+    if x == 0 [x: 0.0]
+    switch type-of x [
+      text! [t.desc: x]
+      time! [t.time: x]
+      integer! [t.days: x]
+      date! [t.date: x]
+      decimal! [t.mean: x]
+      percent! [t.score: x]
+    ] else [ fail spaced ["??" mold x] ]
+  ]
+  return t
 ]
 
-set-start-date: func [t d] [
-  d: smart-date d
-  d/time: 0:0
-  t/score: (diff-date t0 d) / t/period * t/amount
+load-task: func [data [block!]] [
+  t: parse-task data
+  t.desc: default [""]
+  t.date: default [now/precise]
+  t.date.zone: null
+  t.date.time: default [0:0]
+  t.time: default [0:10]
+  t.days: default [1]
+  t.mean: default [0.0]
+  t.mean: my max 0
+  update-task-score t
+  return t
 ]
 
-form-task: func [t] [
-  let score: t/score
-  if score [score: to-integer score]
-  format [-4 " " -3 "/" 3 " "]
-    :[score t/amount t/period t/desc]
+load-task-file: func [file] [
+  tasks: make block! 8
+  for-each l read/lines file [
+    l: load l
+    if 1 = length-of l [
+      either date? l.1 [Timer: l.1]
+      [fail ["Syntax error:" form l]]
+    ]
+    append tasks load-task l
+  ]
+  return tasks
 ]
 
-write-tasks: func [file tasks stats] [
+form-task: func [t w] [
+  t: spaced [
+    format -5 round to-percent t.score
+    format [-5 "/" 2] :[t.time t.days]
+    either w
+    [ format w - 14 t.desc ]
+    [ t.desc ]
+  ]
+  replace t "-000%" "   0%"
+  replace t "000%" "  0%"
+]
+
+write-tasks: func [file tasks] [
   let text: make text! 8
+  if Timer [ append text :[Timer newline]]
   for-each t tasks [
     append text spaced [
-      either t/score
-      [ round/to t/score 0.01 ]
-      [ "_" ]
-      t/amount
-      t/period
-      t/date
-      t/desc newline
+      mold t.desc
+      t.time
+      to-integer t.days
+      to-decimal t.mean
+      t.date
+      newline
     ]
   ]
-  append text newline
-  for-each k stats [
-    append text spaced [k stats/:k]
-    append text newline
+  if file [write file text]
+  else [print text]
+]
+
+sort-tasks: func [tasks] [
+  sort/compare tasks [a b] -> [a.score < b.score]
+]
+
+show-tasks: func [tasks n] [
+  let t
+  if Timer [print ["TIMER:" Timer]]
+  if n [
+    t: tasks.:n
+    update-task-score t
+    print form-task t _
+    return
   ]
-  write file text
-]
-
-; MAIN
-
-t0: now, t0/zone: null
-
-file: to-file any [
-  pick system/script/args 1
-  %tasks.txt
-]
-
-[tasks stats]: load-task-file file
-
-forever [
-  sort/compare tasks
-    [a b] -> [case [
-      not a/score [false]
-      not b/score [true]
-      true [a/score > b/score]
-    ]]
   n: length-of tasks
   count-down n length-of tasks [
-    
-    print [format -2 n form-task tasks/:n]
+    t: tasks.:n
+    update-task-score t
+    print [format -2 n form-task t WIDTH]
   ]
+]
+
+update-task-score: func [task <local> d t] [
+  d: task.days
+  t: now/precise, t.zone: null
+  t: d - diff-date t task.date
+  task.score: to-percent either t < 0
+  [ t / d ] 
+  [ task.mean * 0:1 / task.time * t ]
+]
+
+change-task: func [t t2 <local> d] [
+  for-each k [desc time days date mean] [
+    if t2.:k [t.:k: t2.:k]
+  ]
+  if t2.score [
+    d: now/precise, d.zone: null
+    d: t.days - diff-date d t.date 
+    t.mean: t.time / 0:1 / d * to-decimal t2.score
+  ] else [update-task-score t]
+  return t
+] 
+
+update-task: func [
+  task [map!] "task"
+  time [time! any-number!]
+  <local> t d
+] [
+  if time? time [time: me / 0:1]
+  t: now/precise, t.zone: null
+  d: diff-date t task.date
+  task.date: t
+  t: task.days - d
+  d: task.days
+  if t < 0 [task.mean: time / d, task.score: t / task.days]
+  else [
+    task.mean: me * t + time / d
+    task.score: to-percent task.mean * 0:1 / task.time * task.days
+  ]
+  return task
+]
+
+
+; ==== MAIN ====
+
+Timer: _
+
+file: to-file any [
+  pick system.script.args 1
+  join system.options.home %tasks.reb
+]
+
+Tasks: load-task-file file
+Curr: _
+
+forever [
+  if Curr = 0 [Curr: _]
+  if not Curr [sort-tasks Tasks]
+  show-tasks Tasks Curr
+
   forever [
     trap [cmd: load prompt "task>"] else [break]
     print "??"
   ]
-  parse  cmd [
-    end (break)
-    | 'x (write-tasks file tasks stats, quit 0)
-    | '+ (
-        desc: trim prompt "desc? "
-        period: transcode/next prompt "period? " #
-        amount: transcode/next prompt "amount? " #
-        if time? period [period: me / 24:00]
-        append tasks make map! :[
-          'score 0
-          'period period
-          'amount amount
-          'date t0
-          'desc desc
+
+  if Curr [
+    t: tasks.:Curr
+    parse  cmd [
+      [end] (Curr: _)
+      | '@ (
+        time: now/precise
+        if Timer [
+          time: 24:0 * diff-date time Timer
+          update-task t time
+          print ["TIMER STOP:" time]
+          Timer: _
+        ] else [
+          Timer: time
+          ;print ["TIMER START:" time]
         ]
       )
-    | set n integer!
-      (t: tasks/:n)
-      [ 'x (remove at tasks n)
-      | '- (t/score: _)
-      | set d [integer!]
-        ( if d = 0 [t/score: 0]
-          else [
-            t/score: me - d
-            t: any [stats/(t0/date) 0]
-            stats/(t0/date): t + d
-          ]
+      | 'd (remove at Tasks Curr, Curr: _)
+      | 'x (write-tasks file Tasks, quit)
+      | 'w (write-tasks file Tasks)
+      | 'q (quit)
+      | '+ set x [time! | any-number!] (
+          update-task t x
         )
-      | '< set d skip (set-due-date t d)
-      | '> set d skip (set-start-date t d)
-      ]
-    | (print "??")
-  ] 
+      | '- set x [time! | any-number!] (
+          update-task t negate x
+        )
+      | set x [ text! | time! | any-number! | date! | percent!] (
+          if x == 0 [
+            x: now/precise, x.zone: null
+            t.date: x, t.mean: 0.0
+          ] else [change-task t parse-task cmd]
+        )
+      | (print "??")
+    ] 
+  ] else [
+    parse  cmd [
+      end
+      | '@ (
+        time: now/precise
+        if Timer [
+          time: 24:0 * diff-date time Timer
+          print ["TIMER STOP:" time]
+          Timer: _
+        ] else [
+          Timer: time
+          ;print ["TIMER START:" time]
+        ]
+      )
+      | 'x (write-tasks file Tasks, quit)
+      | 'w (write-tasks file Tasks)
+      | 'p (write-tasks _ Tasks)
+      | 'q (quit)
+      | '+ (append Tasks load-task next cmd)
+      | set n [integer! | text! | word! ]
+        (
+          if not integer? n [
+            for-next t Tasks [
+              if t.1.desc = find t.1.desc n [
+                n: index-of t
+                break
+              ]
+            ] then [n: _]
+          ]
+          Curr: n
+        )
+    ] 
+  ]
 ]
 ; vim: set syn=rebol et sw=2:
