@@ -75,7 +75,7 @@ save-desk: func [
   ][
   sort/compare desk :cmp5
   new-line/all desk true
-  write out ""
+  write out "; vim: set et sw=4 syn=rebol:^/^/"
   if code [
     write/append out reduce ["; code^/" mold code "^/^/" ]
   ]
@@ -83,7 +83,6 @@ save-desk: func [
   if text [
     write/append out reduce ["^/^/; text^/" mold/only text]
   ]
-  write/append out "^/^/; vim: set et sw=4 syn=rebol:"
 ]
 
 reset-desk: func [desk [block!]] [
