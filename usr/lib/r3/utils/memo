@@ -67,6 +67,14 @@ load-desk: function [
   reduce [desk text code]
 ]
 
+mold-desk: func [desk] [
+  let t: make text! 128
+  for-each x desk [
+    append t spaced [ "[" mold/only x "]^/" ]
+  ]
+  return t
+]
+
 save-desk: func [
     desk [block!]
     text [block! blank!]
@@ -79,9 +87,9 @@ save-desk: func [
   if code [
     write/append out reduce ["; code^/" mold code "^/^/" ]
   ]
-  write/append out reduce ["; cards^/" mold/only desk]
+  write/append out reduce ["; cards^/" mold-desk desk]
   if text [
-    write/append out reduce ["^/^/; text^/" mold/only text]
+    write/append out reduce ["^/; text^/" mold/only text]
   ]
 ]
 
