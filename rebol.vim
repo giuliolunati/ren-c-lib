@@ -1,10 +1,12 @@
 " Vim syntax file
-" Language:	Rebol
-" Maintainer:	Mike Williams <mrw@eandem.co.uk>
-" Filenames:	*.r
-" Last Change:	27th June 2002
-" URL:		http://www.eandem.co.uk/mrw/vim
-"
+" Language:  Rebol
+" Maintainer:  Mike Williams <mrw@eandem.co.uk>
+" Filenames:  *.r
+" Last Change:  27th June 2002
+" URL:    http://www.eandem.co.uk/mrw/vim
+
+" Changes-by: Barry Walsh <draegtun@gmail.com>
+" Last updated: 17-May-2013
 
 " For version 5.x: Clear all syntax items
 " For version 6.x: Quit when a syntax file was already loaded
@@ -14,28 +16,28 @@ elseif exists("b:current_syntax")
   finish
 endif
 
-" Rebol is case insensitive
-syn case ignore
+" Ren-C ISN'T case insensitive
+" syn case ignore
+
+" Delimiters
+syn match       rebolDelimiter  "[][(/|)@:'.]"
 
 " As per current users documentation
 if version < 600
-  set isk=@,48-57,?,!,.,',+,-,*,&,\|,=,_,~
+  set isk=@,48-57,?,!,+,-,*,&,\|,=,_,~
 else
-  setlocal isk=@,48-57,?,!,.,',+,-,*,&,\|,=,_,~
+  setlocal isk=@,48-57,\<,\>,?,!,+,-,*,&,\|,=,_,~
 endif
 
+" Words
+syn match       rebolWord       "\k"
+syn match       rebolWord       "\k\(\k\|[':]\)*\k"
+
 " Yer TODO highlighter
-syn keyword	rebolTodo	contained TODO
+syn keyword  rebolTodo  contained TODO
 
 " Comments
 syn match       rebolComment    ";.*$" contains=rebolTodo
-
-" Words
-syn match       rebolWord       "\a\k*"
-syn match       rebolWordPath   "[^[:space:]]/[^[:space]]"ms=s+1,me=e-1
-
-" Booleans
-syn keyword     rebolBoolean    true false on off yes no
 
 " Values
 " Integers
@@ -60,26 +62,24 @@ syn match       rebolDate       "\d\{1,2}\.\d\{1,2}\.\d\{4}\>"
 " Money
 syn match       rebolMoney      "\a*\$\d\+\('\d*\)*\([,.]\d\+\)\="
 " Strings
-syn region      rebolString     oneline start=+"+ skip=+^"+ end=+"+ contains=rebolSpecialCharacter
-"ORIG :syn region      rebolString     start=+[^#]{+ end=+}+ skip=+{[^}]*}+ contains=rebolSpecialCharacter
-syn region      rebolString     start=+{+ end=+}+ skip=+{[^}]*}+ contains=rebolSpecialCharacter
+syn region      rebolString1     oneline start=+"+ skip=+\^"+ end=+"+ contains=rebolSpecialCharacter
+syn region      rebolString2     start=+{+ end=+}+ skip=+\^}+ contains=rebolSpecialCharacter,rebolString2
 " Binary
 syn region      rebolBinary     start=+\d*#{+ end=+}+ contains=rebolComment
 " Email
 syn match       rebolEmail      "\<\k\+@\(\k\+\.\)*\k\+\>"
 " File
-syn match       rebolFile       "%\(\k\+/\)*\k\+[/]\=" contains=rebolSpecialCharacter
+syn match       rebolFile       "%/\=\(\f\+/\)*\f\+[/]\=" contains=rebolSpecialCharacter
 syn region      rebolFile       oneline start=+%"+ end=+"+ contains=rebolSpecialCharacter
 " URLs
-syn match	rebolURL	"http://\k\+\(\.\k\+\)*\(:\d\+\)\=\(/\(\k\+/\)*\(\k\+\)\=\)*"
-syn match	rebolURL	"file://\k\+\(\.\k\+\)*/\(\k\+/\)*\k\+"
-syn match	rebolURL	"ftp://\(\k\+:\k\+@\)\=\k\+\(\.\k\+\)*\(:\d\+\)\=/\(\k\+/\)*\k\+"
-syn match	rebolURL	"mailto:\k\+\(\.\k\+\)*@\k\+\(\.\k\+\)*"
+syn match       rebolURL        "http://\k\+\(\.\k\+\)*\(:\d\+\)\=\(/\(\k\+/\)*\(\k\+\)\=\)*"
+syn match       rebolURL        "file://\k\+\(\.\k\+\)*/\(\k\+/\)*\k\+"
+syn match       rebolURL        "ftp://\(\k\+:\k\+@\)\=\k\+\(\.\k\+\)*\(:\d\+\)\=/\(\k\+/\)*\k\+"
+syn match       rebolURL        "mailto:\k\+\(\.\k\+\)*@\k\+\(\.\k\+\)*"
 " Issues
-syn match	rebolIssue	"#\(\d\+-\)*\d\+"
+syn match       rebolIssue      "#\(\d\+-\)*\d\+"
 " Tuples
-syn match	rebolTuple	"\(\d\+\.\)\{2,}"
-
+syn match       rebolTuple      "\(\d\+\.\)\{2,}"
 " Characters
 syn match       rebolSpecialCharacter contained "\^[^[:space:][]"
 syn match       rebolSpecialCharacter contained "%\d\+"
@@ -87,63 +87,20 @@ syn match       rebolSpecialCharacter contained "%\d\+"
 
 " Operators
 " Math operators
-syn match       rebolMathOperator  "\(\*\{1,2}\|+\|-\|/\{1,2}\)"
-syn keyword     rebolMathFunction  abs absolute add arccosine arcsine arctangent cosine
-syn keyword     rebolMathFunction  divide exp log-10 log-2 log-e max maximum min
-syn keyword     rebolMathFunction  minimum multiply negate power random remainder sine
-syn keyword     rebolMathFunction  square-root subtract tangent
 " Binary operators
-syn keyword     rebolBinaryOperator complement and or xor ~
-" Logic operators
-syn match       rebolLogicOperator "[<>=]=\="
-syn match       rebolLogicOperator "<>"
-syn keyword     rebolLogicOperator not
-syn keyword     rebolLogicFunction all any
-syn keyword     rebolLogicFunction head? tail?
-syn keyword     rebolLogicFunction negative? positive? zero? even? odd?
-syn keyword     rebolLogicFunction binary? block? char? date? decimal? email? empty?
-syn keyword     rebolLogicFunction file? found? function? integer? issue? logic? money?
-syn keyword     rebolLogicFunction native? none? object? paren? path? port? series?
-syn keyword     rebolLogicFunction string? time? tuple? url? word?
-syn keyword     rebolLogicFunction exists? input? same? value?
 
-" Datatypes
-syn keyword     rebolType       binary! block! char! date! decimal! email! file!
-syn keyword     rebolType       function! integer! issue! logic! money! native!
-syn keyword     rebolType       none! object! paren! path! port! string! time!
-syn keyword     rebolType       tuple! url! word!
-syn keyword     rebolTypeFunction type?
+" if '<' was a keyword </tag> wouldn't be recognized
+syntax match rebolKW "<"
+" Tags
+syn region      rebolTag       oneline start=+<\a+ end=+>+
+syn region      rebolTag       oneline start=+</+ end=+>+
 
-" Control statements
-syn keyword     rebolStatement  break catch exit halt reduce return shield
-syn keyword     rebolConditional if else
-syn keyword     rebolRepeat     for forall foreach forskip loop repeat while until do
 
-" Series statements
-syn keyword     rebolStatement  change clear copy fifth find first format fourth free
-syn keyword     rebolStatement  func function head insert last match next parse past
-syn keyword     rebolStatement  pick remove second select skip sort tail third trim length?
 
-" Context
-syn keyword     rebolStatement  alias bind use
+" Experiments of mine!
+"syn match       rebolFuncStatement  "func\s\["
 
-" Object
-syn keyword     rebolStatement  import make make-object rebol info?
-
-" I/O statements
-syn keyword     rebolStatement  delete echo form format import input load mold prin
-syn keyword     rebolStatement  print probe read save secure send write
-syn keyword     rebolOperator   size? modified?
-
-" Debug statement
-syn keyword     rebolStatement  help probe trace
-
-" Misc statements
-syn keyword     rebolStatement  func function free
-
-" Constants
-syn keyword     rebolConstant   none
-
+"""""""""""""""""""""""""""
 
 " Define the default highlighting.
 " For version 5.7 and earlier: only when not done already
@@ -158,29 +115,15 @@ if version >= 508 || !exists("did_rebol_syntax_inits")
 
   HiLink rebolTodo     Todo
 
-  HiLink rebolStatement Statement
-  HiLink rebolLabel	Label
-  HiLink rebolConditional Conditional
-  HiLink rebolRepeat	Repeat
+  HiLink rebolKW Statement
 
-  HiLink rebolOperator	Operator
+  HiLink rebolOperator  Operator
   HiLink rebolLogicOperator rebolOperator
-  HiLink rebolLogicFunction rebolLogicOperator
   HiLink rebolMathOperator rebolOperator
-  HiLink rebolMathFunction rebolMathOperator
   HiLink rebolBinaryOperator rebolOperator
-  HiLink rebolBinaryFunction rebolBinaryOperator
-
-  HiLink rebolType     Type
-  HiLink rebolTypeFunction rebolOperator
-
-  HiLink rebolWord     Identifier
-  HiLink rebolWordPath rebolWord
-  HiLink rebolFunction	Function
-
-  HiLink rebolCharacter Character
   HiLink rebolSpecialCharacter SpecialChar
-  HiLink rebolString	String
+  HiLink rebolString1  String
+  HiLink rebolString2  String
 
   HiLink rebolNumber   Number
   HiLink rebolInteger  rebolNumber
@@ -189,29 +132,81 @@ if version >= 508 || !exists("did_rebol_syntax_inits")
   HiLink rebolDate     rebolNumber
   HiLink rebolMoney    rebolNumber
   HiLink rebolBinary   rebolNumber
-  HiLink rebolEmail    rebolString
-  HiLink rebolFile     rebolString
-  HiLink rebolURL      rebolString
+  HiLink rebolEmail    String
+  HiLink rebolFile     String
+  HiLink rebolURL      String
   HiLink rebolIssue    rebolNumber
   HiLink rebolTuple    rebolNumber
   HiLink rebolFloat    Float
   HiLink rebolBoolean  Boolean
+  HiLink rebolTag      String
 
-  HiLink rebolConstant Constant
 
-  HiLink rebolComment	Comment
+  HiLink rebolComment  Comment
 
-  HiLink rebolError	Error
+  HiLink rebolWord      Identifier
+
+  HiLink rebolDelimiter Delimiter
 
   delcommand HiLink
 endif
 
-if exists("my_rebol_file")
-  if file_readable(expand(my_rebol_file))
-    execute "source " . my_rebol_file
-  endif
-endif
 
+" GENERATED BY MAKE-WORD-LIST.REB
+syntax keyword rebolKW != !==
+syntax keyword rebolKW $
+syntax keyword rebolKW %%
+syntax keyword rebolKW * **
+syntax keyword rebolKW +
+syntax keyword rebolKW - -- -> ->- -slash-1-
+syntax keyword rebolKW <- <= <> <|
+syntax keyword rebolKW = =< == === => =?
+syntax keyword rebolKW > >- >-- >=
+syntax keyword rebolKW ??
+syntax keyword rebolKW @
+syntax keyword rebolKW ^
+syntax keyword rebolKW about abs absolute acos action! action? adapt adapt* add add-let-binding add-use-object aes-key aes-stream aliases? all also alter an and and+ and-not+ and? any any-array! any-array? any-block! any-branch! any-branch? any-context! any-context? any-get-value! any-get-value? any-group! any-inert? any-meta-value! any-meta-value? any-number! any-number? any-path! any-path? any-plain-value! any-plain-value? any-scalar! any-scalar? any-sequence! any-series! any-series? any-set-value! any-set-value? any-string! any-string? any-the-value! any-the-value? any-tuple! any-value! any-word! any-word? api-transient append applique apply aqua arccosine arcsine arctangent array as as-pair as-text ascii? asin ask assert at atan attempt augment augment*
+syntax keyword rebolKW back backslash backspace backtrace bad-word! bad-word? base-color beige binary! binary? bind binding-of bitset! bitset? bitwise-and bitwise-and-not bitwise-not bitwise-or bitwise-xor black blackhole blackhole! blank blank! blank? block! block? blockify blue body-of both? bound? break breakpoint breakpoint* brick brown browse
+syntax keyword rebolKW BS
+syntax keyword rebolKW bs bugs builtin-extensions bytes
+syntax keyword rebolKW c-break-debug c-debug-break c-debug-break-at c-debug-tick call call* call-internal* callgrind case catch cause-error cd cfor chain chain* change change-dir char! char? charset chat check checksum checksum-core clean-path clear close coal coffee collect collect* collect-words combinator combinator? combinatorize comma! comma? comment complement compose confirm connect console console! const const? construct contains-newline context continue copy cos cosine count-down count-up cr
+syntax keyword rebolKW CR
+syntax keyword rebolKW create crimson custom! cyan cycle
+syntax keyword rebolKW datatype! datatype? date! date? debase debin debug decay decimal! decimal? decode decode-text decode-url decode-utf16be decode-utf16le default default-combinators definitional-return definitional-return-isotope deflate dehex delete delete-dir delimit deline delta-profile delta-time denull description-of detab detab-file devoid dh-compute-secret dh-generate-keypair diagnose did difference dir? dirize divide do do-branch does dump dump-to-newline dumps
+syntax keyword rebolKW each ecc-generate-keypair ecdh-shared-secret echo eighth either elide else else? email! email? empty? enbase enbin enblock encap enclose enclose* encode encode-text encode-utf16be encode-utf16le encoding-of endable? enfix enfixed enfixed? engroup enhex enline ensure ensure-value entab entrap equal-or-greater? equal-or-lesser? equal? error! error? escape eval eval-all evaluate even? event! event? every exclude exists? exit-rebol exp extend extract extreme-of
+syntax keyword rebolKW factorial fail false fifth file! file-of file-to-local file-type? file? find find-all find-last find-reverse find-script first flatten for for-back for-each for-next for-skip forest forever form format fourth frame! frame? free free? freeze func func* function further-combinator fuzz
+syntax keyword rebolKW generate generic get get* get-block! get-block? get-current-exec get-dns-actor-handle get-encap get-env get-file-actor-handle get-group! get-group? get-os-browsers get-path! get-path? get-tcp-actor-handle get-tuple! get-tuple? get-udp-actor-handle get-word! get-word? getify glom gob! gob? gold gray greater-or-equal? greater? green group! group? groupify gunzip gzip
+syntax keyword rebolKW halt handle! handle? head head-of head? heavy help hijack
+syntax keyword rebolKW identify-text? identify-utf16be? identify-utf16le? identity identity-combinator if image! image? immediate! in in-dir index-of index? inert inflate info? inherit-meta inline input input-lines insert integer! integer? intern* internal! interrupt intersect invalid-utf8? issue! issue? iterate iterate-back iterate-next iterate-skip ivory
+syntax keyword rebolKW join just
+syntax keyword rebolKW khaki
+syntax keyword rebolKW lambda last last? latin1? launch leaf length-of length? lesser-or-equal? lesser? let
+syntax keyword rebolKW LF
+syntax keyword rebolKW lf lib library! library? license light limit-usage line-of linen list-dir list-env lit lit-path! lit-path? lit-word! lit-word? load load-extension load-value local-to-file locale locals lock-of locked? log-10 log-2 log-e logic! logic? loop lowercase ls
+syntax keyword rebolKW macro magenta main-startup make make-date-ymdsnz make-dir make-file make-time-sn map map! map-each map? maroon match match-parse match-uparse match? math max maximum maximum-of maybe me meta meta-block! meta-block? meta-group! meta-group? meta-of meta-path! meta-path? meta-tuple! meta-tuple? meta-word! meta-word? metafy meth method min minimum minimum-of mint mkdir mod modified? modify module module! module? modulo mold mold64 money! money? more move multiply must mutable mutable? my
+syntax keyword rebolKW n-shot nand? native native-assert navy negate negative? neither? net-log net-trace new-line new-line? newline newlined newpage next ninth no non none noquote nor? not not+ not-equal? nothing? now
+syntax keyword rebolKW NUL
+syntax keyword rebolKW nul null null?
+syntax keyword rebolKW object! object? odd? of off offset-of offset? ok? oldrab olive on oneshot onlify only open open? opt opt-combinator or or+ orange
+syntax keyword rebolKW pair! pair? panic papaya parse parse* parse-accept parse-reject parse? parsify past? path! path? pause pending pending? percent! percent? pewter pi pick pick-poke* pink plain pointfree pointfree*
+syntax keyword rebolKW POINTS
+syntax keyword rebolKW poke port! port? positive? pow power predicate! prin print printf probe protect purple put pwd
+syntax keyword rebolKW query quit quote quoted! quoted?
+syntax keyword rebolKW random rc4-key rc4-stream read read-char read-line read-lines read-stdin reblue
+syntax keyword rebolKW REBOL
+syntax keyword rebolKW rebolor recycle red redbol-combinators redescribe redo reduce reduce* reduce-each reeval refinement! refinement? reflect reframer reframer* reify rejoin remainder remold remove remove-each rename reorder reorder* repeat repend replace request-dir request-dir* request-file request-file* require-commit requote resolve resume return reverse reword rm round rsa rsa-make-key running?
+syntax keyword rebolKW same? save scan-net-header script? second select semiquoted? set set-block! set-block? set-env set-group! set-group? set-location-of-error set-meta set-net set-path! set-path? set-tuple! set-tuple? set-word! set-word? set? setify setlocale seventh shell shift shove sienna sign-of sign? silver sin sine single? sixth size-of size? skip skippable? sky slash sleep snow so some-combinator something? sort source
+syntax keyword rebolKW SP
+syntax keyword rebolKW sp space spaced spec-of specialize specialize* speed? split split-path square-root stats steal step stop strict-equal? strict-not-equal? struct! struct? subparse subtract suffix-of suffix? summarize-obj surprise swap swap-contents switch symbol! symbol? sys system
+syntax keyword rebolKW tab tag! tag? tail tail-of tail? take tan tangent teal tenth terminate test-librebol text! text!-combinator text? the the-block! the-block? the-group! the-group? the-path! the-path? the-tuple! the-tuple? the-word! the-word? then then? third throw time! time? to to-binary to-bitset to-block to-datatype to-date to-decimal to-email to-error to-event to-file to-function to-get-path to-get-word to-gob to-group to-hex to-image to-integer to-issue to-lit-path to-lit-word to-logic to-map to-module to-money to-object to-pair to-path to-percent to-port to-refinement to-relative-file to-set-path to-set-word to-tag to-text to-time to-tuple to-typeset to-url to-vector to-word trace trailing-bytes-for-utf8 transcode trap trim true try tuple! tuple? tweak type-of typecheck-internal? typechecker typeset! typeset?
+syntax keyword rebolKW unbind undirize uneval union unique unless unload-extension unmeta unpack unprotect unquote unreachable unset unset? unspaced until unwind unzip uparse uparse* uparse2 uparse2* uparse2? uparse? upgrade uppercase upshot url! url? usage use using
+syntax keyword rebolKW value? values-of varargs! varargs? variadic? vector! vector? verify violet void void! void?
+syntax keyword rebolKW wait wait* was water what what-dir wheat while white why without word! word? words-of wrap write write-enlined write-stdout
+syntax keyword rebolKW xor xor+
+syntax keyword rebolKW yello yellow yes
+syntax keyword rebolKW zdeflate zero zero? zinflate zip
+syntax match rebolKW "|>"
+syntax match rebolKW "||"
+syntax match rebolKW "|||"
+syntax keyword rebolKW ~
 let b:current_syntax = "rebol"
-
-" vim: ts=8
