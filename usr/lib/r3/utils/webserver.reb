@@ -1,13 +1,13 @@
 #!/usr/bin/r3
 REBOL [Name: webserver]
--help: does [lib/print {
+-help: does [lib.print {
 USAGE: r3 webserver.reb [OPTIONS]
 OPTIONS:
   -h, -help, --help : this help
   -q      : verbose: 0 (quiet)
   -v      : verbose: 2 (debug)
   INTEGER : port number [8000]
-  OTHER   : web root [system/options/path]
+  OTHER   : web root [system.options.path]
   -a name : access-dir via name.*
 EXAMPLE: 8080 /my/web/root -q -a index
 }]
@@ -35,13 +35,13 @@ uparse system.options.args [while [
   )
   |
   port: into text! [integer!]
-  | 
+  |
   root-dir: to-file/ <any>
 ]]
 
 ;; LIBS
 
-delete-recur: adapt :lib/delete [
+delete-recur: adapt :lib.delete [
   if file? port [
     if not exists? port [return null]
     if 'dir = exists? port [
@@ -58,9 +58,9 @@ attempt [
   rem: import 'rem
   html: import 'html
 ]
-rem-to-html: attempt[chain [:rem/load-rem :html/to-html]]
+rem-to-html: attempt[chain [:rem.load-rem :html.to-html]]
 
-change-dir system/options/path
+change-dir system.options.path
 
 ext-map: [
   "css" css
@@ -107,7 +107,7 @@ html-list-dir: function [
   dir [file!]
   ][
   if trap [list: read dir] [return _]
-  ;;for-next list [if 'dir = exists? join dir list/1 [append list/1 %/]]
+  ;;for-next list [if 'dir = exists? join dir list.1 [append list.1 %/]]
   ;; ^-- workaround for #838
   sort/compare list func [x y] [
     case [
@@ -178,24 +178,24 @@ request: _
 handle-request: function [
     req [object!]
   ][
-  set 'request req  ; global 
-  req/target: my dehex
-  path-elements: next split req/target #"/"
+  set 'request req  ; global
+  req.target: my dehex
+  path-elements: next split req.target #"/"
   ; 'extern' url /http://ser.ver/...
-  parse req/request-uri ["//"] then [
-    lib/print req/request-uri
+  parse req.request-uri ["//"] then [
+    lib.print req.request-uri
     return reduce [200 mime/html "req/request-uri"]
   ] else [
-    path: join root-dir req/target
+    path: join root-dir req.target
     path-type: try exists? path
   ]
   append req reduce ['real-path clean-path path]
   if path-type = 'dir [
     if not access-dir [return 403]
-    if req/query-string [
+    if req.query-string [
       if data: html-list-dir path [
         return reduce [200 mime/html data]
-      ] 
+      ]
       return 500
     ]
     if file? access-dir [
@@ -207,13 +207,13 @@ handle-request: function [
         ]
       ] then [dir-index: "?"]
     ] else [dir-index: "?"]
-    return redirect-response join req/target dir-index
+    return redirect-response join req.target dir-index
   ]
   if path-type = 'file [
     pos: try find-last last path-elements
       "."
     file-ext: (if pos [copy next pos] else [_])
-    mimetype: try attempt [ext-map/:file-ext]
+    mimetype: try attempt [ext-map.(file-ext)]
     if trap [data: read path] [return 403]
     if all [
       any [
@@ -225,18 +225,18 @@ handle-request: function [
       ]
       action? :rem-to-html
       any [
-        not req/query-string
-        not empty? req/query-string 
+        not req.query-string
+        not empty? req.query-string
       ]
     ][
-      rem/rem/request: req
+      rem.rem.request: req
       if error: try trap [
         data: rem-to-html data
       ] [ data: form error mimetype: 'text ]
       else [ mimetype: 'html ]
     ]
     if mimetype = 'rebol [
-      if req/query-string [
+      if req.query-string [
         mimetype: 'html
         e: try trap [
           data: do data
@@ -276,11 +276,11 @@ redirect-response: function [target] [
 ;; MAIN
 server: open compose [
   scheme: 'httpd (port) [
-    if verbose >= 2 [lib/print mold request]
+    if verbose >= 2 [lib.print mold request]
     if verbose >= 1 [
-      lib/print spaced [
-        request/method
-        request/request-uri
+      lib.print [
+        request.method
+        request.request-uri
       ]
     ]
 
@@ -290,7 +290,7 @@ server: open compose [
     ; writable folder in Android.
     ;
     ; https://github.com/metaeducation/rebol-server/issues/9
-    ; 
+    ;
     trap [
       uparse request.target [
         "/testwrite" across thru end
@@ -313,27 +313,27 @@ server: open compose [
     ]
 
     if integer? res [
-      response/status: res
-      response/type: "text/html"
-      response/content: unspaced [
+      response.status: res
+      response.type: "text/html"
+      response.content: unspaced [
         <h2> res space select status-codes res </h2>
-        <b> request/method space request/request-uri </b>
+        <b> request.method space request.request-uri </b>
         <br> <pre> mold request </pre>
       ]
     ] else [
-      response/status: res/1
-      response/type: res/2
-      response/content: to-binary res/3
+      response.status: res.1
+      response.type: res.2
+      response.content: to-binary res.3
     ]
     if verbose >= 1 [
-      lib/print spaced ["=>" response/status]
+      lib.print spaced ["=>" response.status]
     ]
   ]
 ]
 if verbose >= 1 [
-  lib/print spaced ["Serving on port" port]
-  lib/print spaced ["root-dir:" clean-path root-dir]
-  lib/print spaced ["access-dir:" mold access-dir]
+  lib.print ["Serving on port" port]
+  lib.print ["root-dir:" clean-path root-dir]
+  lib.print ["access-dir:" mold access-dir]
 ]
 
 wait server
