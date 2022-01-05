@@ -22,9 +22,9 @@ t-factor: func[
 ]
 
 fix-date: function [d t [time!]] [
-  if any [not date? d, set? 'd/zone] [return d]
+  if any [not date? d, set? 'd.zone] [return d]
   d: d + t
-  d/zone: t
+  d.zone: t
   d
 ]
 
@@ -54,15 +54,15 @@ load-desk: function [
   if empty? code [code: _]
   set 'rate 0
   for i length of desk [
-    d: desk/:i
+    d: desk.:i
     new-line/all d false
     loop [6 > length of d] [
       append d [_]
     ]
-    d/6: i
-    if d/4
-    [ set 'rate (86400 / d/4 + rate) ] ; queries/day
-    d/5: fix-date d/5 zone ; next date
+    d.6: i
+    if d.4
+    [ set 'rate (86400 / d.4 + rate) ] ; queries/day
+    d.5: fix-date d.5 zone ; next date
   ]
   reduce [desk text code]
 ]
@@ -94,27 +94,27 @@ save-desk: func [
 ]
 
 reset-desk: func [desk [block!]] [
-  for-each x desk [x/3: x/4: x/5: _]
+  for-each x desk [x.3: x.4: x.5: _]
   probe desk
 ]
 
 cmp45: func [a [block!] b [block!]] [
   case [
-    all [a/4, not b/4] [true]
-    all [b/4, not a/4] [false]
-    all [not a/4, not b/4] [a/6 < b/6]
-    a/4 < b/4 [true]
-    a/4 > b/4 [false]
-    all [a/5, b/5 ] [a/5 < b/5]
-  ] else [a/6 < b/6]
+    all [a.4, not b.4] [true]
+    all [b.4, not a.4] [false]
+    all [not a.4, not b.4] [a.6 < b.6]
+    a.4 < b.4 [true]
+    a.4 > b.4 [false]
+    all [a.5, b.5 ] [a.5 < b.5]
+  ] else [a.6 < b.6]
 ]
 
 cmp5: func [a [block!] b [block!]] [
   case [
-    all [a/5, not b/5] [true]
-    all [b/5, not a/5] [false]
-    all [not a/5, not b/5] [a/6 < b/6]
-  ] else [a/5 < b/5]
+    all [a.5, not b.5] [true]
+    all [b.5, not a.5] [false]
+    all [not a.5, not b.5] [a.6 < b.6]
+  ] else [a.5 < b.5]
 ]
 
 stats: function [
@@ -126,16 +126,16 @@ stats: function [
   t0: _
   s: append make block! 10 [0 0 0 0 0 0]
   for-each x desk [
-    if x/3 [
-      i: x/3 + 1
-      s/:i: s/:i + 1
+    if x.3 [
+      i: x.3 + 1
+      s.:i: s.:i + 1
     ]
-    if x/4 [r: 1 / x/4 + r]
-    if x/5 [
-      if x/5 < t [
-        w: (subtract-date t x/5) / x/4 + w
+    if x.4 [r: 1 / x.4 + r]
+    if x.5 [
+      if x.5 < t [
+        w: (subtract-date t x.5) / x.4 + w
       ]
-      if any [not t0, x/5 < t0] [t0: x/5]
+      if any [not t0, x.5 < t0] [t0: x.5]
     ]
   ]
   r: r * 86400
@@ -149,15 +149,15 @@ print-stats: function [
   s: stats desk
   x: 0
   cfor i 6 1 -1 [
-    x: x + s/:i
+    x: x + s.:i
     print ["  "
       i - 1
       to-percent round/to/ceiling (x / length of desk) 0.01
     ]
   ]
-  print ["  q/day:" to-integer s/rate]
-  print ["  delay:" s/delay]
-  older: s/older
+  print ["  q/day:" to-integer s.rate]
+  print ["  delay:" s.delay]
+  older: s.older
   if older [
     print ["  wait for:" to-time subtract-date older now]
     print ["  " older]
@@ -165,38 +165,38 @@ print-stats: function [
 ]
 
 subtract-date: function [a [date!] b [date!]] [
-  a/date - b/date * 86400 + to-integer (a/time - b/time)
+  a.date - b.date * 86400 + to-integer (a.time - b.time)
 ]
 
 ;; MAIN
 random/seed now/precise
-change-dir system/options/path
-arg: system/options/args
+change-dir system.options.path
+arg: system.options.args
 cmd: src: desk-file: last-q: _
 t0: now
 new: false
 
 for-next arg arg [
   case [
-    find arg/1 "-auto" [
+    find arg.1 "-auto" [
       arg: next arg
       b: make block! 16
       t1: t: _
       for-next arg arg [
-        desk: first load-desk to-file arg/1
+        desk: first load-desk to-file arg.1
         if any [
           not desk
-          not desk/1
-          not desk/1/5
+          not desk.1
+          not desk.1.5
         ] [continue]
-        t: desk/1/5
+        t: desk.1.5
         if any [not t1, t < t1] [t1: t]
         if t > t0 [continue]
         s: stats desk
         append b ^ reduce [
-          s/delay
-          s/rate
-          arg/1
+          s.delay
+          s.rate
+          arg.1
         ]
       ]
       if empty? b [
@@ -206,44 +206,44 @@ for-next arg arg [
       sort/all b
       for-each b b [
         print format [-6 -8 " "] reduce [
-          round/ceiling/to b/1 0.1
-          round/to b/2 0.1
-          b/3
+          round/ceiling/to b.1 0.1
+          round/to b.2 0.1
+          b.3
         ]
       ]
       print format [-6 -8 " "]
       [ "DELAY" "Q/DAY" "FILE" ]
       b: last b
-      desk-file: to-file b/3
+      desk-file: to-file b.3
       print ["^/Opening" desk-file]
       write-stdout "Hit ENTER when ready.^/"
-      input
+      ask text!
       break
     ]
-    "-stat" = arg/1 [
+    "-stat" = arg.1 [
       arg: next arg
       if 1 < length of arg [
         b: make block! 16
         r: 0
         t: x: _
         for-next arg arg [
-          desk: first load-desk to-file arg/1
+          desk: first load-desk to-file arg.1
           s: stats desk
-          r: r + s/rate
-          o: s/older
+          r: r + s.rate
+          o: s.older
           if any [not t, all [o o < t]] [t: o]
           append b ^ reduce [
-            s/delay
-            s/rate
-            arg/1
+            s.delay
+            s.rate
+            arg.1
           ]
         ]
         sort/all b
         for-each b b [
           print format [-6 -8 " "] reduce [
-            round/ceiling/to b/1 0.1
-            round/to b/2 0.1
-            b/3
+            round/ceiling/to b.1 0.1
+            round/to b.2 0.1
+            b.3
           ]
         ]
         print format [-6 -8 " "]
@@ -256,24 +256,24 @@ for-next arg arg [
         quit 0
       ]
       else [
-        print-stats first load-desk to-file arg/1
+        print-stats first load-desk to-file arg.1
         quit 0
       ]
     ]
-    "-new" = arg/1 [
+    "-new" = arg.1 [
       arg: next arg
       new: true
     ]
-    find ["+" "+2" "+txt"] arg/1 [
-      cmd: arg/1, src: to-file arg/2, arg: next arg
+    find ["+" "+2" "+txt"] arg.1 [
+      cmd: arg.1, src: to-file arg.2, arg: next arg
     ]
-  ] else [desk-file: to-file arg/1]
+  ] else [desk-file: to-file arg.1]
 ]
 
 desk: load-desk desk-file
-code: desk/3
-text: desk/2
-desk: desk/1
+code: desk.3
+text: desk.2
+desk: desk.1
 assert [mutable? desk]
 
 if code [code-obj: make object! as block! code]
@@ -304,7 +304,7 @@ if cmd [ case [
 ]]
 
 do-command: function [] [
-  c: input
+  c: ask text!
   if c = "" [return _]
   case [
     c = "q" [quit 0]
@@ -319,7 +319,7 @@ do-command: function [] [
     c = "?" [
       print-stats desk
     ]
-    c/1 = #"%" [
+    c.1 = #"%" [
       save-desk desk text code to-file next c
       print-stats desk
       quit 0
@@ -342,23 +342,23 @@ forever [
   t: now
   d: d0: _
   for-next x desk [
-    if not x/1/1 [remove x continue]
-    if all [x/1/5, any [not d0, x/1/5 < d0/5]] [d0: x/1 ]
-    if all [x/1/5, x/1/5 > t] [continue]
-    if all [x/1/5, new] [continue]
-    d: x/1
+    if not x.1.1 [remove x continue]
+    if all [x.1.5, any [not d0, x.1.5 < d0.5]] [d0: x.1 ]
+    if all [x.1.5, x.1.5 > t] [continue]
+    if all [x.1.5, new] [continue]
+    d: x.1
     break
   ]
   print ["  (" round/to rate 0.1 " queries/day)"]
   if not d [
-    print ["retry at" d0/5]
-    print ["[" to-time subtract-date d0/5 now "]"]
+    print ["retry at" d0.5]
+    print ["[" to-time subtract-date d0.5 now "]"]
     do-command
     continue
   ]
-  assert [any [not d/5, d/5 <= t]]
+  assert [any [not d.5, d.5 <= t]]
   if text [
-    i: d/1
+    i: d.1
     if any [not last-q, last-q + 1 != i] [
       print "  ================="
       p: at text i
@@ -367,56 +367,56 @@ forever [
         head p
       ]
       for-next p p [
-        print p/1
+        print p.1
         if i = index-of p [break]
       ]
     ]
-    write-stdout if d/5 ["  ............... ? "]
+    write-stdout if d.5 ["  ............... ? "]
     else ["  ............... [NEW] ? "]
     last-q: i
   ]
   else [
     print "  ================="
-    print form do-in-code d/1
+    print form do-in-code d.1
     write-stdout case [
-      d/5 ["? "]
-      d/2 ["[NEW] ? "]
+      d.5 ["? "]
+      d.2 ["[NEW] ? "]
     ] else ["  >>>>>>>>>>>>>>>>> "]
   ]
   uinput: do-command
   bind d 'uinput
-  d/2: default [uinput]
+  d.2: default [uinput]
   if text [print (
-    if i < length of text [text/(i + 1)]
+    if i < length of text [text.(i + 1)]
     else ["=== END ==="]
   )]
   else [
-    q: do-in-code d/2
+    q: do-in-code d.2
     print form q
   ]
   print "  -----------------"
   write-stdout "  quality? [0-5] > "
   forever [
     if not q: do-command [continue]
-    if q/1 = #">" [
-      d/2: next q
+    if q.1 = #">" [
+      d.2: next q
       continue
     ]
     if q = "d" [break]
     if attempt [q: to-integer q] [break]
   ]
-  if q = "d" [d/1: _ continue]
+  if q = "d" [d.1: _ continue]
   if q < 0 [
-    d/3: d/4: d/5: _ continue
+    d.3: d.4: d.5: _ continue
   ]
   if q > 5 [q: 5]
-  d/3: default [0]
-  if d/4 [set 'rate (-86400 / d/4 + rate)]
-  d/4: default [tmin / t-factor 0 0]
-  ;if d/5 [d/4: d/4 + subtract-date t d/5]
-  t: t-factor d/3 q
+  d.3: default [0]
+  if d.4 [set 'rate (-86400 / d.4 + rate)]
+  d.4: default [tmin / t-factor 0 0]
+  ;if d.5 [d.4: d.4 + subtract-date t d.5]
+  t: t-factor d.3 q
   t: 0.95 + (random 0.1) * t
-  t: d/4 * t
+  t: d.4 * t
   if q < 3 [
     t: exp (
       q * (log-e t)
@@ -424,11 +424,11 @@ forever [
       / 3
     )
   ]
-  d/4: if t < tmin [tmin] else [t]
-  set 'rate (86400 / d/4 + rate)
-  d/3: q
-  d/5: now + (d/4 / 86400)
-  d/5: fix-date d/5 zone
+  d.4: if t < tmin [tmin] else [t]
+  set 'rate (86400 / d.4 + rate)
+  d.3: q
+  d.5: now + (d.4 / 86400)
+  d.5: fix-date d.5 zone
 ]
 
 ;; vim: set syn=rebol sw=2 ts=2 sts=2 expandtab:
