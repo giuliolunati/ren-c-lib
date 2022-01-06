@@ -4,7 +4,13 @@ REBOL [
   Version: 0.1.0
   Type: module
   Name: custom
-  Exports: [custom customize has-custom-type?]
+  Exports: [
+    custom
+    customize
+    do-custom
+    make-custom-type
+    has-custom-type?
+  ]
 ]
 
 
@@ -12,8 +18,8 @@ REBOL [
 
 indented-line: "^/"
 indent+: does [append indented-line "    "]
-indent-: does [loop 4 [take/last indented-line]]
-mold-stack: lib/make block! 8
+indent-: does [repeat 4 [take/last indented-line]]
+mold-stack: lib.make block! 8
 
 mold-recur?: function [x] [
   for-each y mold-stack [
@@ -22,12 +28,20 @@ mold-recur?: function [x] [
   false
 ]
 
-is-custom-type?: function [x [<opt>]] [
-  all [map? x same? x :x/custom-type]
+make-custom-type: func [] [
+  let c: make map! 8
+  c.custom-type: c
+  return c
+]
+
+is-custom-type?: function [x] [
+  all [map? x same? x :x.custom-type]
 ]
 
 has-custom-type?: function [x] [
-  all [map? x is-custom-type? pick x 'custom-type]
+  all [
+    map? x
+    is-custom-type? pick x 'custom-type]
 ]
 
 fail-invalid-parameter: function [
@@ -37,33 +51,33 @@ fail-invalid-parameter: function [
   if word? params [
     fail/where unspaced [
       "Invalid parameter for " func-name ": "
-      custom/form get params
+      custom.form get params
     ] params
   ] else [
     fail/where unspaced [
       "Invalid parameters for " func-name ": "
-      map-each x params [custom/form get x]
-    ] params/1
+      map-each x params [custom.form get x]
+    ] params.1
   ]
 ]
 
 try-method: function [method arg] [
   all [
-    attempt [method: :arg/custom-type/:method]
+    method: :arg.custom-type.(method)
     attempt [method arg]
   ]
 ]
 
 try-method-1: function [method arg1 arg2] [
   all [
-    attempt [method: :arg1/custom-type/:method]
+    method: :arg1.custom-type.(method)
     attempt [method arg1 arg2]
   ]
 ]
 
 try-method-2: function [method arg1 arg2] [
   all [
-    attempt [method: :arg2/custom-type/:method]
+    method: :arg2.custom-type.(method)
     attempt [method arg1 arg2]
   ]
 ]
@@ -77,9 +91,9 @@ deg-to-rad: pi / 180
 custom: append make object! [] [< _ <= _ > _ >= _] ;; dirty trick :-/
 custom: make custom [
 
-make: enclose :lib/make function [f [frame!]] [
-  if has-custom-type? f/type [
-    return f/type/make f/type f/def
+make: enclose :lib.make function [f [frame!]] [
+  if has-custom-type? f.type [
+    return f.type.make f.type f.def
   ]
   else [do f]
 ]
@@ -90,9 +104,9 @@ to: function [
   returns: [<opt> any-value!]
 ][
   if has-custom-type? :value [
-    value/custom-type/to type value
+    value.custom-type.to type value
   ]
-  else [lib/to type value]
+  else [lib.to type value]
 ]
 
 to-action: specialize :to [type: action!]
@@ -129,7 +143,6 @@ to-integer: specialize :to [type: integer!]
 to-decimal: specialize :to [type: decimal!]
 to-percent: specialize :to [type: percent!]
 to-money: specialize :to [type: money!]
-to-char: specialize :to [type: char!]
 to-pair: specialize :to [type: pair!]
 to-tuple: specialize :to [type: tuple!]
 to-time: specialize :to [type: time!]
@@ -142,17 +155,15 @@ to-handle: specialize :to [type: handle!]
 to-struct: specialize :to [type: struct!]
 to-library: specialize :to [type: library!]
 to-blank: specialize :to [type: blank!]
-to-void: specialize :to [type: void!]
 to-function: specialize :to [type: action!]
 to-string: specialize :to [type: text!]
 to-paren: specialize :to [type: group!]
 
-form: enclose :lib/form function [f] [
-  if void? value: select f 'value
-  [ return "#[void]" ]
+form: enclose :lib.form function [f] [
+  value: select f 'value
   if all [
     has-custom-type? value
-    r: try attempt [value/custom-type/form value]
+    r: try attempt [value.custom-type.form value]
   ] [return r]
 
   if match [block! group!] :value [
@@ -171,7 +182,7 @@ form: enclose :lib/form function [f] [
     if mold-recur? value [append r "..."]
     else [
       append/only mold-stack value
-      for-each i value [repend r [
+      for-each i value [append r :[
         mold i space
         mold select value i
         indented-line
@@ -186,7 +197,7 @@ form: enclose :lib/form function [f] [
     if mold-recur? value [append r "..."]
     else [
       append/only mold-stack value
-      for-each i value [repend r [
+      for-each i value [append r :[
         mold i ": "
         mold select value i
         indented-line
@@ -199,17 +210,17 @@ form: enclose :lib/form function [f] [
   do f
 ] ; form
 
-mold: enclose :lib/mold function [f] [
-  value: :f/value only: f/only all: f/all flat: f/flat limit: f/limit
+mold: enclose :lib.mold function [f] [
+  value: :f.value only: f.only all: f.all flat: f.flat limit: f.limit
   if not err: trap [
-    r: applique :value/custom-type/mold [value: :value only: only all: all flat: flat limit: limit]
+    r: applique :value.custom-type.mold [value: :value only: only all: all flat: flat limit: limit]
   ] [return r]
-  ; else [lib/print lib/form err] ; for debug
+  ; else [lib.print lib.form err] ; for debug
   line: either flat [:newline] [:indented-line]
 
   r: case [
     match [block! group!] :value [
-      if group? value [only: false]
+      if group? value [only: null]
       if not only [indent+]
       r: copy either group? value ["("]
       [either only [""] ["["]]
@@ -222,7 +233,7 @@ mold: enclose :lib/mold function [f] [
             lines: true
             if r > "" [append r line]
           ]
-          append r applique 'mold [value: value/1 only: false all: all flat: flat]
+          append r applique :mold [value: value.1 only: null all: all flat: flat]
           append r space
         ]
         take/last mold-stack
@@ -239,10 +250,10 @@ mold: enclose :lib/mold function [f] [
       else [
         append/only mold-stack value
         indent+
-        for-each i value [repend r [
+        for-each i value [append r :[
             line
             mold i space
-            applique 'mold [value: select value i only: false all: all flat: flat]
+            applique :mold [value: select value i only: null all: all flat: flat]
         ]]
         indent-
         append r line
@@ -257,40 +268,40 @@ mold: enclose :lib/mold function [f] [
       else [
         append/only mold-stack :value
         indent+
-        repend r [line "[self: "]
-        for-each i value [repend r [mold i space]]
+        append r :[line "[self: "]
+        for-each i value [append r :[mold i space]]
         take/last r
-        repend r [#"]" line #"["]
+        append r :[#"]" line #"["]
         indent+
-        for-each i value [repend r [
+        for-each i value [append r :[
             line
             mold i ": "
-            applique 'mold [value: select :value i only: false all: all flat: flat]
+            applique :mold [value: select :value i only: null all: all flat: flat]
         ]]
         indent-
-        repend r [line #"]"]
+        append r :[line #"]"]
         indent-
         take/last mold-stack
       ]
-      repend r [line either all ["]]"] ["]"]]
+      append r :[line either all ["]]"] ["]"]]
     ]
     
   ] else [do f] ; case
-  if limit and [limit < length of r] [
+  if limit and (limit < length of r) [
     r: head clear change r at r limit "..."
   ]
   return r
 ] ; mold
 
-delimit: enclose :lib/delimit function [f] [
-  block: reduce f/block
+delimit: enclose :lib.delimit function [f] [
+  block: reduce f.block
   r: copy ""
   if mold-recur? block [append r "..."]
   else [
     append/only mold-stack block
     for-next block block [
-      if not head? block [append r f/delimiter]
-      append r form block/1
+      if not head? block [append r f.delimiter]
+      append r form block.1
     ]
     take/last mold-stack
   ]
@@ -301,7 +312,7 @@ spaced: specialize :delimit [delimiter: space]
 
 unspaced: specialize :delimit [delimiter: ""]
 
-print: adapt :lib/print [
+print: adapt :lib.print [
   line: form reduce line
 ]
 
@@ -329,15 +340,15 @@ print: adapt :lib/print [
       print ["---" mold value "---"]
     ]
     block? value [for-next value value [
-        do reduce ['dump value/1]
+        do reduce ['dump value.1]
     ] ]
   ]
 ]
 
 at: function [series index /only] [any [
-  attempt [applique :lib/at [series: series index: index only: only]]
+  attempt [applique :lib.at [series: series index: index only: only]]
   all [
-    attempt [method: :series/custom-type/at]
+    method: :series.custom-type.at
     attempt [applique :method [series: series index: index only: only]]
   ]
   fail-invalid-parameter 'at [series index]
@@ -347,7 +358,7 @@ pick: function [
     location [any-value!]
     picker [any-value!]
   ][any [
-  attempt [lib/pick location picker]
+  attempt [lib.pick location picker]
   try-method-1 'pick location picker
   fail-invalid-parameter 'pick [location picker]
 ]]
@@ -358,10 +369,10 @@ custom-func: enfix function [:name :arg] [
   set :name function compose [(arg)]
   compose/deep [
     ;; try not customized version
-    if not err: trap [r: lib/(name) (arg)]
+    if not err: trap [r: lib.(name) (arg)]
     [return r]
     ;; try arg method
-    if attempt [(set-name) (to-get-path reduce [arg 'custom-type name])]
+    if (set-name) (lib.to get-tuple! reduce [arg 'custom-type name])
     [ err: trap [r: (name) (arg)] ]
     ;; return or fail
     if error? err [fail err]
@@ -375,14 +386,14 @@ custom-func2: enfix function [:name :arg1 :arg2] [
   set :name function compose [(arg1) (arg2)]
   compose/deep [
     ;; try not customized version
-    err: trap [r: lib/(name) (arg1) (arg2)]
+    err: trap [r: lib.(name) (arg1) (arg2)]
     if not error? err [return r]
     ;; try arg1 method
-    if attempt [(set-name) (to-get-path reduce [arg1 'custom-type name])]
+    if (set-name) (lib.to get-tuple! reduce [arg1 'custom-type name])
     [ err: trap [r: (name) (arg1) (arg2)] ]
     if not error? err [return r]
     ;; try arg2 method
-    if attempt [(set-name) (to-get-path reduce [arg2 'custom-type name])]
+    if(set-name) (lib.to get-tuple! reduce [arg2 'custom-type name])
     [ err: trap [r: (name) (arg1) (arg2)] ]
     ;; return or fail
     if error? err [fail err]
@@ -413,14 +424,14 @@ acos: custom-func cosine
 atan: custom-func tangent 
 
 tan: function [angle] [any [
-  attempt [lib/tangent/radians :angle]
+  attempt [lib.tangent/radians :angle]
   try-method 'tan angle
-  attempt [lib/tangent/radians to-decimal :angle]
+  attempt [lib.tangent/radians to-decimal :angle]
   fail-invalid-parameter 'tan 'angle
 ]]
 
 sine: function [angle /radians] [any [
-  attempt [applique :lib/sine [angle: :angle radians: radians]]
+  attempt [applique :lib.sine [angle: :angle radians: radians]]
   attempt [ if not radians [
     angle: multiply angle deg-to-rad
   ] sin angle ]
@@ -428,7 +439,7 @@ sine: function [angle /radians] [any [
 ]]
 
 cosine: function [angle /radians] [any [
-  attempt [applique :lib/cosine [angle: :angle radians: radians]]
+  attempt [applique :lib.cosine [angle: :angle radians: radians]]
   attempt [ if not radians [
     angle: multiply angle deg-to-rad
   ] cos angle ]
@@ -436,7 +447,7 @@ cosine: function [angle /radians] [any [
 ]]
 
 tangent: function [angle /radians] [any [
-  attempt [applique :lib/tangent [angle: :angle radians: radians]]
+  attempt [applique :lib.tangent [angle: :angle radians: radians]]
   attempt [ if not radians [
     angle: multiply angle deg-to-rad
   ] tan angle ]
@@ -444,7 +455,7 @@ tangent: function [angle /radians] [any [
 ]]
 
 arcsine: function [sine /radians] [any [
-  attempt [applique :lib/arcsine [sine: :sine radians: radians]]
+  attempt [applique :lib.arcsine [sine: :sine radians: radians]]
   attempt [a: asin sine if not radians [
     a: multiply a rad-to-deg
   ] a]
@@ -452,7 +463,7 @@ arcsine: function [sine /radians] [any [
 ]]
 
 arccosine: function [cosine /radians] [any [
-  attempt [applique :lib/arccosine [cosine: :cosine radians: radians]]
+  attempt [applique :lib.arccosine [cosine: :cosine radians: radians]]
   attempt [a: acos cosine if not radians [
     a: multiply a rad-to-deg
   ] a]
@@ -460,7 +471,7 @@ arccosine: function [cosine /radians] [any [
 ]]
 
 arctangent: function [tangent /radians] [any [
-  attempt [applique :lib/arctangent [tangent: :tangent radians: radians]]
+  attempt [applique :lib.arctangent [tangent: :tangent radians: radians]]
   attempt [a: atan tangent if not radians [
     a: multiply a rad-to-deg
   ] a] 
@@ -469,14 +480,14 @@ arctangent: function [tangent /radians] [any [
 
 =: enfix equal?: function [value1 value2 r:] [
   if map? value1 [
-    r: try attempt [value1/custom-type/equal? value1 value2]
+    r: try attempt [value1.custom-type.equal? value1 value2]
     if any [r == true | r == false] [return r]
   ]
   if map? value2 [
-    r: try attempt [value2/custom-type/equal? value1 value2]
+    r: try attempt [value2.custom-type.equal? value1 value2]
     if any [r == true | r == false] [return r]
   ]
-  lib/equal? value1 value2
+  lib.equal? value1 value2
 ]
 
 !=: enfix not-equal?: function [value1 value2 r:] [
@@ -485,14 +496,14 @@ arctangent: function [tangent /radians] [any [
 
 ==: enfix strict-equal?: function [value1 value2 r:] [
   if map? value1 [
-    r: try attempt [value1/custom-type/strict-equal? value1 value2]
+    r: try attempt [value1.custom-type.strict-equal? value1 value2]
     if any [r == true | r == false] [return r]
   ]
   if map? value2 [
-    r: try attempt [value2/custom-type/strict-equal? value1 value2]
+    r: try attempt [value2.custom-type.strict-equal? value1 value2]
     if any [r == true | r == false] [return r]
   ]
-  lib/equal? value1 value2
+  lib.equal? value1 value2
 ]
 
 !==: enfix strict-not-equal?: function [value1 value2 r:] [
@@ -500,11 +511,11 @@ arctangent: function [tangent /radians] [any [
 ]
 
 set '< enfix lesser?: function [value1 value2 r:] [
-  r: try attempt [lib/lesser? value1 value2]
+  r: try attempt [lib.lesser? value1 value2]
   if any [r == true | r == false] [return r]
-  r: try attempt [value1/custom-type/lesser? value1 value2]
+  r: try attempt [value1.custom-type.lesser? value1 value2]
   if any [r == true | r == false] [return r]
-  r: try attempt [value2/custom-type/lesser? value1 value2]
+  r: try attempt [value2.custom-type.lesser? value1 value2]
   if any [r == true | r == false] [return r]
   false
 ]
@@ -514,11 +525,11 @@ set '> enfix greater?: function [value1 value2] [
 ]
 
 set '<= enfix lesser-or-equal?: function [value1 value2 r:] [
-  r: try attempt [lib/lesser-or-equal? value1 value2]
+  r: try attempt [lib.lesser-or-equal? value1 value2]
   if any [r == true | r == false] [return r]
-  r: try attempt [value1/custom-type/lesser-or-equal? value1 value2]
+  r: try attempt [value1.custom-type.lesser-or-equal? value1 value2]
   if any [r == true | r == false] [return r]
-  r: try attempt [value2/custom-type/lesser-or-equal? value1 value2]
+  r: try attempt [value2.custom-type.lesser-or-equal? value1 value2]
   if any [r == true | r == false] [return r]
   false
 ]
@@ -535,7 +546,7 @@ customize: function [
   ][
   switch type of :code [
     word! [
-      set :code :custom/:code
+      set :code :custom.:code
     ]
     object! [
       for-each w
@@ -550,5 +561,7 @@ customize: function [
   ]
   :code
 ] 
+
+do-custom: func [code [block!]] [do customize code]
 
 ; vim: set et sw=2:

@@ -7,7 +7,7 @@ format: function [format data] [
   data: my blockify
   for-each f format [
     if integer? f [
-      x: form data/1
+      x: form data.1
       l: length-of x
       if l > abs f [
         clear at x 1 + abs f
@@ -35,31 +35,31 @@ stat: import 'stat
 aplot: import 'aplot
 
 plot: function [d wid] [
-  a: b: d/2
-  t: d/1
+  a: b: d.2
+  t: d.1
   for-skip x d 2 [
-    if x/2 < a [a: x/2]
-    if x/2 > b [b: x/2]
-    if x/1 < t [t: x/1]
+    if x.2 < a [a: x.2]
+    if x.2 > b [b: x.2]
+    if x.1 < t [t: x.1]
   ]
   t: zero + t
-  aplot/left: a
-  aplot/step: b - a / wid
+  aplot.left: a
+  aplot.step: b - a / wid
   forever [
     if tail? d [break]
     a: b: false
-    if (zero + d/1 - t) = 0 [
-      a: d/2
+    if (zero + d.1 - t) = 0 [
+      a: d.2
       d: skip d 2
     ]
-    if all [not tail? d (zero + d/1 - t) = 1]
+    if all [not tail? d (zero + d.1 - t) = 1]
     [
-      b: d/2
+      b: d.2
       d: skip d 2
     ]
     print unspaced [
-      format [-2 "/"] (t/day)
-      format wid aplot/histogram/x2 a b
+      format [-2 "/"] (t.day)
+      format wid aplot.histogram/x2 a b
       space opt format -5 a
     ]
     t: t + 2
@@ -68,7 +68,7 @@ plot: function [d wid] [
 
 last-days: function [d days] [
   for-skip d d 2 [
-    if d/1 + days > 0 [return d]
+    if d.1 + days > 0 [return d]
   ]
   tail d
 ]
@@ -82,12 +82,12 @@ bound: function [v b d] [
 ]
 
 trend: function [d n] [
-  stat/clear
+  stat.clear
   for-skip d d 2 [
-    if d/1 + n < 0 [continue]
-    stat/put d/1 d/2
+    if d.1 + n < 0 [continue]
+    stat.put d.1 d.2
   ]
-  o: stat/linear-regression
+  o: stat.linear-regression
 ]
 
 load-data: function [lines] [
@@ -101,8 +101,8 @@ load-data: function [lines] [
     ]
     peso: try attempt [to-decimal trim rest]
     if not date? date [date: my to-date]
-    if not date/time [date/time: 8:00:00]
-    date/zone: zero/zone
+    if not date.time [date.time: 8:00:00]
+    date.zone: zero.zone
     rest: trim rest
     t: date - zero
     p0: peso
@@ -113,7 +113,8 @@ load-data: function [lines] [
           for i n - 1 [
             append d reduce head mutable [
               t0 + i
-              peso - (n - i * dp)
+              either Pef [false]
+              [peso - (n - i * dp)]
             ]
           ]
         ]
@@ -134,25 +135,25 @@ smooth-0: function [data k] [
   l: length-of y
   d: make block! l
   append/dup d 1 + k l
-  d/1: d/:l: 1
+  d.1: d.:l: 1
   x: copy d
   repeat l - 1 [
-    c: k / d/1
-    d/2: me - (k * c) 
-    y/2: me + (y/1 * c)
+    c: k / d.1
+    d.2: me - (k * c) 
+    y.2: me + (y.1 * c)
     d: next d
     y: next y
   ]
   x: back tail x
-  x/1: 1 - k * y/1 / d/1
+  x.1: 1 - k * y.1 / d.1
   repeat l - 1 [
     x: back x
     y: back y
     d: back d
-    x/1: k * x/2 + (1 - k * y/1) / d/1
+    x.1: k * x.2 + (1 - k * y.1) / d.1
   ]
   d: copy data
-  repeat l [d/2: x/1 d: skip d 2 x: next x]
+  repeat l [d.2: x.1 d: skip d 2 x: next x]
   head d
 ]
 
@@ -165,13 +166,13 @@ smooth-1: function [data k] [
   append/dup d
     reduce [1  -4  6 + k  -4  1]
     l
-  d/3: 1 + k
-  d/7: d/4: -2
-  d/8: 5 + k
+  d.3: 1 + k
+  d.7: d.4: -2
+  d.8: 5 + k
   d: skip tail d -10
-  d/3: 5 + k
-  d/7: d/4: -2
-  d/8: 1 + k
+  d.3: 5 + k
+  d.7: d.4: -2
+  d.8: 1 + k
   d: head d
   ; d: matrice 5-diagonale 
   ; d3  d4  d5              . | y1
@@ -180,16 +181,16 @@ smooth-1: function [data k] [
   ;     d16 d17 d18 d19 d20 . | y4
   ; ......................... | ..
   for-skip d d 5 [
-    y/2 or (break)
-    c: d/7 / d/3
-    d/8: me - (c * d/4)
-    d/9: me - (c * d/5)
-    y/2: me - (c * y/1)
-    if y/3 [
-      c: d/11 / d/3
-      d/12: me - (c * d/4)
-      d/13: me - (c * d/5)
-      y/3: me - (c * y/1)
+    y.2 or (break)
+    c: d.7 / d.3
+    d.8: me - (c * d.4)
+    d.9: me - (c * d.5)
+    y.2: me - (c * y.1)
+    if y.3 [
+      c: d.11 / d.3
+      d.12: me - (c * d.4)
+      d.13: me - (c * d.5)
+      y.3: me - (c * y.1)
     ]
     y: next y
   ]
@@ -198,12 +199,12 @@ smooth-1: function [data k] [
   loop [not head? y] [
     d: skip d -5
     y: back y
-    if y/2 [y/1: me - (y/2 * d/4)]
-    if y/3 [y/1: me - (y/3 * d/5)]
-    y/1: me / d/3
+    if y.2 [y.1: me - (y.2 * d.4)]
+    if y.3 [y.1: me - (y.3 * d.5)]
+    y.1: me / d.3
   ]
   d: copy data
-  repeat l [d/2: y/1 d: skip d 2 y: next y]
+  repeat l [d.2: y.1 d: skip d 2 y: next y]
   head d
 ]
 
@@ -213,29 +214,64 @@ smooth-2: function [data k] [
   d: copy data
   for-skip d d 2 [
     if 6 > length-of d [break]
-    d/6: me * k + (
-      (1 - k) * (d/4 * 2 - d/2)
+    d.6: me * k + (
+      (1 - k) * (d.4 * 2 - d.2)
     )
   ]
   head d
 ]
 
 score: function [d data] [
-  stat/clear
-  x: d/2 - data/2
+  stat.clear
+  x: d.2 - data.2
   l: length-of d
   cfor i 4 l 2 [
-    y: d/:i - data/:i
-    stat/put x y
+    y: d.:i - data.:i
+    stat.put x y
     x: y
   ]
-  o: stat/linear-regression
-  reduce [o/q o/m] 
+  o: stat.linear-regression
+  reduce [o.q o.m] 
 ]
-    
+
+pef: func [y n eps] [
+  let [a l2 r x m rmean]
+  a: make block! n
+  append/dup a 0 n
+  a.1: 1
+  rmean: 0
+  cfor t 2 length-of y 1  [
+    m: min n t - 1
+    r: y.(t)
+    if not r [
+      r: 0
+      for i m [
+        x: y.(t - i)
+        r: me + ( a.(i) * x )
+      ]
+      y.(t): r, r: 0
+      print [r]
+      continue
+    ]
+    l2: 0
+    for i m [
+      x: y.(t - i)
+      r: me - ( a.(i) * x )
+      l2: x * x + l2
+    ]
+    print [r] rmean: me + (r * r)
+    for i m [
+      a.(i): me + ( r * y.(t - i) * eps / l2 )
+    ]
+  ]
+  rmean: square-root rmean / ((length-of y) - 1)
+  -- rmean
+  return a
+]
+
 ;; MAIN ;;
 
-args: system/options/args
+args: system.options.args
 argc: length of args
 
 if argc > 3 [
@@ -244,37 +280,48 @@ if argc > 3 [
 
 zero: now
 
-change-dir :system/options/path
+change-dir :system.options.path
+
+Pef: args.3 == "pef"
 
 days: any [
-  attempt [reduce [to-decimal args/2]] 
+  attempt [reduce [to-decimal args.2]] 
   [60 15 4]
 ]
 if not empty? args [
-  data: read/lines to-file args/1
+  data: read/lines to-file args.1
 ] else [
   data: make block! 0
   for-each l read-lines _ [append data l]
 ]
 data: load-data data
+
 d: data
-;print mold/only d quit 0
+
+if Pef [
+  data: last-days d days.1 + 1
+  d: []
+  for-each [x y] data [append d y]
+  ?? new-line/all (p: pef d 16 0) true
+  quit 0
+]
+
 for-next days days [
   if head? days [
-    data: last-days d days/1 + 1
+    data: last-days d days.1 + 1
+    
     plot
       fit: smooth-1 data 1
       36
-    print unspaced [
-      "   " aplot/scale 36 6]
+    print unspaced ["   " aplot.scale 36 6]
   ]
-  [p t]: unpack trend fit days/1
+  [p t]: unpack trend fit days.1
   print [
     format ["giorni " -3 -8 -5 -7] reduce [
-      to-integer days/1
+      to-integer days.1
       round/to p 0.01
       to-integer round t * 1000
-      to-integer round t * 1000 * days/1
+      to-integer round t * 1000 * days.1
     ]
   ]
 ]

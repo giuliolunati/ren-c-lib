@@ -17,7 +17,7 @@ port: 8888
 root-dir: %"./"
 access-dir: false
 verbose: 1
-
+TIME: 0
 uparse system.options.args [while [
   "-a", access-dir: [
       <end> (true)
@@ -53,7 +53,7 @@ delete-recur: adapt :lib.delete [
   ]
 ]
 
-import %httpd.reb
+import 'httpd
 attempt [
   rem: import 'rem
   html: import 'html
@@ -216,13 +216,7 @@ handle-request: function [
     mimetype: try attempt [ext-map.(file-ext)]
     if trap [data: read path] [return 403]
     if all [
-      any [
-        mimetype = 'rem
-        all [
-          mimetype = 'html
-          "REBOL" = uppercase to-text copy/part data 5
-        ]
-      ]
+      mimetype = 'rem
       action? :rem-to-html
       any [
         not req.query-string
@@ -323,7 +317,7 @@ server: open compose [
     ] else [
       response.status: res.1
       response.type: res.2
-      response.content: to-binary res.3
+      response.content: as binary!  res.3
     ]
     if verbose >= 1 [
       lib.print spaced ["=>" response.status]

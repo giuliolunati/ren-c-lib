@@ -5,8 +5,10 @@ REBOL [
   Type: module
   Name: matrix
   Exports: [
+    customize
+    do-custom
     id-matrix
-    make-vector
+    make-matrix
     matrix!
     matrix?
     to-matrix
@@ -15,133 +17,137 @@ REBOL [
   ]
 ]
 
-custom: import 'custom
-custom: custom/custom
+import 'custom
 
-matrix!: make map! 8
+matrix!: make-custom-type
 
 matrix?: func [x] [
-  either attempt [same? x/custom-type matrix!]
+  either attempt [same? x.custom-type matrix!]
   [true] [false]
 ]
 
-matrix!/make: function [type def] [
+matrix!.make: function [type def] [
   assert [same? type matrix!]
   if matrix? def [return copy def]
   if block? def [
     if empty? def [fail "make matrix!: def can't be empty"]
     def: reduce def
-    h: w: def/1
-    w: any [lib/pick def 2 | h]
+    h: w: def.1
+    w: any [lib.pick def 2 | h]
     return make map! reduce [
       'custom-type matrix!
       'nrows h
       'ncols w
-      'data make vector! reduce/opt [
-        'decimal! 64 h * w
-        opt attempt [def/3]
-      ]
+      'data make vector! either def.3
+      [ :['decimal! 64 h * w def.3] ]
+      [ :['decimal! 64 h * w] ]
     ]
   ]
   fail ["can't make matrix! from" def]
 ]
 
-make-matrix: specialize :matrix!/make [type: matrix!]
+make-matrix: specialize :matrix!.make [type: matrix!]
 
 make-vector: function [def] [
-  make vector! reduce/opt [
+  make vector! reduce [
     'decimal! 64 def
   ]
 ]
 
-matrix!/mold: function [value /only /all /flat ] [
-  lib/unspaced ["make matrix! ["
-    value/nrows space value/ncols " ["
-    lib/form value/data
+matrix!.mold: function [value /only /all /flat ] [
+  lib.unspaced ["make matrix! ["
+    value.nrows space value.ncols " ["
+    lib.form value.data
   "]]" ]
 ]
 
-matrix!/form: function [value] [
-  r: unspaced ["[ " value/nrows "x" value/ncols]
-  i: value/data
-  loop value/nrows [
+matrix!.form: func [value] [
+  let r: unspaced ["[ " value.nrows "x" value.ncols]
+  let v: value.data
+  let i: 1
+  repeat value.nrows [
     append r "^/   "
-    loop value/ncols [
-      append r space append r form i/1
-      i: next i
+    repeat value.ncols [
+      append r space append r form v.(i)
+      i: i + 1
     ]
   ] append r "^/]"
 ]
 
-matrix!/add: function [a b] [
-  (matrix? a and [matrix? b])
-  or [fail ["Can't add matrix and non-matrix."]]
-  (a/nrows = b/nrows and [a/ncols = b/ncols])
-  or [fail "Wrong dimensions."]
-  r: a/nrows c: a/ncols
+matrix!.add: function [a b] [
+  (matrix? a) and (matrix? b)
+  or (fail ["Can't add matrix and non-matrix."])
+  a.nrows = b.nrows and (a.ncols = b.ncols)
+  or (fail "Wrong dimensions.")
+  r: a.nrows c: a.ncols
   m: make-matrix reduce [r c]
-  ia: a/data ib: b/data i: m/data
-  for-next i [
-    i/1: ia/1 + ib/1
-    ia: next ia ib: next ib
+  for i r * c [
+    m.data.(i): a.data.(i) + b.data.(i)
   ]
   m
 ]
 
-at: matrix!/at: function [series index /only] [
+at: matrix!.at: function [series index /only] [
   if block? index [index: reduce index]
   if not any-number? index [
-    index: index/1 - 1 * series/ncols + index/2
+    index: index.1 - 1 * series.ncols + index.2
   ]
-  lib/at series/data index
+  lib.at series.data index
 ]
 
-pick: matrix!/pick: function [
+pick: matrix!.pick: function [
 		matrix
 		index [block! pair! integer!]
 	][
   if block? index [index: reduce index]
   if not integer? index [
-    index: index/1 - 1 * matrix/ncols + index/2
+    index: index.1 - 1 * matrix.ncols + index.2
   ]
-  lib/pick matrix/data index
+  lib.pick matrix.data index
 ]
 
-matrix!/subtract: function [a b] [
-  (matrix? a and [matrix? b])
-  or [fail ["Can't add matrix and non-matrix."]]
-  (a/nrows = b/nrows and [a/ncols = b/ncols])
-  or [fail "Wrong dimensions."]
-  r: a/nrows c: a/ncols
+matrix!.negate: function [a] [
+  r: a.nrows c: a.ncols
   m: make-matrix reduce [r c]
-  ia: a/data ib: b/data i: m/data
-  for-next i [
-    i/1: ia/1 - ib/1
-    ia: next ia ib: next ib
+  for i r * c [
+    m.data.(i): negate a.data.(i)
   ]
   m
 ]
 
-matrix!/multiply: function [a b] [
-  (matrix? a and [matrix? b])
-  or [fail ["Can't multiply matrix and non-matrix."]]
-  (a/ncols = b/nrows)
-  or [fail "Wrong dimensions."]
-  r: a/nrows c: b/ncols
-  l: a/ncols ; = b/nrows
+matrix!.subtract: function [a b] [
+  (matrix? a) and (matrix? b)
+  or (fail ["Can't subtract matrix and non-matrix."])
+  a.nrows = b.nrows and (a.ncols = b.ncols)
+  or (fail "Wrong dimensions.")
+  r: a.nrows c: a.ncols
   m: make-matrix reduce [r c]
-  pm: m/data
-  repeat y r [ repeat x c [
-    pa: skip a/data y - 1 * l
-    pb: skip b/data x - 1
+  for i r * c [
+    m.data.(i): a.data.(i) - b.data.(i)
+  ]
+  m
+]
+
+matrix!.multiply: function [a b] [
+  (matrix? a) and (matrix? b)
+  or (fail ["Can't multiply matrix and non-matrix."])
+  a.ncols = b.nrows or (fail "Wrong dimensions.")
+  r: a.nrows c: b.ncols
+  l: a.ncols ; = b.nrows
+  m: make-matrix reduce [r c]
+  im: 1
+  a: a.data, b: b.data
+  for y r [ for x c [
+    ia: y - 1 * l + 1
+    ib: x
     t: 0
-    loop l [
-      t: pa/1 * pb/1 + t
-      pa: next pa
-      pb: skip pb c
+    repeat l [
+      t: a.(ia) * b.(ib) + t
+      ia: me + 1
+      ib: me + c
     ]
-    pm/1: t
-    pm: next pm
+    m.data.(im): t
+    im: im + 1
   ]]
   m
 ]
@@ -163,8 +169,8 @@ dilate: function [
     if rows [c: length-of m]
     else [r: length-of m]
   ] else [
-    r: m/nrows
-    c: m/ncols
+    r: m.nrows
+    c: m.ncols
   ]
   l: length-of v
   ;; normalize v
@@ -172,36 +178,36 @@ dilate: function [
   for-each x v [s: x * x + s]
   s: square-root s
   assert [not zero? s]
-  for-next v [v/1: v/1 / s]
-  if rows or [both] [
-    for j 1 + n r 1 [
+  for-next v v [v.1.g: v.1.g / s]
+  if rows or (both) [
+    cfor j 1 + n r 1 [
       s: 0
       p: at m j * c - l + 1
-      repeat i l [
-        s: p/1 * v/:i + s
+      for i l [
+        s: p.1.g * v.:i + s
         p: next p
       ]
       s: k - 1 * s
       p: at m j * c - l + 1
-      repeat i l [
-        p/1: me + (v/:i * s)
+      for i l [
+        p.1.g: me + (v.:i * s)
         p: next p
       ]
     ]
   ]
-  if both or [not rows] [
-    for i 1 + n c 1 [
+  if both or (not rows) [
+    cfor i 1 + n c 1 [
       s: 0
       p: at m r - l * c + i
-      repeat j l [
-        s: p/1 * v/:j + s
-        p: lib/skip p c
+      for j l [
+        s: p.1.g * v.:j + s
+        p: lib.skip p c
       ]
       s: k - 1 * s
       p: at m r - l * c + i
-      repeat j l [
-        p/1: me + (v/:j * s)
-        p: lib/skip p c
+      for j l [
+        p.1.g: me + (v.:j * s)
+        p: lib.skip p c
       ]
     ]
   ]
@@ -212,33 +218,32 @@ id-matrix: function [
     n [integer!]
   ][
   m: make-matrix [n n]
-  p: m/data
-  loop n [
-    p/1: 1
+  p: m.data
+  repeat n [
+    p.1.g: 1
     p: skip p n + 1
   ]
   m
 ]
 
-reflect-both: specialize :dilate [k: -1 both: true]
+reflect-both: specialize :dilate [k: -1 both: #]
 
 reflect-columns: specialize :dilate [k: -1]
 
-reflect-rows: specialize :dilate [k: -1 rows: true]
+reflect-rows: specialize :dilate [k: -1 rows: #]
 
-to-matrix: specialize :custom/to [type: matrix!]
+to-matrix: specialize :custom.to [type: matrix!]
 
 transpose: function [m] [
-  matrix? m or [fail "Transpose: arg isn't a matrix."]
-  r: m/ncols c: m/nrows
+  (matrix? m) or (fail "Transpose: arg isn't a matrix.")
+  r: m.ncols c: m.nrows
   t: make-matrix reduce [r c]
-  pt: t/data
-  pm: m/data
-  repeat y r [
-    pm: skip m/data y - 1
-    loop c [
-      pt/1: pm/1
-      pt: next pt pm: skip pm r
+  it: 1
+  for y r [
+    im: y
+    repeat c [
+      t.data.(it): m.data.(im)
+      it: me + 1, im: me + r
     ]
   ]
   t
@@ -251,24 +256,24 @@ tri-reduce: function [
     /also b "matrix, modified to q * b"
     /symm "a is symmetric, r = q * a * q' is tri-diagonal"
   ][
-  r: a/nrows
-  c: a/ncols
+  r: a.nrows
+  c: a.ncols
   l: min r - 1 c
   v: make-vector r
   if symm [
     l: l - 1
     v: next v
   ]
-  repeat i l [
+  for i l [
     p: at a [(either symm [i + 1] [i]) i]
     s: 0
-    repeat j length-of v [
-      v/:j: p/1
-      s: p/1 * p/1 + s
+    for j length-of v [
+      v.:j: p.1.g
+      s: p.1.g * p.1.g + s
       p: skip p c
     ]
     s: square-root s
-    v/1: v/1 - s
+    v.1.g: v.1.g - s
     reflect-columns/skip a v i - 1
     if symm [reflect-rows/skip a v i - 1]
     if also [reflect-columns b v]
