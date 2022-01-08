@@ -3,12 +3,13 @@ REBOL [
   Author: "giuliolunati@gmail.com"
   Version: 0.1.0
   Type: module
-  Name: custom
+  Name: custom-types
   Exports: [
     custom
     customize
     do-custom
     make-custom-type
+    is-custom-type?
     has-custom-type?
   ]
 ]

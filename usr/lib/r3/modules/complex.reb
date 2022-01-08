@@ -7,8 +7,7 @@ REBOL [
   Exports: [complex! complex? to-complex i +i -i]
 ]
 
-custom: import 'custom
-custom: custom/custom
+import 'custom-types
 
 complex!: make map! 8
 complex!/custom-type: complex!

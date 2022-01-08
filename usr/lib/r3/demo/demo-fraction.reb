@@ -1,6 +1,7 @@
 REBOL [
   Title: "Demo for 'fraction module"
-  Type: 'script
+  Type: script
+  Require: fraction
   Author: "giuliolunati@gmail.com"
   Version: 0.1.0
 ]
@@ -35,7 +36,7 @@ demo [
   "First of all, import:"
   (import 'fraction)
   _
-  {NOTE: 'fraction module is based on 'custom, 
+  {NOTE: 'fraction module is based on 'custom-types, 
   that needs to be enabled:}
   (customize self)
   _

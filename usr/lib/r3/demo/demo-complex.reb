@@ -1,7 +1,7 @@
 REBOL [
 	Title: "Demo for 'complex module"
-	Type: 'script
-	Require: 'complex
+	Type: script
+	Require: complex
 	Author: "giuliolunati@gmail.com"
 	Version: 0.1.0
 ]
@@ -36,7 +36,7 @@ demo [
   "First of all, import:"
   (import 'complex)
   _
-  {NOTE: 'complex module is based on 'custom, 
+  {NOTE: 'complex module is based on 'custom-types, 
   that needs to be enabled:}
   (customize self)
   _

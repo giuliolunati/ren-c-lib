@@ -10,8 +10,7 @@ REBOL [
   ]
 ]
 
-custom: import 'custom
-custom: custom/custom
+import 'custom-types
 
 approximate: func [
   x precision

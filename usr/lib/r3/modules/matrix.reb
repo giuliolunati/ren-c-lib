@@ -17,7 +17,7 @@ REBOL [
   ]
 ]
 
-import 'custom
+import 'custom-types
 
 matrix!: make-custom-type
 
