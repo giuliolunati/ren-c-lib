@@ -93,6 +93,8 @@ right: _
 step: 1
 dot: #"*"
 line: copy ""
+top-char: "▀" bottom-char: "▄" full-char: "█"
+top-char: "'" bottom-char: "," full-char: "¦"
 
 histogram: function [x /x2 [any-number! logic!]] [
   clear line
@@ -105,8 +107,8 @@ histogram: function [x /x2 [any-number! logic!]] [
 	    if all [right x2 > right] [x2: right]
 		  x2: to-integer x2 - left / step + 1
 		] else [x2: 0]
-    single: if x > x2 ["▀"] else ["▄"]
-    append/dup line "█" min x x2
+    single: if x > x2 [top-char] else [bottom-char]
+    append/dup line full-char min x x2
     append/dup line single abs x - x2
   ] else [
     append/dup line dot x
