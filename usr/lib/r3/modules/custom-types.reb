@@ -7,10 +7,11 @@ REBOL [
   Exports: [
     custom
     customize
+    custom-type!
     do-custom
-    make-custom-type
-    is-custom-type?
     has-custom-type?
+    is-custom-type?
+    make-custom-type
   ]
 ]
 
@@ -35,8 +36,10 @@ make-custom-type: func [] [
   return c
 ]
 
+custom-type!: map! ; to use in refinements
+
 is-custom-type?: function [x] [
-  all [map? x same? x :x.custom-type]
+  did all [map? x same? x :x.custom-type]
 ]
 
 has-custom-type?: function [x] [
@@ -62,7 +65,7 @@ fail-invalid-parameter: function [
   ]
 ]
 
-try-method: function [method arg] [
+try-method: func [method arg] [ 
   all [
     method: :arg.custom-type.(method)
     attempt [method arg]
@@ -70,17 +73,13 @@ try-method: function [method arg] [
 ]
 
 try-method-1: function [method arg1 arg2] [
-  all [
-    method: :arg1.custom-type.(method)
-    attempt [method arg1 arg2]
-  ]
+  method: :arg1.custom-type.(method)
+  method arg1 arg2
 ]
 
-try-method-2: function [method arg1 arg2] [
-  all [
-    method: :arg2.custom-type.(method)
-    attempt [method arg1 arg2]
-  ]
+try-method-2: function [method arg1 arg2 arg3] [
+  method: :arg1.custom-type.(method)
+  method arg1 arg2 arg3
 ]
 
 rad-to-deg: 180 / pi
@@ -99,15 +98,32 @@ make: enclose :lib.make function [f [frame!]] [
   else [do f]
 ]
 
+copy: func [
+  value [any-value!]
+  /part [any-number! any-series! pair!]
+  /deep
+  /types [typeset! datatype!]
+] [
+  applique any [
+    attempt [:value.custom-type.copy]
+    :lib.copy
+  ][value: value part: part
+    deep: deep types: types
+  ]
+]
+
 to: function [
-  'type [<blank> quoted! word! path! datatype! map!]
+  type [<blank> meta-word! datatype! custom-type!]
   value [<blank> <dequote> any-value!]
   returns: [<opt> any-value!]
 ][
   if has-custom-type? :value [
-    value.custom-type.to type value
+    return value.custom-type.to type value
   ]
-  else [lib.to type value]
+  if is-custom-type? type [
+    return type.custom-type.to type value
+  ]
+  lib.to type value
 ]
 
 to-action: specialize :to [type: action!]
@@ -358,11 +374,29 @@ at: function [series index /only] [any [
 pick: function [
     location [any-value!]
     picker [any-value!]
-  ][any [
-  attempt [lib.pick location picker]
-  try-method-1 'pick location picker
-  fail-invalid-parameter 'pick [location picker]
-]]
+  ][
+  lib.pick location picker
+  else [
+    try-method-1 'pick location picker
+  ] else [
+    fail-invalid-parameter 'pick [location picker]
+  ]
+]
+
+poke: function [
+    location [any-value!]
+    picker [any-value!]
+    ^value [<opt> any-value!]
+    /immediate
+  ][
+  if not has-custom-type? location [
+    lib.poke/(immediate) location picker value
+  ] else [
+    try-method-2 'poke location picker unquote value
+  ] else [
+    fail-invalid-parameter 'poke [location picker value]
+  ]
+]
 
 custom-func: enfix function [:name :arg] [
   set-name: name
