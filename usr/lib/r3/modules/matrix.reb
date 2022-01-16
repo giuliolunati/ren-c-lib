@@ -5,19 +5,37 @@ REBOL [
   Type: module
   Name: matrix
   Exports: [
+    ? ; enfix solve/copy
     customize
     do-custom
+
     id-matrix
     make-matrix
+    make-vector
     matrix!
+    matrix-format
     matrix?
+    qr-factor
+    solve
     to-matrix
     transpose
-    tri-reduce
+    tri-factor
   ]
 ]
 
 import 'custom-types
+
+
+; UTILS
+
+make-vector: function [def] [
+  make vector! reduce [
+    'decimal! 64 def
+  ]
+]
+
+
+; MATRIX! TYPE
 
 matrix!: make-custom-type
 
@@ -25,6 +43,11 @@ matrix?: func [x] [
   either attempt [same? x.custom-type matrix!]
   [true] [false]
 ]
+
+to-matrix: specialize :custom.to [type: matrix!]
+
+
+; MAKE, TO, COPY
 
 matrix!.make: function [type def] [
   assert [same? type matrix!]
@@ -48,11 +71,33 @@ matrix!.make: function [type def] [
 
 make-matrix: specialize :matrix!.make [type: matrix!]
 
-make-vector: function [def] [
-  make vector! reduce [
-    'decimal! 64 def
+matrix!.to: func [type value] [
+  if not all [
+    same? type matrix!
+    vector? value
+  ] [fail "Can't make matrix!"]
+  return make map! reduce [
+    'custom-type matrix!
+    'nrows length-of value
+    'ncols 1
+    'data value
   ]
 ]
+
+matrix!.copy: my-copy: func [
+  value [any-value!]
+  /part [any-number! any-series! pair!]
+  /deep
+  /types [typeset! datatype!]
+] [
+  let r: copy value
+  if all [deep matrix? r]
+  [ r.data: copy value.data ]
+  return r
+]
+
+
+; MOLD, FORM, FORMAT
 
 matrix!.mold: function [value /only /all /flat ] [
   lib.unspaced ["make matrix! ["
@@ -61,18 +106,113 @@ matrix!.mold: function [value /only /all /flat ] [
   "]]" ]
 ]
 
-matrix!.form: func [value] [
-  let r: unspaced ["[ " value.nrows "x" value.ncols]
+matrix!.width: 40 ; default width for matrix-format
+
+fmt: func [
+  wid [integer!]
+  x [integer! decimal!]
+] [
+  r: form x
+  w: abs wid
+  case [
+    0 >= n: (length-of r) + 1 - abs wid []
+    ; too long
+    p: find r "e" [
+      remove/part (any [skip p negate n, r]) n 
+    ]
+    ; not exp. not.
+    all [
+      p: find r "."
+      n <= length-of p
+      0.001 <= abs x
+    ] [ ; trunc decimal part
+      remove/part (skip tail r negate n) n
+    ]
+    ; convert to exp. not.
+    1 < abs x [
+      r: fmt 1 + abs wid x *
+        either 1e10 > abs x [1e90] [1e100]
+      remove next next find r "e"
+      r: trim r
+    ]
+    # [
+      r: fmt 1 + abs wid x *
+        either 1e-10 < abs x [1e-90] [1e-100]
+      remove next next find r "e"
+      r: trim r
+    ]
+  ]
+  return format wid r
+]
+
+matrix-format: func [
+  value [custom-type!]
+  /wid [integer!] "width & align as in format; if 0, show only sign"
+  /log [integer!] "as wid, but show order of maglitude"
+  /tol "0 if abs(x) <= tol"
+] [
+  wid: default [log]
+  wid: default [
+    negate max 5 to-integer round/floor
+    ( matrix!.width / value.ncols )
+  ]
+  tol: default [0]
+  let r: unspaced ["[ " value.nrows "x" value.ncols if log [" <LOG>"]]
   let v: value.data
+  let x
   let i: 1
   repeat value.nrows [
     append r "^/   "
-    repeat value.ncols [
-      append r space append r form v.(i)
-      i: i + 1
+    if wid = 0 [
+      repeat value.ncols [
+        append r space
+        append r case [
+          tol >= abs x: v.(i) ["0"]
+          x > 0 ["+"]
+          x < 0 ["-"]
+        ]
+        i: i + 1
+      ]
+    ] else [
+      repeat value.ncols [
+        x: v.(i)
+        if log [
+          x: either tol < x: abs x
+          [ log-10 x ] [ "-∞" ]
+        ]
+        append r fmt wid x
+        i: i + 1
+      ]
     ]
   ] append r "^/]"
 ]
+
+matrix!.form: :matrix-format
+; PICK, POKE
+
+matrix!.pick: function [
+		matrix
+		index [block! integer!]
+	][
+  if block? index [
+    index: index.1 - 1 * matrix.ncols + index.2
+  ]
+  pick matrix.data index
+]
+
+matrix!.poke: function [
+		matrix 
+		index [block! integer!]
+    value [any-number!]
+	][
+  if block? index [
+    index: index.1 - 1 * matrix.ncols + index.2
+  ]
+  poke matrix.data index value
+]
+
+
+; ARITHMETIC
 
 matrix!.add: function [a b] [
   (matrix? a) and (matrix? b)
@@ -85,25 +225,6 @@ matrix!.add: function [a b] [
     m.data.(i): a.data.(i) + b.data.(i)
   ]
   m
-]
-
-at: matrix!.at: function [series index /only] [
-  if block? index [index: reduce index]
-  if not any-number? index [
-    index: index.1 - 1 * series.ncols + index.2
-  ]
-  lib.at series.data index
-]
-
-pick: matrix!.pick: function [
-		matrix
-		index [block! pair! integer!]
-	][
-  if block? index [index: reduce index]
-  if not integer? index [
-    index: index.1 - 1 * matrix.ncols + index.2
-  ]
-  lib.pick matrix.data index
 ]
 
 matrix!.negate: function [a] [
@@ -129,8 +250,8 @@ matrix!.subtract: function [a b] [
 ]
 
 matrix!.multiply: function [a b] [
-  (matrix? a) and (matrix? b)
-  or (fail ["Can't multiply matrix and non-matrix."])
+  if not all [matrix? a, matrix? b]
+  [ fail "Can't multiply" ]
   a.ncols = b.nrows or (fail "Wrong dimensions.")
   r: a.nrows c: b.ncols
   l: a.ncols ; = b.nrows
@@ -152,66 +273,6 @@ matrix!.multiply: function [a b] [
   m
 ]
 
-dilate: function [
-    "Apply dilatation to colums (rows) of m" 
-    return: <void>
-    m "matrix or vector (modified)"
-    v [vector!]
-      "dilatation vector"
-    k "dilatation factor, -1 for reflection"
-    /skip n "skip n columns"
-    /rows "apply to rows"
-    /both "apply to rows and columns"
-  ][
-  if not skip [n: 0]
-  if vector? m [
-    r: c: 1
-    if rows [c: length-of m]
-    else [r: length-of m]
-  ] else [
-    r: m.nrows
-    c: m.ncols
-  ]
-  l: length-of v
-  ;; normalize v
-  s: 0
-  for-each x v [s: x * x + s]
-  s: square-root s
-  assert [not zero? s]
-  for-next v v [v.1.g: v.1.g / s]
-  if rows or (both) [
-    cfor j 1 + n r 1 [
-      s: 0
-      p: at m j * c - l + 1
-      for i l [
-        s: p.1.g * v.:i + s
-        p: next p
-      ]
-      s: k - 1 * s
-      p: at m j * c - l + 1
-      for i l [
-        p.1.g: me + (v.:i * s)
-        p: next p
-      ]
-    ]
-  ]
-  if both or (not rows) [
-    cfor i 1 + n c 1 [
-      s: 0
-      p: at m r - l * c + i
-      for j l [
-        s: p.1.g * v.:j + s
-        p: lib.skip p c
-      ]
-      s: k - 1 * s
-      p: at m r - l * c + i
-      for j l [
-        p.1.g: me + (v.:j * s)
-        p: lib.skip p c
-      ]
-    ]
-  ]
-]
 
 id-matrix: function [
     {Make identity matrix n x n}
@@ -219,20 +280,13 @@ id-matrix: function [
   ][
   m: make-matrix [n n]
   p: m.data
-  repeat n [
-    p.1.g: 1
-    p: skip p n + 1
+  for i n [
+    p.(n + 1 * i - n): 1
   ]
   m
 ]
 
-reflect-both: specialize :dilate [k: -1 both: #]
-
-reflect-columns: specialize :dilate [k: -1]
-
-reflect-rows: specialize :dilate [k: -1 rows: #]
-
-to-matrix: specialize :custom.to [type: matrix!]
+; TRANSFORM
 
 transpose: function [m] [
   (matrix? m) or (fail "Transpose: arg isn't a matrix.")
@@ -249,36 +303,153 @@ transpose: function [m] [
   t
 ]
 
-tri-reduce: function [
-    {Reduce matrix a to upper triangular form r = q * a, where q is orthogonal.}
-    return: <void>
-    a "matrix, modified to r = q * a"
-    /also b "matrix, modified to q * b"
-    /symm "a is symmetric, r = q * a * q' is tri-diagonal"
+dilate: func [
+    "Apply dilatation to colums (rows) of m" 
+    m "matrix or vector (modified)"
+    v [vector!]
+      "dilatation vector"
+    k "dilatation factor, -1 for reflection"
+    /skip [integer!] "skip columns"
+    /rows "apply to rows"
+    /both "apply to rows and columns"
   ][
+  let [p r c i j l s]
+  if not skip [skip: 0]
+  if vector? m [
+    p: m
+    r: c: 1
+    if rows [c: length-of m]
+    else [r: length-of m]
+  ] else [
+    p: m.data
+    r: m.nrows
+    c: m.ncols
+  ]
+  l: length-of v
+  ;; normalize v
+  s: 0
+  for i l [s: v.(i) * v.(i) + s]
+  s: square-root s
+  if zero? s [return]
+  for i l [v.(i): v.(i) / s]
+  if rows or (both) [
+    cfor y 1 + skip r 1 [
+      s: 0
+      ; [c-l+1, y]
+      i: y * c - l + 1
+      for j l [
+        s: p.(i) * v.(j) + s
+        i: i + 1
+      ]
+      s: k - 1 * s
+      i: i - l
+      for j l [
+        p.(i): me + (v.(j) * s)
+        i: i + 1
+      ]
+    ]
+  ]
+  if both or (not rows) [
+    cfor x 1 + skip c 1 [
+      s: 0
+      i: r - l * c + x
+      for j l [
+        s: p.(i) * v.(j) + s
+        i: i + c
+      ]
+      s: k - 1 * s
+      i: i - (l * c)
+      for j l [
+        p.(i): me + (v.(j) * s)
+        i: i + c
+      ]
+    ]
+  ]
+  m
+]
+
+reflect-both: specialize :dilate [k: -1 both: #]
+
+reflect-columns: specialize :dilate [k: -1]
+
+reflect-rows: specialize :dilate [k: -1 rows: #]
+
+tri-factor: function [a b /symm /transpose] [
   r: a.nrows
   c: a.ncols
-  l: min r - 1 c
-  v: make-vector r
-  if symm [
-    l: l - 1
-    v: next v
-  ]
-  for i l [
-    p: at a [(either symm [i + 1] [i]) i]
+  p: a.data
+  l: min r - 1 c - 1
+  i: 0
+  t: 0
+  if symm [ l: l - 1, v: make-vector r - 1 ]
+  else [ v: make-vector r ]
+  y: 1
+  for x l [
     s: 0
-    for j length-of v [
-      v.:j: p.1.g
-      s: p.1.g * p.1.g + s
-      p: skip p c
+    i: r * c + x
+    j: 1 + length-of v
+    loop [j > y] [
+      j: j - 1
+      i: i - c
+      v.(j): t: p.(i)
+      s: t * t + s
+      p.(i): 0
     ]
     s: square-root s
-    v.1.g: v.1.g - s
-    reflect-columns/skip a v i - 1
-    if symm [reflect-rows/skip a v i - 1]
-    if also [reflect-columns b v]
-    v: next v
+    p.(i): s
+    v.(j): v.(j) - s
+    loop [j > 1] [j: j - 1, v.(j): 0]
+    reflect-columns/skip a v x
+    if symm [reflect-rows/skip a v x - 1]
+    if transpose [reflect-rows b v]
+    else [reflect-columns b v]
+    y: y + 1
   ]
 ]
- 
+
+qr-factor: func [
+  m [custom-type!] "modified"
+  return: [custom-type!]
+  r: [custom-type!]
+] [
+  let [q t]
+  t: either r [my-copy/deep m] [m]
+  assert [matrix? m]
+  q: id-matrix m.nrows
+  tri-factor/transpose t q
+  if r [set r t]
+  return q
+]
+
+; SOLVE, INVERT
+
+solve: function [a b /copy] [
+  if copy [
+    a: my-copy/deep a
+    b: my-copy/deep b
+  ]
+  r: a.nrows
+  c: a.ncols
+  pa: a.data,
+  cb: b.ncols, rb: b.nrows pb: b.data
+  assert [rb = r]
+  assert [r = c]
+  assert [cb = 1]
+  tri-factor a b
+  count-down y r [
+    i: y * c
+    j: r - 1 * cb + 1
+    t: 0
+    repeat r - y [
+      t: pa.(i) * pb.(j) + t
+      i: i - 1 j: j - cb
+    ]
+    pb.(j): me - t / pa.(i)
+  ]
+  if copy [return b]
+]
+
+?: enfix specialize :solve [copy: #]
+
+
 ; vim: set sw=2 ts=2 sts=2 expandtab:
