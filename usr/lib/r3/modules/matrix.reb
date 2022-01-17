@@ -16,6 +16,7 @@ REBOL [
     matrix-format
     matrix?
     qr-factor
+    right-inverse
     solve
     to-matrix
     transpose
@@ -26,7 +27,7 @@ REBOL [
 import 'custom-types
 
 
-; UTILS
+; VECTORS
 
 make-vector: function [def] [
   make vector! reduce [
@@ -34,6 +35,15 @@ make-vector: function [def] [
   ]
 ]
 
+vector-norm: func [v] [
+  let s: 0
+  let x
+  for i length-of v [
+    x: v.(i)
+    s: x * x + s
+  ]
+  return square-root s
+]
 
 ; MATRIX! TYPE
 
@@ -84,15 +94,14 @@ matrix!.to: func [type value] [
   ]
 ]
 
-matrix!.copy: my-copy: func [
-  value [any-value!]
+matrix!.copy: m-copy: func [
+  value [custom-type!]
   /part [any-number! any-series! pair!]
-  /deep
+  /shallow
   /types [typeset! datatype!]
 ] [
   let r: copy value
-  if all [deep matrix? r]
-  [ r.data: copy value.data ]
+  if not shallow [r.data: copy value.data]
   return r
 ]
 
@@ -374,13 +383,17 @@ reflect-columns: specialize :dilate [k: -1]
 
 reflect-rows: specialize :dilate [k: -1 rows: #]
 
+
+; FACTORIZATION
+
 tri-factor: function [a b /symm /transpose] [
   r: a.nrows
   c: a.ncols
   p: a.data
-  l: min r - 1 c - 1
+  l: min r c
   i: 0
   t: 0
+  norm: vector-norm p
   if symm [ l: l - 1, v: make-vector r - 1 ]
   else [ v: make-vector r ]
   y: 1
@@ -396,9 +409,11 @@ tri-factor: function [a b /symm /transpose] [
       p.(i): 0
     ]
     s: square-root s
+    if norm * 1e-9 > abs s [s: 0]
     p.(i): s
     v.(j): v.(j) - s
     loop [j > 1] [j: j - 1, v.(j): 0]
+    if s = 0 [continue]
     reflect-columns/skip a v x
     if symm [reflect-rows/skip a v x - 1]
     if transpose [reflect-rows b v]
@@ -413,7 +428,7 @@ qr-factor: func [
   r: [custom-type!]
 ] [
   let [q t]
-  t: either r [my-copy/deep m] [m]
+  t: either r [m-copy m] [m]
   assert [matrix? m]
   q: id-matrix m.nrows
   tri-factor/transpose t q
@@ -421,35 +436,62 @@ qr-factor: func [
   return q
 ]
 
+
+
 ; SOLVE, INVERT
 
 solve: function [a b /copy] [
   if copy [
-    a: my-copy/deep a
-    b: my-copy/deep b
+    a: m-copy a
+    b: m-copy b
   ]
-  r: a.nrows
-  c: a.ncols
-  pa: a.data,
-  cb: b.ncols, rb: b.nrows pb: b.data
+  r: a.nrows, c: a.ncols, pa: a.data
+  cb: b.ncols, rb: b.nrows, pb: b.data
   assert [rb = r]
-  assert [r = c]
-  assert [cb = 1]
+
+  res: make-matrix :[c cb]
+  p: res.data
   tri-factor a b
-  count-down y r [
-    i: y * c
-    j: r - 1 * cb + 1
-    t: 0
-    repeat r - y [
-      t: pa.(i) * pb.(j) + t
-      i: i - 1 j: j - cb
+  
+  ; find last non zero row
+  x: i: 0, y: 1
+  forever [
+    if (x: x + 1) > c [break]
+    i: i + 1
+    if pa.(i) != 0 [
+      if (y: y + 1) > r [break]
+      i: i + c
+      continue
     ]
-    pb.(j): me - t / pa.(i)
   ]
-  if copy [return b]
+  y: y - 1
+  assert [y > 0]
+
+  loop [y > 0] [
+    ; find first non zero element
+    x: 0, i: y - 1 * c
+    until [x: x + 1, i: i + 1, pa.(i) != 0]
+    for k cb [
+      t: 0
+      i: y * c
+      j: c - 1 * cb + k
+      repeat c - x [
+        t: pa.(i) * p.(j) + t
+        i: i - 1, j: j - cb
+      ]
+      p.(j): pb.(y - 1 * cb + k) - t / pa.(i)
+    ]
+    y: y - 1
+  ]
+  return res
 ]
 
 ?: enfix specialize :solve [copy: #]
 
+right-inverse: func [m [custom-type!]] [
+  let i: id-matrix m.nrows
+  return m ? i
+]
 
-; vim: set sw=2 ts=2 sts=2 expandtab:
+
+; vim: set et sw=2:
