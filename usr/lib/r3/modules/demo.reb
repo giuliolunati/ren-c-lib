@@ -2,9 +2,18 @@
 REBOL [
   Title: "Demo module"
   Type: module
-  Exports: [demo]
+  Exports: [demo --]
   Author: "giuliolunati@gmail.com"
   Version: 0.1.0
+]
+
+indent: func [x] [
+  replace/all form x "^/" "^/   "
+]
+
+--: func ['x [word! group!]] [
+  let v: either word? x [get x] [do x]
+  print ["--" mold x ":" v]
 ]
 
 demo: func [code] [
@@ -17,12 +26,12 @@ demo: func [code] [
         print ["##" code]
       ]
       block? code [
-        print [">>" mold/only code]
+        print [">>" indent mold/only code]
         res: do code
-        trap [print [res]]
+        trap [print ["==" indent res]]
       ]
       group? code [
-        print [">>" mold/only as block! code]
+        print [">>" indent mold/only as block! code]
         do code
       ]
     ]
