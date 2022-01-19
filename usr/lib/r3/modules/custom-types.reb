@@ -436,15 +436,15 @@ custom-func2: enfix function [:name :arg1 :arg2] [
   ]
 ]
 
-*: enfix
+*: enfixed
 multiply: custom-func2 value1 value2
-+: enfix
++: enfixed
 add: custom-func2 value1 value2
--: enfix
+-: enfixed
 subtract: custom-func2 value1 value2
--slash-1-: enfix
+-slash-1-: enfixed
 divide: custom-func2 value1 value2
-pow: enfix
+pow: enfixed
 power: custom-func2 number exponent
 abs: custom-func value
 negate: custom-func number
@@ -513,63 +513,63 @@ arctangent: function [tangent /radians] [any [
   fail-invalid-parameter 'arcsine 'sine
 ]]
 
-=: enfix equal?: function [value1 value2 r:] [
+=: enfixed equal?: func [value1 value2] [
   if map? value1 [
-    r: try attempt [value1.custom-type.equal? value1 value2]
-    if any [r == true | r == false] [return r]
+    let r: try attempt [value1.custom-type.equal? value1 value2]
+    if any [r == true, r == false] [return r]
   ]
   if map? value2 [
     r: try attempt [value2.custom-type.equal? value1 value2]
-    if any [r == true | r == false] [return r]
+    if any [r == true, r == false] [return r]
   ]
   lib.equal? value1 value2
 ]
 
-!=: enfix not-equal?: function [value1 value2 r:] [
+!=: enfixed not-equal?: func [value1 value2] [
   not equal? value1 value2
 ]
 
-==: enfix strict-equal?: function [value1 value2 r:] [
+==: enfixed strict-equal?: func [value1 value2] [
   if map? value1 [
-    r: try attempt [value1.custom-type.strict-equal? value1 value2]
-    if any [r == true | r == false] [return r]
+    let r: try attempt [value1.custom-type.strict-equal? value1 value2]
+    if any [r == true, r == false] [return r]
   ]
   if map? value2 [
     r: try attempt [value2.custom-type.strict-equal? value1 value2]
-    if any [r == true | r == false] [return r]
+    if any [r == true, r == false] [return r]
   ]
   lib.equal? value1 value2
 ]
 
-!==: enfix strict-not-equal?: function [value1 value2 r:] [
+!==: enfixed strict-not-equal?: func [value1 value2] [
   not strict-equal? value1 value2
 ]
 
-set '< enfix lesser?: function [value1 value2 r:] [
-  r: try attempt [lib.lesser? value1 value2]
-  if any [r == true | r == false] [return r]
+set '< enfixed lesser?: func [value1 value2] [
+  let r: try attempt [lib.lesser? value1 value2]
+  if any [r == true, r == false] [return r]
   r: try attempt [value1.custom-type.lesser? value1 value2]
-  if any [r == true | r == false] [return r]
+  if any [r == true, r == false] [return r]
   r: try attempt [value2.custom-type.lesser? value1 value2]
-  if any [r == true | r == false] [return r]
+  if any [r == true, r == false] [return r]
   false
 ]
 
-set '> enfix greater?: function [value1 value2] [
+set '> enfixed greater?: function [value1 value2] [
   lesser? value2 value1
 ]
 
-set '<= enfix lesser-or-equal?: function [value1 value2 r:] [
-  r: try attempt [lib.lesser-or-equal? value1 value2]
-  if any [r == true | r == false] [return r]
+set '<= enfixed lesser-or-equal?: func [value1 value2] [
+  let r: try attempt [lib.lesser-or-equal? value1 value2]
+  if any [r == true, r == false] [return r]
   r: try attempt [value1.custom-type.lesser-or-equal? value1 value2]
-  if any [r == true | r == false] [return r]
+  if any [r == true, r == false] [return r]
   r: try attempt [value2.custom-type.lesser-or-equal? value1 value2]
-  if any [r == true | r == false] [return r]
+  if any [r == true, r == false] [return r]
   false
 ]
 
-set '>= enfix greater-or-equal?: function [value1 value2] [
+set '>= enfixed greater-or-equal?: function [value1 value2] [
   lesser-or-equal? value2 value1
 ]
 
