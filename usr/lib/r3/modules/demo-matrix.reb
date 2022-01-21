@@ -8,7 +8,9 @@ REBOL [
 
 import %demo.reb
 
+
 ;;; MAIN
+random/seed now/precise
 
 demo [
   _
@@ -117,6 +119,14 @@ demo [
     form (transpose E) * M
   ]]
   _
+  "DIAGONALIZE"
+  
+  [ do-custom [
+    mirror M "(make M symmetric)"
+    -- (form M)
+    [Q D]: diagonalize M
+    -- (form (transpose Q) * D * Q)
+  ]]
 ]
 
 ; vim: set et sw=2:

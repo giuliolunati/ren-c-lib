@@ -5,16 +5,20 @@ REBOL [
   Type: module
   Name: matrix
   Exports: [
-    ? ; enfix solve/copy
+    ; from custom-types
     customize
     do-custom
-
+    ; from matrix
+    ? ; enfix solve/copy
+    diagonalize
     id-matrix
     make-matrix
     make-vector
     matrix!
     matrix-format
     matrix?
+    mirror
+    norm
     qr-factor
     right-inverse
     solve
@@ -35,7 +39,11 @@ make-vector: function [def] [
   ]
 ]
 
-vector-norm: func [v] [
+norm: func [
+  v "vector or matrix"
+  return: [decimal!] "L2-norm of components"
+][
+  if matrix? v [v: v.data]
   let s: 0
   let x
   for i length-of v [
@@ -72,7 +80,7 @@ matrix!.make: function [type def] [
       'nrows h
       'ncols w
       'data make vector! either def.3
-      [ :['decimal! 64 h * w def.3] ]
+      [ :['decimal! 64 h * w reduce def.3] ]
       [ :['decimal! 64 h * w] ]
     ]
   ]
@@ -95,7 +103,7 @@ matrix!.to: func [type value] [
 ]
 
 matrix!.copy: m-copy: func [
-  value [custom-type!]
+  value 
   /part [any-number! any-series! pair!]
   /shallow
   /types [typeset! datatype!]
@@ -155,7 +163,7 @@ fmt: func [
 ]
 
 matrix-format: func [
-  value [custom-type!]
+  value 
   /wid [integer!] "width & align as in format; if 0, show only sign"
   /log [integer!] "as wid, but show order of maglitude"
   /tol "0 if abs(x) <= tol"
@@ -282,6 +290,7 @@ matrix!.multiply: function [a b] [
   m
 ]
 
+matrix!.abs: func [m] [norm m]
 
 id-matrix: function [
     {Make identity matrix n x n}
@@ -294,6 +303,7 @@ id-matrix: function [
   ]
   m
 ]
+
 
 ; TRANSFORM
 
@@ -310,6 +320,32 @@ transpose: function [m] [
     ]
   ]
   t
+]
+
+mirror: func [
+  "Make m symmetric. Default: mean of left and right"
+  m "matrix, modified"
+  /ltor "copy left-to-right"
+  /rtol "copy right-to-left"
+][
+  assert [matrix? m]
+  assert [m.nrows = m.ncols]
+  let [c l r p]
+  c: m.ncols
+  p: m.data
+  for i c [
+    r: i * c
+    l: c - 1 * c + i
+    repeat c - i [
+      case [
+        ltor [p.(r): p.(l)]
+        rtol [p.(l): p.(r)]
+        # [p.(l): p.(r): p.(l) + p.(r) / 2]
+      ]
+      r: r - 1, l: l - c
+    ]
+  ]
+  return m
 ]
 
 dilate: func [
@@ -383,6 +419,65 @@ reflect-columns: specialize :dilate [k: -1]
 
 reflect-rows: specialize :dilate [k: -1 rows: #]
 
+rotate*: func [m c s i j a z /col /row] [
+  let [h p w u v]
+  p: m.data
+  w: m.ncols
+  h: m.nrows
+  a: either a [max a 1] [1]
+  if row [
+    z: either z [min z w] [w]
+    i: i - 1 * w + a
+    j: j - 1 * w + a
+    repeat z - a + 1 [
+      u: p.(i), v: p.(j)
+      assert [all [u v]]
+      p.(i): (v * s) + (u * c)
+      p.(j): (v * c) - (u * s)
+      i: i + 1, j: j + 1
+    ]
+    i: i - z - 1 / w + 1
+    j: j - z - 1 / w + 1
+  ]
+  if col [
+    z: either z [min z h] [h]
+    i: a - 1 * w + i
+    j: a - 1 * w + j
+    repeat z - a + 1 [
+      u: p.(i), v: p.(j)
+      assert [all [u v]]
+      p.(i): (v * s) + (u * c)
+      p.(j): (v * c) - (u * s)
+      i: i + w, j: j + w
+    ]
+  ]
+  return m
+]
+  
+rotate: specialize :rotate* [a: null z: null]
+
+swap: func [m i j /col /row] [
+  let [h p w t]
+  p: m.data
+  w: m.ncols
+  h: m.nrows
+  if row [
+    repeat w [
+      t: p.(i), p.(i): p.(j), p.(j): t
+      i: i + 1, j: j + 1
+    ]
+    i: i - h
+    j: j - h
+  ]
+  if col [
+    repeat h [
+      t: p.(i), p.(i): p.(j), p.(j): t
+      i: i + w, j: j + w
+    ]
+  ]
+  return m
+]
+
 
 ; FACTORIZATION
 
@@ -393,8 +488,12 @@ tri-factor: function [a b /symm /transpose] [
   l: min r c
   i: 0
   t: 0
-  norm: vector-norm p
-  if symm [ l: l - 1, v: make-vector r - 1 ]
+  N: norm p
+  if symm [
+    assert [r = c]
+    l: l - 1
+    v: make-vector r - 1
+  ]
   else [ v: make-vector r ]
   y: 1
   for x l [
@@ -409,7 +508,7 @@ tri-factor: function [a b /symm /transpose] [
       p.(i): 0
     ]
     s: square-root s
-    if norm * 1e-9 > abs s [s: 0]
+    if N * 1e-9 > abs s [s: 0]
     p.(i): s
     v.(j): v.(j) - s
     loop [j > 1] [j: j - 1, v.(j): 0]
@@ -420,10 +519,11 @@ tri-factor: function [a b /symm /transpose] [
     else [reflect-columns b v]
     y: y + 1
   ]
+  if symm [mirror/ltor a]
 ]
 
 qr-factor: func [
-  m [custom-type!] "modified"
+  m  "modified"
   return: [custom-type!]
   r: [custom-type!]
 ] [
@@ -436,6 +536,83 @@ qr-factor: func [
   return q
 ]
 
+diagonalize: func [
+  m "symmetrical matrix to be factorized as Q*D*Q'"
+  /prec [any-number!] "precision"
+  return: [custom-type!] "orthonormal matrix Q"
+  d: [custom-type!] "diagonal matrix D"
+] [
+  prec: default [1e-8]
+  prec: prec * prec
+  let [c i j l n p q r s t]
+  l: m.ncols
+  assert [l = m.nrows]
+  if d [m: m-copy m]
+  p: m.data
+  q: id-matrix m.nrows
+  tri-factor/symm/transpose m q
+  n: l
+  loop [ n > 1 ] [
+    loop [
+      i: n - 1 * l + n
+      t: p.(i - 1)
+      t * t > abs prec * p.(i) * p.(i - l - 1)
+    ][
+      t: p.(i)
+      j: 1
+      repeat n [ p.(j): me - t, j: j + l + 1 ]
+      for i n - 1 [
+        j: i - 1 * l + i
+        c: p.(j)
+        s: p.(j + 1)
+        r: square-root (c * c) + (s * s)
+        c: c / r, s: s / r
+        rotate*/col/row m c s i i + 1
+          max 1 i - 1 min n i + 2
+        rotate/col q c s i i + 1
+        r: p.(j + l) + p.(j + 1)
+        p.(j + l): p.(j + 1): r / 2
+        if i > 1 [
+          p.(j + l - 1): 0
+          p.(j + 1 - l): 0
+        ]
+      ]
+      j: 1
+      repeat n [ p.(j): me + t, j: j + l + 1 ]
+    ]
+    p.(i - l): p.(i - 1): 0
+    n: n - 1
+  ]
+  ; sort autovalors (and q accordingly)
+  s: make block! 2 * l
+  j: 1
+  for i l [
+    append s :[p.(j) i]
+    j: j + l + 1
+  ]
+  sort/reverse/skip s 2
+  let k: 1
+  until [
+    i: k
+    forever [
+      j: s.(2 * i), s.(2 * i): _
+      if k = j [break]
+      ; swap d[i,i] and d[j,j]
+      let a: i - 1 * l + i
+      let b: j - 1 * l + j
+      t: p.(a), p.(a): p.(b), p.(b): t
+      swap/col q i j
+      i: j
+    ]
+    not until [
+      k: k + 1
+      if k > l [break]
+      s.(2 * k)
+    ]
+  ]
+  if d [set d m]
+  return q
+]
 
 
 ; SOLVE, INVERT
@@ -488,7 +665,7 @@ solve: function [a b /copy] [
 
 ?: enfix specialize :solve [copy: #]
 
-right-inverse: func [m [custom-type!]] [
+right-inverse: func [m ] [
   let i: id-matrix m.nrows
   return m ? i
 ]
