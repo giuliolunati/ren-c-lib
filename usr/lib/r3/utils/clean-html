@@ -60,4 +60,4 @@ cleaner: either dump
 cleaner/run html
 
 if outfile [close outfile]
-; vim: set et sw=2:
+; vim: set syn=rebol et sw=2:

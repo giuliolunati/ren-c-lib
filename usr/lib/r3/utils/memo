@@ -83,7 +83,7 @@ save-desk: func [
   ][
   sort/compare desk :cmp5
   new-line/all desk true
-  write out "; vim: set et sw=4 syn=rebol:^/^/"
+  write out "; vim: set syn=rebol et sw=4 syn=rebol:^/^/"
   if code [
     write/append out reduce ["; code^/" mold code "^/^/" ]
   ]
@@ -174,7 +174,7 @@ change-dir system.options.path
 arg: system.options.args
 cmd: src: desk-file: last-q: _
 t0: now
-new: false
+force: new: false
 
 for-next arg arg [
   case [
@@ -261,8 +261,10 @@ for-next arg arg [
       ]
     ]
     "-new" = arg.1 [
-      arg: next arg
       new: true
+    ]
+    "-f" = arg.1 [
+      force: true
     ]
     find ["+" "+2" "+txt"] arg.1 [
       cmd: arg.1, src: to-file arg.2, arg: next arg
@@ -336,6 +338,10 @@ do-in-code: func [x] [
     [ do bind x code-obj ] [ x ]
 ]
 
+t: now
+if force [for-each x desk [x.5: t]]
+
+
 forever [
   if text [sort desk]
   else [sort/compare desk :cmp45]
@@ -356,7 +362,7 @@ forever [
     do-command
     continue
   ]
-  assert [any [not d.5, d.5 <= t]]
+  ;assert [any [not d.5, d.5 <= t]]
   if text [
     i: d.1
     if any [not last-q, last-q + 1 != i] [

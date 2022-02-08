@@ -326,4 +326,4 @@ for-next days days [
   ]
 ]
 
-; vim: set sw=2 rs=2 sts=2:
+; vim: set syn=rebol sw=2 rs=2 sts=2:
