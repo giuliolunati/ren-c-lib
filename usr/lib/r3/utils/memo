@@ -321,11 +321,6 @@ do-command: function [] [
     c = "?" [
       print-stats desk
     ]
-    c.1 = #"%" [
-      save-desk desk text code to-file next c
-      print-stats desk
-      quit 0
-    ]
     c = "reset" [
       reset-desk desk
     ]
